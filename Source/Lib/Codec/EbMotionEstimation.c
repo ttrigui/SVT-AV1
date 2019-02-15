@@ -4413,7 +4413,28 @@ void HmeLevel0(
     xTopLeftSearchRegion = ((int16_t)sixteenthRefPicPtr->origin_x + origin_x) + x_search_area_origin;
     yTopLeftSearchRegion = ((int16_t)sixteenthRefPicPtr->origin_y + origin_y) + y_search_area_origin;
     searchRegionIndex = xTopLeftSearchRegion + yTopLeftSearchRegion * sixteenthRefPicPtr->strideY;
+#if  USE_SAD_HMEL0
+    SadLoopKernel(
+        &context_ptr->sixteenth_sb_buffer[0],
+        context_ptr->sixteenth_sb_buffer_stride,
+        &sixteenthRefPicPtr->bufferY[searchRegionIndex],
+        sixteenthRefPicPtr->strideY,
+        sb_height, sb_width,
+        /* results */
+        level0BestSad,
+        xLevel0SearchCenter,
+        yLevel0SearchCenter,
+        /* range */
+        sixteenthRefPicPtr->strideY,
+        search_area_width,
+        search_area_height
+    );
 
+    *xLevel0SearchCenter += x_search_area_origin;
+    *xLevel0SearchCenter *= 4; // Multiply by 4 because operating on 1/4 resolution
+    *yLevel0SearchCenter += y_search_area_origin;
+    *yLevel0SearchCenter *= 4; // Multiply by 4 because operating on 1/4 resolution
+#else
     if (((sb_width & 7) == 0) || (sb_width == 4))
     {
         if (((search_area_width & 15) == 0) && (asm_type == ASM_AVX2))
@@ -4498,7 +4519,7 @@ void HmeLevel0(
     *xLevel0SearchCenter *= 4; // Multiply by 4 because operating on 1/4 resolution
     *yLevel0SearchCenter += y_search_area_origin;
     *yLevel0SearchCenter *= 4; // Multiply by 4 because operating on 1/4 resolution
-
+#endif
     return;
 }
 
@@ -4576,7 +4597,28 @@ void HmeLevel1(
     xTopLeftSearchRegion = ((int16_t)quarterRefPicPtr->origin_x + origin_x) + x_search_area_origin;
     yTopLeftSearchRegion = ((int16_t)quarterRefPicPtr->origin_y + origin_y) + y_search_area_origin;
     searchRegionIndex = xTopLeftSearchRegion + yTopLeftSearchRegion * quarterRefPicPtr->strideY;
+#if USE_SAD_HMEL1
+        SadLoopKernel(
+            &context_ptr->quarter_sb_buffer[0],
+            context_ptr->quarter_sb_buffer_stride,
+            &quarterRefPicPtr->bufferY[searchRegionIndex],
+            quarterRefPicPtr->strideY,
+            sb_height, sb_width,
+            /* results */
+            level1BestSad,
+            xLevel1SearchCenter,
+            yLevel1SearchCenter,
+            /* range */
+            quarterRefPicPtr->strideY,
+            search_area_width,
+            search_area_height
+        );
 
+    *xLevel1SearchCenter += x_search_area_origin;
+    *xLevel1SearchCenter *= 2; // Multiply by 2 because operating on 1/2 resolution
+    *yLevel1SearchCenter += y_search_area_origin;
+    *yLevel1SearchCenter *= 2; // Multiply by 2 because operating on 1/2 resolution
+#else
     if (((sb_width & 7) == 0) || (sb_width == 4))
     {
         // Put the first search location into level0 results
@@ -4620,7 +4662,7 @@ void HmeLevel1(
     *xLevel1SearchCenter *= 2; // Multiply by 2 because operating on 1/2 resolution
     *yLevel1SearchCenter += y_search_area_origin;
     *yLevel1SearchCenter *= 2; // Multiply by 2 because operating on 1/2 resolution
-
+#endif
     return;
 }
 
@@ -4710,6 +4752,26 @@ void HmeLevel2(
     xTopLeftSearchRegion = ((int16_t)refPicPtr->origin_x + origin_x) + x_search_area_origin;
     yTopLeftSearchRegion = ((int16_t)refPicPtr->origin_y + origin_y) + y_search_area_origin;
     searchRegionIndex = xTopLeftSearchRegion + yTopLeftSearchRegion * refPicPtr->strideY;
+#if USE_SAD_HMEL2
+
+        SadLoopKernel(
+            context_ptr->sb_src_ptr,
+            context_ptr->sb_src_stride,
+            &refPicPtr->bufferY[searchRegionIndex],
+            refPicPtr->strideY,
+            sb_height, sb_width,
+            /* results */
+            level2BestSad,
+            xLevel2SearchCenter,
+            yLevel2SearchCenter,
+            /* range */
+            refPicPtr->strideY,
+            search_area_width,
+            search_area_height
+        );
+    *xLevel2SearchCenter += x_search_area_origin;
+    *yLevel2SearchCenter += y_search_area_origin;
+#else
     if ((((sb_width & 7) == 0) && (sb_width != 40) && (sb_width != 56)))
     {
         // Put the first search location into level0 results
@@ -4753,7 +4815,7 @@ void HmeLevel2(
     *level2BestSad *= 2; // Multiply by 2 because considered only every other line
     *xLevel2SearchCenter += x_search_area_origin;
     *yLevel2SearchCenter += y_search_area_origin;
-
+#endif
     return;
 }
 

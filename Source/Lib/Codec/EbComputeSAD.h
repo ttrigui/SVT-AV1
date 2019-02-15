@@ -210,16 +210,24 @@ extern "C" {
     {
         // NON_AVX2
         GetEightHorizontalSearchPointResults_8x8_16x16_PU_SSE41_INTRIN,
+#if USE_SAD_ME
+        GetEightHorizontalSearchPointResults_8x8_16x16_PU,
+#else
         // AVX2
         GetEightHorizontalSearchPointResults_8x8_16x16_PU_AVX2_INTRIN,
+#endif
     };
 
     static EB_GETEIGHTSAD32x32 FUNC_TABLE GetEightHorizontalSearchPointResults_32x32_64x64_funcPtrArray[ASM_TYPE_TOTAL] =
     {
         // NON_AVX2
         GetEightHorizontalSearchPointResults_32x32_64x64_PU_SSE41_INTRIN,
+#if USE_SAD_ME
+        GetEightHorizontalSearchPointResults_32x32_64x64,
+#else
         // AVX2
         GetEightHorizontalSearchPointResults_32x32_64x64_PU_AVX2_INTRIN,
+#endif
     };
 
     uint32_t combined_averaging_ssd_c(

@@ -141,6 +141,13 @@ extern "C" {
 #define FAST_SG                                         1
 #define FAST_WN                                         1
 
+#define USE_SAD_ME_HME                                  1
+#if USE_SAD_ME_HME
+#define USE_SAD_ME                                      1
+#define USE_SAD_HMEL0                                   1
+#define USE_SAD_HMEL1                                   1
+#define USE_SAD_HMEL2                                   1
+#endif
 /********************************************************/
 /****************** Pre-defined Values ******************/
 /********************************************************/

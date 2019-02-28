@@ -4294,7 +4294,7 @@ void av1_fwd_txfm2d_32x32_avx2(int16_t *input, int32_t *output, uint32_t stride,
     fwd_txfm2d_32x32_avx2(input, output, stride, &cfg, txfm_buf);
 }
 
-#if PF_N2_32X32_DCT
+#if PF_N2_32X32
 void av1_idtx32_pf_new_avx2(const __m256i *input, __m256i *output, int8_t cos_bit,
     const int32_t col_num) {
     (void)cos_bit;
@@ -4783,10 +4783,14 @@ static INLINE void fwd_txfm2d_pf_32x32_avx2(const int16_t *input, int32_t *outpu
 }
 void av1_fwd_txfm2d_pf_32x32_avx2(int16_t *input, int32_t *output, uint32_t stride, TxType tx_type, uint8_t  bd)
 {
+    __m256i *out_256 = (__m256i *)output;
     DECLARE_ALIGNED(32, int32_t, txfm_buf[1024]);
     TXFM_2D_FLIP_CFG cfg;
     Av1TransformConfig(tx_type, TX_32X32, &cfg);
-    (void)bd;
+    (void)bd;  
+    for (int32_t i = 0; i < 128; i++) { 
+        out_256[i] = _mm256_setzero_si256();
+    }
     fwd_txfm2d_pf_32x32_avx2(input, output, stride, &cfg, txfm_buf);
 }
 #endif

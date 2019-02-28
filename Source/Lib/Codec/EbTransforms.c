@@ -3777,7 +3777,7 @@ static INLINE void Av1TranformTwoDCore_c(
         }
     }
 }
-#if PF_N2_32X32_DCT
+#if PF_N2_32X32
 
 void av1_round_shift_array_pf_c(int32_t *arr_in,int32_t *arr_out, int32_t size, int32_t bit) {
     int32_t i;
@@ -4457,8 +4457,8 @@ void Av1TransformTwoD_32x32_c(
 }
 
 
-#if PF_N2_32X32_DCT
-void av1_transform_twod_32x32_pf_c(
+#if PF_N2_32X32
+void av1_fwd_txfm2d_pf_32x32_c(
     int16_t         *input,
     int32_t         *output,
     uint32_t         inputStride,
@@ -4467,6 +4467,8 @@ void av1_transform_twod_32x32_pf_c(
 {
     int32_t intermediateTransformBuffer[32 * 32];
     TXFM_2D_FLIP_CFG cfg;
+
+    memset(output, 0, 1024 * sizeof(int32_t));
 
     Av1TransformConfig(
         transform_type,
@@ -4955,7 +4957,7 @@ EbErrorType Av1EstimateTransform(
                 residualStride,
                 transform_type,
                 bit_depth);
-        
+
         *three_quad_energy = HandleTransform64x32_c(coeffBuffer,
             64);
 
@@ -5176,33 +5178,52 @@ EbErrorType Av1EstimateTransform(
 
     case TX_32X32:
 
-        if (transform_type == V_DCT || transform_type == H_DCT || transform_type == V_ADST || transform_type == H_ADST || transform_type == V_FLIPADST || transform_type == H_FLIPADST)
-            // Tahani: I believe those cases are never hit
-            Av1TransformTwoD_32x32_c(
-                residual_buffer,
-                coeffBuffer,
-                residualStride,
-                transform_type,
-                bit_depth);
 
-        else {
-#if PF_N2_32X32_DCT
-            if ((transCoeffShape == N2_SHAPE) && (transform_type == IDTX/*DCT_DCT*/))
-            {
-                memset(coeffBuffer, 0, 1024 * sizeof(int32_t));
-                av1_fwd_txfm2d_pf_32x32(
+#if PF_N2_32X32
+        if (transform_type == V_DCT || transform_type == H_DCT || transform_type == V_ADST || transform_type == H_ADST || transform_type == V_FLIPADST || transform_type == H_FLIPADST)
+        {
+            if (transCoeffShape == N2_SHAPE)
+            {  
+                av1_fwd_txfm2d_pf_32x32_c(
                     residual_buffer,
                     coeffBuffer,
                     residualStride,
                     transform_type,
                     bit_depth);
-               /* printf("\n");
-                for (int i = 0; i < 32; i++)
+            }
+            else
+            {
+                Av1TransformTwoD_32x32_c(
+                    residual_buffer,
+                    coeffBuffer,
+                    residualStride,
+                    transform_type,
+                    bit_depth);
+            }
+        }
+
+        else {
+            if (transCoeffShape == N2_SHAPE) 
+            {
+                if ((transform_type == IDTX) || (transform_type == DCT_DCT))
                 {
-                    printf("\n");
-                    for (int j = 0; j < 32; j++)
-                        printf("%d \t", coeffBuffer[i * 32 + j]);
-                }*/
+                    av1_fwd_txfm2d_pf_32x32(
+                        residual_buffer,
+                        coeffBuffer,
+                        residualStride,
+                        transform_type,
+                        bit_depth);
+                }
+                else
+                {
+                    av1_fwd_txfm2d_pf_32x32_c(
+                        residual_buffer,
+                        coeffBuffer,
+                        residualStride,
+                        transform_type,
+                        bit_depth);
+                }
+
             }
             else
             {
@@ -5213,15 +5234,27 @@ EbErrorType Av1EstimateTransform(
                     transform_type,
                     bit_depth);
             }
+        }
 #else
+        if (transform_type == V_DCT || transform_type == H_DCT || transform_type == V_ADST || transform_type == H_ADST || transform_type == V_FLIPADST || transform_type == H_FLIPADST)
+            // Tahani: I believe those cases are never hit
+            Av1TransformTwoD_32x32_c(
+                residual_buffer,
+                coeffBuffer,
+                residualStride,
+                transform_type,
+                bit_depth);
+
+        else {
             av1_fwd_txfm2d_32x32(
                 residual_buffer,
                 coeffBuffer,
                 residualStride,
                 transform_type,
                 bit_depth);
+    }
 #endif
-        }
+  
 
 
 

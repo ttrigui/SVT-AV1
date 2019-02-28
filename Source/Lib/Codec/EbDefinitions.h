@@ -151,9 +151,7 @@ extern "C" {
 #define TUNED_SETTINGS_FOR_M0                           1
 #define TUNED_SETTINGS_FOR_M1                           1
 
-
-#define SIMULATE_PF_N2_DCT_32X32                        0 //1
-#define PF_N2_32X32_DCT                                 0 //1
+#define PF_N2_32X32_DCT                                 1
 /********************************************************/
 /****************** Pre-defined Values ******************/
 /********************************************************/

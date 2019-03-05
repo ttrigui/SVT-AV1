@@ -143,6 +143,17 @@ extern "C" {
 #define TX_SEARCH_LEVELS                                1 
 #define INTERPOLATION_SEARCH_LEVELS                     1 
 #define NSQ_SEARCH_LEVELS                               1
+
+#define USE_SSE_FL                                      0 //1
+#define USE_SSE_RE_FL                                   0 //1 // SSE rate estimation
+
+//// SSE-FL investigation ////
+#define M3_FULL_LOOP                                    0 //1
+#define DISABLE_4X4                                     0 //1
+#define DISABLE_4X4N_NX4                                0 //1
+#define DISABLE_NSQ                                     0 //1
+#define M3_PARTIONING                                   0 //1
+#define M3_INTER                                        1
 /********************************************************/
 /****************** Pre-defined Values ******************/
 /********************************************************/

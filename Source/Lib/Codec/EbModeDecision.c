@@ -1612,7 +1612,7 @@ void  inject_inter_candidates(
         candidateArray[canTotalCnt].transform_type[PLANE_TYPE_UV] = DCT_DCT;
         ++canTotalCnt;
     }
-
+#if ! M3_INTER
 #if NSQ_SEARCH_LEVELS
     if (inject_newmv_candidate) {
 #endif
@@ -1667,6 +1667,7 @@ void  inject_inter_candidates(
         }
 #if NSQ_SEARCH_LEVELS
     }
+#endif
 #endif
     // update the total number of candidates injected
     (*candidateTotalCnt) = canTotalCnt;

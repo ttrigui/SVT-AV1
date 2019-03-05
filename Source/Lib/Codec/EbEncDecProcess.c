@@ -1354,7 +1354,9 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(
         context_ptr->nfl_level = 2;
     else
         context_ptr->nfl_level = 3;
-
+#if M3_FULL_LOOP
+    context_ptr->nfl_level = 3;
+#endif
 
     return return_error;
 }

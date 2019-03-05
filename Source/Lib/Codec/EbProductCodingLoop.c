@@ -1127,13 +1127,13 @@ uint64_t ProductGenerateChromaWeight(
     return (weight << 1);
 }
 
-uint64_t SpatialFullDistortionKernel(
-    uint8_t   *input,
-    uint32_t   inputStride,
-    uint8_t   *recon,
-    uint32_t   reconStride,
-    uint32_t   areaWidth,
-    uint32_t   areaHeight);
+//uint64_t SpatialFullDistortionKernel(
+//    uint8_t   *input,
+//    uint32_t   inputStride,
+//    uint8_t   *recon,
+//    uint32_t   reconStride,
+//    uint32_t   areaWidth,
+//    uint32_t   areaHeight);
 
 uint64_t SpatialFullDistortionKernel8x8_SSSE3_INTRIN(
     uint8_t   *input,
@@ -1335,6 +1335,16 @@ void ProductPerformFastLoop(
             uint8_t * const predBufferY = prediction_ptr->bufferY + cuOriginIndex;
             // Skip distortion computation if the candidate is MPM
             if (candidateBuffer->candidate_ptr->mpm_flag == EB_FALSE && !(candidate_ptr->motion_mode == WARPED_CAUSAL && candidate_ptr->local_warp_valid == 0)) {
+#if USE_SSE_FL
+                // Y
+                lumaFastDistortion += SpatialFullDistortionKernel( //SpatialFullDistortionKernel_funcPtrArray[asm_type][Log2f(bwidth) - 2](
+                    inputBufferY,
+                    inputStrideY,
+                    predBufferY,
+                    prediction_ptr->strideY, 
+                    bwidth,
+                    bheight);
+#else
                 if (fastLoopCandidateIndex == bestFirstFastCostSearchCandidateIndex && candidate_ptr->type == INTRA_MODE)
                     lumaFastDistortion = candidate_ptr->me_distortion;
                 else {
@@ -1347,13 +1357,21 @@ void ProductPerformFastLoop(
                         bheight >> candidateBuffer->sub_sampled_pred,
                         bwidth)) << candidateBuffer->sub_sampled_pred;
                 }
-
+#endif
                 // Cb
                 if (context_ptr->blk_geom->has_uv) {
 
                     uint8_t * const inputBufferCb = inputPicturePtr->bufferCb + inputCbOriginIndex;
                     uint8_t *  const predBufferCb = candidateBuffer->prediction_ptr->bufferCb + cuChromaOriginIndex;
-
+#if USE_SSE_FL
+                    chromaFastDistortion += SpatialFullDistortionKernel( //SpatialFullDistortionKernel_funcPtrArray[asm_type][Log2f(bwidth_uv) - 2](
+                        inputBufferCb,
+                        inputPicturePtr->strideCb,
+                        predBufferCb,
+                        prediction_ptr->strideCb,
+                        bwidth_uv,
+                        bheight_uv);
+#else
                     chromaFastDistortion += NxMSadKernelSubSampled_funcPtrArray[asm_type][bwidth >> 4](
                         inputBufferCb,
                         inputPicturePtr->strideCb << candidateBuffer->sub_sampled_pred_chroma,
@@ -1361,11 +1379,19 @@ void ProductPerformFastLoop(
                         prediction_ptr->strideCb,
                         bheight_uv >> candidateBuffer->sub_sampled_pred_chroma,
                         bwidth_uv) << candidateBuffer->sub_sampled_pred_chroma;
-
+#endif
 
                     uint8_t * const inputBufferCr = inputPicturePtr->bufferCr + inputCrOriginIndex;
                     uint8_t * const predBufferCr = candidateBuffer->prediction_ptr->bufferCr + cuChromaOriginIndex;
-
+#if USE_SSE_FL
+                    chromaFastDistortion += SpatialFullDistortionKernel( //SpatialFullDistortionKernel_funcPtrArray[asm_type][Log2f(bwidth_uv) - 2](
+                        inputBufferCr,
+                        inputPicturePtr->strideCb,
+                        predBufferCr,
+                        prediction_ptr->strideCr,
+                        bwidth_uv,
+                        bheight_uv);
+#else
                     chromaFastDistortion += NxMSadKernelSubSampled_funcPtrArray[asm_type][bwidth >> 4](
                         inputBufferCr,
                         inputPicturePtr->strideCb << candidateBuffer->sub_sampled_pred_chroma,
@@ -1373,7 +1399,7 @@ void ProductPerformFastLoop(
                         prediction_ptr->strideCr,
                         bheight_uv >> candidateBuffer->sub_sampled_pred_chroma,
                         bwidth_uv) << candidateBuffer->sub_sampled_pred_chroma;
-
+#endif
                 }
             }
 
@@ -1400,9 +1426,15 @@ void ProductPerformFastLoop(
                     cu_ptr,
                     candidateBuffer,
                     cu_ptr->qp,
+#if USE_SSE_FL
+                    lumaFastDistortion << 4,
+                    chromaFastDistortion << 4,
+                    context_ptr->full_lambda,
+#else
                     lumaFastDistortion,
                     chromaFastDistortion,
                     context_ptr->fast_lambda,
+#endif
                     picture_control_set_ptr);
             }
 
@@ -2482,6 +2514,18 @@ EbBool allowed_ns_cu(
             ret = 0;
         }
     }
+#if DISABLE_NSQ
+    if (context_ptr->blk_geom->shape != PART_N) {
+        ret = 0;
+    }
+#endif
+#if DISABLE_4X4
+    if (context_ptr->blk_geom->bheight == 4 && context_ptr->blk_geom->bwidth == 4)
+        ret = 0;
+#elif DISABLE_4X4N_NX4
+    if (context_ptr->blk_geom->bheight == 4 || context_ptr->blk_geom->bwidth == 4)
+        ret = 0;
+#endif
     return ret;
 }
 

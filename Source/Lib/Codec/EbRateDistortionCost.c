@@ -685,6 +685,29 @@ EbErrorType Av1IntraFastCost(
     // Assign fast cost
     *(candidate_buffer_ptr->fast_cost_ptr) = RDCOST(lambda, rate, totalDistortion);
 
+#if USE_SSE_RE_FL
+    int32_t current_q_index = MAX(0, MIN(QINDEX_RANGE - 1, picture_control_set_ptr->parent_pcs_ptr->base_qindex));
+    Dequants *const dequants = &picture_control_set_ptr->parent_pcs_ptr->deq;
+
+    int16_t quantizer = dequants->y_dequant_Q3[current_q_index][1];
+    model_rd_from_sse(
+        context_ptr->blk_geom->bsize,
+        quantizer,
+        luma_distortion,
+        &lumaRate,
+        &lumaSad);
+
+    model_rd_from_sse(
+        context_ptr->blk_geom->bsize_uv,
+        quantizer,
+        chroma_distortion,
+        &chromaRate,
+        &chromaSad);
+
+    rate += lumaRate + chromaRate;
+    //totalDistortion = lumaSad + chromaSad;
+    *(candidate_buffer_ptr->fast_cost_ptr) = RDCOST(lambda, rate, totalDistortion);
+#endif
     return return_error;
 }
 
@@ -1257,6 +1280,29 @@ EbErrorType Av1InterFastCost(
 
     }
 
+#if USE_SSE_RE_FL
+    int32_t current_q_index = MAX(0, MIN(QINDEX_RANGE - 1, picture_control_set_ptr->parent_pcs_ptr->base_qindex));
+    Dequants *const dequants = &picture_control_set_ptr->parent_pcs_ptr->deq;
+
+    int16_t quantizer = dequants->y_dequant_Q3[current_q_index][1];
+    model_rd_from_sse(
+        context_ptr->blk_geom->bsize,
+        quantizer,
+        luma_distortion,
+        &lumaRate,
+        &lumaSad);
+
+    model_rd_from_sse(
+        context_ptr->blk_geom->bsize_uv,
+        quantizer,
+        chroma_distortion,
+        &chromaRate,
+        &chromaSad);
+
+    rate += lumaRate + chromaRate;
+    //totalDistortion = lumaSad + chromaSad;
+    *(candidate_buffer_ptr->fast_cost_ptr) = RDCOST(lambda, rate, totalDistortion);
+#endif
 
     return return_error;
 }

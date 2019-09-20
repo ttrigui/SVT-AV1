@@ -156,6 +156,11 @@ typedef struct EbPerformanceContext {
     double                    sum_luma_psnr;
     double                    sum_cr_psnr;
     double                    sum_cb_psnr;
+
+    double                    sum_luma_sse;
+    double                    sum_cr_sse;
+    double                    sum_cb_sse;
+
     uint64_t                  sum_qp;
 
 }EbPerformanceContext;
@@ -279,6 +284,7 @@ typedef struct EbConfig
      * MD Parameters
      ****************************************/
     EbBool                  constrained_intra;
+    EbBool                  enable_hbd_mode_decision;
 
     int32_t                  tile_columns;
     int32_t                  tile_rows;

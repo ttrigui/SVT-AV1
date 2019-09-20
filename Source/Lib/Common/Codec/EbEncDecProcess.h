@@ -51,10 +51,6 @@ extern "C" {
         EbBool                               is_md_rate_estimation_ptr_owner;
         ModeDecisionContext                 *md_context;
         const BlockGeom                     *blk_geom;
-
-        // TMVP
-        EbReferenceObject                   *reference_object_write_ptr;
-
         // MCP Context
         MotionCompensationPredictionContext *mcp_context;
         SsMeContext                         *ss_mecontext;
@@ -88,7 +84,6 @@ extern "C" {
         uint8_t                                sb_sz;
         uint32_t                               sb_index;
         MvUnit                               mv_unit;
-        int16_t                                x_mv_amvp_candidate_array_list0[MAX_NUM_OF_AMVP_CANDIDATES];
         uint8_t                                txb_itr;
         EbBool                                 is16bit; //enable 10 bit encode in CL
         EbColorFormat                          color_format;
@@ -140,6 +135,7 @@ extern "C" {
         EbFifo                *picture_demux_fifo_ptr,
         EbBool                   is16bit,
         EbColorFormat            color_format,
+        EbBool                   enable_hbd_mode_decision,
         uint32_t                 max_input_luma_width,
         uint32_t                 max_input_luma_height);
 

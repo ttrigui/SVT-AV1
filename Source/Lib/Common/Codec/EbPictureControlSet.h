@@ -24,7 +24,7 @@
 #include "EbObject.h"
 #include "noise_model.h"
 #include "EbSegmentationParams.h"
-
+#include "EbAv1Structs.h"
 #include "EbMdRateEstimation.h"
 
 #include "EbCdef.h"
@@ -13467,12 +13467,6 @@ extern "C" {
                 32, 32, 32, 32 },
     },
     };
-    typedef struct {
-        int skip_mode_allowed;
-        int skip_mode_flag;
-        int ref_frame_idx_0;
-        int ref_frame_idx_1;
-    } SkipModeInfo;
     struct Buf2d
     {
         uint8_t *buf;
@@ -13587,10 +13581,6 @@ extern "C" {
         int32_t color_format;
         int32_t subsampling_x;
         int32_t subsampling_y;
-        int32_t width;
-        int32_t height;
-        int32_t superres_upscaled_width;
-        int32_t superres_upscaled_height;
         RestorationInfo rst_info[MAX_MB_PLANE];
         // rst_end_stripe[i] is one more than the index of the bottom stripe
         // for tile row i.
@@ -13601,20 +13591,9 @@ extern "C" {
         int32_t *rst_tmpbuf;
         Yv12BufferConfig *frame_to_show;
         int32_t byte_alignment;
-        int32_t tile_cols, tile_rows;
         int32_t last_tile_cols, last_tile_rows;
-        int32_t max_tile_width_sb;
-        int32_t min_log2_tile_cols;
-        int32_t max_log2_tile_cols;
-        int32_t max_log2_tile_rows;
-        int32_t min_log2_tile_rows;
-        int32_t min_log2_tiles;
-        int32_t max_tile_height_sb;
-        int32_t uniform_tile_spacing_flag;
         int32_t log2_tile_cols;                        // only valid for uniform tiles
         int32_t log2_tile_rows;                        // only valid for uniform tiles
-        int32_t tile_col_start_sb[MAX_TILE_COLS + 1];  // valid for 0 <= i <= tile_cols
-        int32_t tile_row_start_sb[MAX_TILE_ROWS + 1];  // valid for 0 <= i <= tile_rows
         int32_t tile_width, tile_height;               // In MI units
         struct PictureParentControlSet               *p_pcs_ptr;
         int8_t  sg_filter_mode;
@@ -13624,6 +13603,10 @@ extern "C" {
         int8_t  wn_filter_mode;
 
         struct PictureControlSet               *pcs_ptr;
+
+        FrameSize                       frm_size;
+        TilesInfo                       tiles_info;
+
     } Av1Common;
 
     /**************************************
@@ -13779,9 +13762,6 @@ extern "C" {
         uint8_t                              *qp_array;
         uint16_t                              qp_array_stride;
         uint32_t                              qp_array_size;
-        // QP Assignment
-        uint8_t                               prev_coded_qp;
-        uint8_t                               prev_quant_group_coded_qp;
         // EncDec Entropy Coder (for rate estimation)
         EntropyCoder                       *coeff_est_entropy_coder_ptr;
 
@@ -13796,6 +13776,11 @@ extern "C" {
         NeighborArrayUnit                  *md_tx_depth_1_luma_recon_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
         NeighborArrayUnit                  *md_cb_recon_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
         NeighborArrayUnit                  *md_cr_recon_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
+        EbBool                             hbd_mode_decision;
+        NeighborArrayUnit                  *md_luma_recon_neighbor_array16bit[NEIGHBOR_ARRAY_TOTAL_COUNT];
+        NeighborArrayUnit                  *md_tx_depth_1_luma_recon_neighbor_array16bit[NEIGHBOR_ARRAY_TOTAL_COUNT];
+        NeighborArrayUnit                  *md_cb_recon_neighbor_array16bit[NEIGHBOR_ARRAY_TOTAL_COUNT];
+        NeighborArrayUnit                  *md_cr_recon_neighbor_array16bit[NEIGHBOR_ARRAY_TOTAL_COUNT];
         NeighborArrayUnit                  *md_skip_coeff_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
         NeighborArrayUnit                  *md_luma_dc_sign_level_coeff_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
         NeighborArrayUnit                  *md_tx_depth_1_luma_dc_sign_level_coeff_neighbor_array[NEIGHBOR_ARRAY_TOTAL_COUNT];
@@ -13872,6 +13857,11 @@ extern "C" {
         FRAME_CONTEXT * ec_ctx_array;
         struct MdRateEstimationContext* rate_est_array;
         uint8_t  update_cdf;
+        FRAME_CONTEXT           ref_frame_context[REF_FRAMES];
+        EbWarpedMotionParams    ref_global_motion[TOTAL_REFS_PER_FRAME];
+        struct MdRateEstimationContext *md_rate_estimation_array;
+        int8_t ref_frame_side[REF_FRAMES];
+        TPL_MV_REF  *tpl_mvs;
     } PictureControlSet;
 
     // To optimize based on the max input size
@@ -13886,9 +13876,6 @@ extern "C" {
         uint8_t   height;
         uint8_t   is_complete_sb;
         EbBool    raster_scan_cu_validity[CU_MAX_COUNT];
-#if !INCOMPLETE_SB_FIX
-        EbBool    block_is_inside_md_scan[BLOCK_MAX_COUNT_SB_128];
-#endif
         uint8_t   potential_logo_sb;
         uint8_t   is_edge_sb;
     } SbParams;
@@ -13903,9 +13890,7 @@ extern "C" {
         uint8_t    height;
         uint8_t    is_complete_sb;
         EbBool     block_is_inside_md_scan[BLOCK_MAX_COUNT_SB_128];
-#if INCOMPLETE_SB_FIX
         EbBool     block_is_allowed[BLOCK_MAX_COUNT_SB_128];
-#endif
     } SbGeom;
 
     typedef struct CuStat
@@ -13967,6 +13952,9 @@ extern "C" {
         EbBool                                eos_coming;
         uint8_t                               picture_qp;
         uint64_t                              picture_number;
+        uint8_t                               wedge_mode;
+        uint32_t                             cur_order_hint;
+        uint32_t                             ref_order_hint[7];
         EbPicnoiseClass                       pic_noise_class;
         EB_SLICE                              slice_type;
         uint8_t                               pred_struct_index;
@@ -14038,7 +14026,8 @@ extern "C" {
         uint8_t                              *sharp_edge_sb_flag;
         EbBool                                logo_pic_flag;                    // used by EncDecProcess()
         uint16_t                              non_moving_index_average;            // used by ModeDecisionConfigurationProcess()
-
+        int16_t                               non_moving_index_min_distance;
+        int16_t                               non_moving_index_max_distance;
         uint16_t                              qp_scaling_average_complexity;
         uint8_t                               grass_percentage_in_picture;
         uint8_t                               percentage_of_edgein_light_background;
@@ -14123,41 +14112,23 @@ extern "C" {
         uint8_t                               intra_pred_mode;
         uint8_t                               skip_sub_blks;
         uint8_t                               atb_mode;
+        uint8_t                               frame_end_cdf_update_mode; // mm-signal: 0: OFF, 1:ON
         //**********************************************************************************************************//
-        FrameType                            av1_frame_type;
         Av1RpsNode                          av1_ref_signal;
-        EbBool                                show_frame;
         EbBool                                has_show_existing;
-        uint8_t                               show_existing_loc;
-
         int32_t                               ref_frame_map[REF_FRAMES]; /* maps fb_idx to reference slot */
         int32_t                               is_skip_mode_allowed;
         int32_t                               skip_mode_flag;
 
-        int32_t                               showable_frame;  // frame can be used as show existing frame in future
         // Flag for a frame used as a reference - not written to the bitstream
         int32_t                               is_reference_frame;
 
         // Flag signaling that the frame is encoded using only INTRA modes.
         uint8_t                               intra_only;
-        uint8_t                               disable_cdf_update;
-        int32_t                               allow_high_precision_mv;
-        int32_t                               cur_frame_force_integer_mv;  // 0 the default in AOM, 1 only integer
-        int32_t                               allow_screen_content_tools;
-        int32_t                               allow_intrabc;
-        int32_t                               allow_warped_motion;
-
         /* profile settings */
-        TxMode                               tx_mode;
 #if CONFIG_ENTROPY_STATS
         int32_t                               coef_cdf_category;
 #endif
-        uint16_t                              base_qindex;
-        int32_t                               y_dc_delta_q;
-        int32_t                               u_dc_delta_q;
-        int32_t                               v_dc_delta_q;
-        int32_t                               u_ac_delta_q;
-        int32_t                               v_ac_delta_q;
         int32_t                               separate_uv_delta_q;
 
         // Global quant matrix tables
@@ -14170,55 +14141,21 @@ extern "C" {
         int32_t                               min_qmlevel;
         int32_t                               max_qmlevel;
         // Encoder
-        int32_t                               using_qmatrix;
-        int32_t                               qm_y;
-        int32_t                               qm_u;
-        int32_t                               qm_v;
-
-        // Whether to use previous frame's motion vectors for prediction.
-        int32_t                               allow_ref_frame_mvs;
-        int32_t                               switchable_motion_mode;
         LoopFilterInfoN                   lf_info;
 
         // Flag signaling how frame contexts should be updated at the end of
         // a frame decode
         RefreshFrameContextMode               refresh_frame_context;
-        int32_t                               ref_frame_sign_bias[TOTAL_REFS_PER_FRAME]; /* Two state 0, 1 */
-        struct LoopFilter                     lf;
-        int32_t                               coded_lossless;  // frame is fully lossless at the coded resolution.
-        int32_t                               all_lossless;
-        int32_t                               reduced_tx_set_used;
-        ReferenceMode                         reference_mode;
         uint32_t                              frame_context_idx; /* Context to use/update */
         int32_t                               fb_of_context_type[REF_FRAMES];
-        int32_t                               primary_ref_frame;
         uint64_t                              frame_offset;
-        int32_t                               error_resilient_mode;
-        int32_t                               uniform_tile_spacing_flag;
         uint32_t                              large_scale_tile;
-        int32_t                               cdef_pri_damping;
-        int32_t                               cdef_sec_damping;
         int32_t                               nb_cdef_strengths;
-        int32_t                               cdef_strengths[CDEF_MAX_STRENGTHS];
-        int32_t                               cdef_uv_strengths[CDEF_MAX_STRENGTHS];
-        int32_t                               cdef_bits;
-        int32_t                               delta_q_present_flag;
-
-        // Segmentation related parameters
-        SegmentationParams                    segmentation_params;
 
 #if ADD_DELTA_QP_SUPPORT
         // Resolution of delta quant
-        uint8_t                               delta_q_res;
-        int32_t                               delta_lf_present_flag;
-        // Resolution of delta lf level
-        int32_t                               delta_lf_res;
-        // This is a flag for number of deltas of loop filter level
-        // 0: use 1 delta, for y_vertical, y_horizontal, u, and v
-        // 1: use separate deltas for each filter level
-        int32_t                               delta_lf_multi;
         int32_t                               num_tg;
-        int32_t                               monochrome = 0; //NM - hadcoded to zero. to be set to one to support the coding of monochrome contents.
+        int32_t                               monochrome;
         int32_t                               prev_qindex;
         // Since actual frame level loop filtering level value is not available
         // at the beginning of the tile (only available during actual filtering)
@@ -14248,18 +14185,6 @@ extern "C" {
 #endif
         // Resolution of delta quant
         // int32_t delta_q_res;
-#if AV1_LF && !ADD_DELTA_QP_SUPPORT
-        int32_t                               delta_lf_present_flag;
-
-        // Resolution of delta lf level
-        int32_t                               delta_lf_res;
-        // This is a flag for number of deltas of loop filter level
-        // 0: use 1 delta, for y_vertical, y_horizontal, u, and v
-        // 1: use separate deltas for each filter level
-        int32_t                               delta_lf_multi;
-#endif
-        int32_t                               current_frame_id;
-        int32_t                               frame_refs_short_signaling;
         int32_t                               allow_comp_inter_inter;
         int16_t                               panMvx;
         int16_t                               panMvy;
@@ -14269,7 +14194,6 @@ extern "C" {
         PictureControlSet                    *childPcs;
         Macroblock                           *av1x;
         int32_t                               film_grain_params_present; //todo (AN): Do we need this flag at picture level?
-        aom_film_grain_t                      film_grain_params;
         aom_denoise_and_model_t              *denoise_and_model;
         EbBool                                enable_in_loop_motion_estimation_flag;
         RestUnitSearchInfo                   *rusi_picture[3];//for 3 planes
@@ -14280,7 +14204,6 @@ extern "C" {
         uint8_t                               tx_search_level;
         uint64_t                              tx_weight;
         uint8_t                               tx_search_reduced_set;
-        uint8_t                               skip_tx_search;
         uint8_t                               interpolation_search_level;
         uint8_t                               nsq_search_level;
         uint8_t                               nsq_max_shapes_md; // max number of shapes to be tested in MD
@@ -14295,6 +14218,7 @@ extern "C" {
         uint8_t                               altref_strength;
         int32_t                               pic_decision_reorder_queue_idx;
         struct PictureParentControlSet       *temp_filt_pcs_list[ALTREF_MAX_NFRAMES];
+        EbByte                               save_enhanced_picture_ptr[3];
         EbHandle temp_filt_done_semaphore;
         EbHandle temp_filt_mutex;
         EbHandle debug_mutex;
@@ -14305,16 +14229,19 @@ extern "C" {
         int16_t                               tf_segments_total_count;
         uint8_t                               tf_segments_column_count;
         uint8_t                               tf_segments_row_count;
-#if ALTREF_TF_ADAPTIVE_WINDOW_SIZE
         uint8_t                               past_altref_nframes;
         uint8_t                               future_altref_nframes;
-#else
-        uint8_t                               altref_nframes;
-#endif
-#if QPS_TUNING
+        EbBool                                temporal_filtering_on;
         uint64_t                              filtered_sse; // the normalized SSE between filtered and original alt_ref with 8 bit precision.
                                                             // I Slice has the value of the next ALT_REF picture
         uint64_t                              filtered_sse_uv;
+        FrameHeader                           frm_hdr;
+        MD_COMP_TYPE                          compound_types_to_try;
+        uint8_t                               compound_mode;
+        uint8_t                               prune_unipred_at_me;
+        uint8_t                              coeff_based_skip_atb;
+#if II_COMP_FLAG
+        uint8_t                              enable_inter_intra;
 #endif
     } PictureParentControlSet;
 
@@ -14339,15 +14266,15 @@ extern "C" {
         uint16_t                           enc_dec_segment_row;
         EbEncMode                          enc_mode;
         uint8_t                            speed_control;
+        EbBool                             hbd_mode_decision;
         uint16_t                           film_grain_noise_level;
         EbBool                             ext_block_flag;
         EbBool                             in_loop_me_flag;
         uint8_t                            mrp_mode;
         uint8_t                            cdf_mode;
         uint8_t                            nsq_present;
-#if INCOMPLETE_SB_FIX
         uint8_t                            over_boundary_block_mode;
-#endif
+        uint8_t                            mfmv;
     } PictureControlSetInitData;
 
     typedef struct Av1Comp

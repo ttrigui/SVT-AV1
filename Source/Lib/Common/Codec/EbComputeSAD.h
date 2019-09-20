@@ -29,7 +29,41 @@ extern "C" {
         uint32_t  height,
         uint32_t  width);
 
-    static void nxm_sad_kernel_void_func() {}
+    static uint32_t nxm_sad_kernel_void_func(
+            const uint8_t  *src,
+            uint32_t  src_stride,
+            const uint8_t  *ref,
+            uint32_t  ref_stride,
+            uint32_t  height,
+            uint32_t  width) {
+        (void)src;
+        (void)src_stride;
+        (void)ref;
+        (void)ref_stride;
+        (void)height;
+        (void)width;
+        return 0;
+    }
+
+    static uint32_t nxm_sad_avg_kernel_void_func(
+            uint8_t  *src,
+            uint32_t  src_stride,
+            uint8_t  *ref1,
+            uint32_t  ref1_stride,
+            uint8_t  *ref2,
+            uint32_t  ref2_stride,
+            uint32_t  height,
+            uint32_t  width) {
+        (void)src;
+        (void)src_stride;
+        (void)ref1;
+        (void)ref1_stride;
+        (void)ref2;
+        (void)ref2_stride;
+        (void)height;
+        (void)width;
+        return 0;
+    }
 
     typedef void(*EbSadLoopKernelNxMType)(
         uint8_t  *src,                            // input parameter, source samples Ptr
@@ -151,9 +185,9 @@ extern "C" {
             /*2 16xM */ compute16x_m_sad_avx2_intrin,//compute16x_m_sad_avx2_intrin is slower than the SSE2 version
             /*3 24xM */ compute24x_m_sad_avx2_intrin,
             /*4 32xM */ compute32x_m_sad_avx2_intrin,
-            /*5      */ (EbSadKernelNxMType)nxm_sad_kernel_void_func,
+            /*5      */ nxm_sad_kernel_void_func,
             /*6 48xM */ compute48x_m_sad_avx2_intrin,
-            /*7      */ (EbSadKernelNxMType)nxm_sad_kernel_void_func,
+            /*7      */ nxm_sad_kernel_void_func,
             /*8 64xM */ compute64x_m_sad_avx2_intrin,
         },
     };
@@ -167,9 +201,9 @@ extern "C" {
             /*2 16xM */     combined_averaging_sad,
             /*3 24xM */     combined_averaging_sad,
             /*4 32xM */     combined_averaging_sad,
-            /*5      */     (EbSadAvgKernelNxMType)nxm_sad_kernel_void_func,
+            /*5      */     nxm_sad_avg_kernel_void_func,
             /*6 48xM */     combined_averaging_sad,
-            /*7      */     (EbSadAvgKernelNxMType)nxm_sad_kernel_void_func,
+            /*7      */     nxm_sad_avg_kernel_void_func,
             /*8 64xM */     combined_averaging_sad
         },
         // AVX2
@@ -179,9 +213,9 @@ extern "C" {
             /*2 16xM */     combined_averaging16x_msad_avx2_intrin,
             /*3 24xM */     combined_averaging24x_msad_avx2_intrin,
             /*4 32xM */     combined_averaging32x_msad_avx2_intrin,
-            /*5      */     (EbSadAvgKernelNxMType)nxm_sad_kernel_void_func,
+            /*5      */     nxm_sad_avg_kernel_void_func,
             /*6 48xM */     combined_averaging48x_msad_avx2_intrin,
-            /*7      */     (EbSadAvgKernelNxMType)nxm_sad_kernel_void_func,
+            /*7      */     nxm_sad_avg_kernel_void_func,
             /*8 64xM */     combined_averaging64x_msad_avx2_intrin
         },
     };
@@ -235,6 +269,14 @@ extern "C" {
         // AVX2
         combined_averaging_ssd_avx2,
     };
+
+uint32_t sad_16b_kernel(
+    uint16_t  *src,                           // input parameter, source samples Ptr
+    uint32_t  src_stride,                     // input parameter, source stride
+    uint16_t  *ref,                           // input parameter, reference samples Ptr
+    uint32_t  ref_stride,                     // input parameter, reference stride
+    uint32_t  height,                         // input parameter, block height (M)
+    uint32_t  width);                         // input parameter, block width (N)
 
 #ifdef __cplusplus
 }

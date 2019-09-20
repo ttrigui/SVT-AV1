@@ -5,6 +5,9 @@
 
 // Command line argument parsing
 
+#ifndef EbDecParamParser_h
+#define EbDecParamParser_h
+
 /***************************************
  * Includes
  ***************************************/
@@ -35,6 +38,8 @@
 #define PIC_HEIGHT_TOKEN                "-h"
 #define COLOUR_SPACE_TOKEN              "-colour-space"
 #define MD5_SUPPORT_TOKEN               "-md5"
+#define FPS_FRM_TOKEN                   "-fps-frm"
+#define FPS_SUMMARY_TOKEN               "-fps-summary"
 #define MAX_NUM_TOKENS 200
 
 #define EB_STRCMP(target,token) \
@@ -51,3 +56,5 @@ typedef struct ConfigEntry {
 } ConfigEntry;
 
 EbErrorType read_command_line(int32_t argc, char *const argv[], EbSvtAv1DecConfiguration *configs, CLInput *cli);
+
+#endif

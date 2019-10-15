@@ -7783,7 +7783,7 @@ EB_EXTERN EbErrorType mode_decision_sb(
         }
 
         skip_next_nsq = 0;
-        if (blk_geom->nsi + 1 == blk_geom->totns)
+        if ((blk_geom->nsi + 1 == blk_geom->totns) && (blk_geom->shape != PART_N))
             d1_non_square_block_decision(context_ptr);
         else {
             uint64_t tot_cost = 0;

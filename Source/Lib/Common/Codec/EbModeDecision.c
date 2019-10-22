@@ -4600,6 +4600,7 @@ void  inject_intra_candidates_ois(
     FrameHeader *frm_hdr = &picture_control_set_ptr->parent_pcs_ptr->frm_hdr;
 
     for (intra_candidate_counter = 0; intra_candidate_counter < total_intra_luma_mode; ++intra_candidate_counter) {
+        candidate_array[can_total_cnt].is_interintra_used = 0;
         intra_mode = ois_blk_ptr[can_total_cnt].intra_mode;
         assert(intra_mode < INTRA_MODES);
         if (av1_is_directional_mode((PredictionMode)intra_mode)) {
@@ -5165,6 +5166,7 @@ void  inject_intra_candidates(
             if (!disable_angle_prediction &&
                 directional_mode_skip_mask[(PredictionMode)openLoopIntraCandidate] == 0) {
                 for (angleDeltaCounter = 0; angleDeltaCounter < angleDeltaCandidateCount; ++angleDeltaCounter) {
+                    candidateArray[canTotalCnt].is_interintra_used = 0;
                     int32_t angle_delta = CLIP( angle_delta_shift * (angleDeltaCandidateCount == 1 ? 0 : angleDeltaCounter - (angleDeltaCandidateCount >> 1)), -3 , 3);
                     int32_t  p_angle = mode_to_angle_map[(PredictionMode)openLoopIntraCandidate] + angle_delta * ANGLE_STEP;
                     if (!disable_z2_prediction || (p_angle <= 90 || p_angle >= 180)) {
@@ -5228,6 +5230,7 @@ void  inject_intra_candidates(
         }
         }
         else {
+            candidateArray[canTotalCnt].is_interintra_used = 0;
             candidateArray[canTotalCnt].type = INTRA_MODE;
             candidateArray[canTotalCnt].intra_luma_mode = openLoopIntraCandidate;
             candidateArray[canTotalCnt].distortion_ready = 0;

@@ -3008,6 +3008,9 @@ extern void eb_av1_predict_intra_block(
     int32_t plane, BlockSize bsize, uint32_t tu_org_x_pict, uint32_t tu_org_y_pict,
     uint32_t bl_org_x_pict, uint32_t bl_org_y_pict, uint32_t bl_org_x_mb, uint32_t bl_org_y_mb);
 extern void eb_av1_predict_intra_block_16bit(
+#if ENCDEC_16BIT
+    EbBitDepthEnum bit_depth,
+#endif
     TileInfo *tile, STAGE stage, const BlockGeom *blk_geom, const Av1Common *cm, int32_t wpx,
     int32_t hpx, TxSize tx_size, PredictionMode mode, int32_t angle_delta, int32_t use_palette,
     PaletteInfo *palette_info, FilterIntraMode filter_intra_mode, uint16_t *topNeighArray,
@@ -6009,6 +6012,9 @@ EbErrorType av1_inter_prediction_hbd(
             TxSize tx_size_Chroma = blk_geom->txsize_uv[0][0]; //Nader - Intra 128x128 not supported
 
             eb_av1_predict_intra_block_16bit(
+#if ENCDEC_16BIT
+                EB_10BIT,
+#endif
                 tile,
                 !ED_STAGE,
                 blk_geom,

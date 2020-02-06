@@ -44,6 +44,9 @@ static void enc_dec_context_dctor(EbPtr p) {
     EncDecContext *  obj                = (EncDecContext *)thread_context_ptr->priv;
     EB_DELETE(obj->md_context);
     EB_DELETE(obj->residual_buffer);
+#if ENCDEC_16BIT
+    EB_DELETE(obj->residual_buffer16bit);
+#endif
     EB_DELETE(obj->transform_buffer);
     EB_DELETE(obj->inverse_quant_buffer);
     EB_DELETE(obj->input_sample16bit_buffer);
@@ -107,6 +110,13 @@ EbErrorType enc_dec_context_ctor(EbThreadContext *  thread_context_ptr,
         init_data.color_format       = color_format;
 
         context_ptr->input_sample16bit_buffer = (EbPictureBufferDesc *)EB_NULL;
+#if ENCDEC_16BIT
+        init_data.bit_depth = EB_16BIT;
+
+        EB_NEW(
+            context_ptr->input_sample16bit_buffer, eb_picture_buffer_desc_ctor, (EbPtr)&init_data);
+        init_data.bit_depth = static_config->encoder_bit_depth;
+#endif
         if (is_16bit) {
             init_data.bit_depth = EB_16BIT;
 
@@ -148,6 +158,9 @@ EbErrorType enc_dec_context_ctor(EbThreadContext *  thread_context_ptr,
                (EbPtr)&init_32bit_data);
         EB_NEW(context_ptr->transform_buffer, eb_picture_buffer_desc_ctor, (EbPtr)&init_32bit_data);
         EB_NEW(context_ptr->residual_buffer, eb_picture_buffer_desc_ctor, (EbPtr)&init_data);
+#if ENCDEC_16BIT
+        EB_NEW(context_ptr->residual_buffer16bit, eb_picture_buffer_desc_ctor, (EbPtr)&init_data);
+#endif
     }
 
     // Mode Decision Context
@@ -225,6 +238,11 @@ static void reset_encode_pass_neighbor_arrays(PictureControlSet *pcs_ptr) {
         neighbor_array_unit_reset(pcs_ptr->ep_cb_recon_neighbor_array16bit);
         neighbor_array_unit_reset(pcs_ptr->ep_cr_recon_neighbor_array16bit);
     }
+#if ENCDEC_16BIT
+    neighbor_array_unit_reset(pcs_ptr->ep_luma_recon_neighbor_array16bit);
+    neighbor_array_unit_reset(pcs_ptr->ep_cb_recon_neighbor_array16bit);
+    neighbor_array_unit_reset(pcs_ptr->ep_cr_recon_neighbor_array16bit);
+#endif
     return;
 }
 #endif
@@ -1310,7 +1328,9 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
             context_ptr->tx_search_level = TX_SEARCH_ENC_DEC;
     } else
         context_ptr->tx_search_level = TX_SEARCH_ENC_DEC;
-
+#if SHUT_TX_SEARCH
+    context_ptr->tx_search_level = TX_SEARCH_OFF;
+#endif
     // Set tx search skip weights (MAX_MODE_COST: no skipping; 0: always skipping)
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->tx_weight = MAX_MODE_COST;
@@ -2128,7 +2148,8 @@ static void build_cand_block_array(SequenceControlSet *scs_ptr, PictureControlSe
         uint8_t is_blk_allowed =
             pcs_ptr->slice_type != I_SLICE ? 1 : (blk_geom->sq_size < 128) ? 1 : 0;
         //init consider block flag
-        if (pcs_ptr->parent_pcs_ptr->sb_geom[sb_index].block_is_inside_md_scan[blk_index] && is_blk_allowed) {
+        if (pcs_ptr->parent_pcs_ptr->sb_geom[sb_index].block_is_inside_md_scan[blk_index] &&
+            is_blk_allowed) {
             tot_d1_blocks = blk_geom->sq_size == 128
                                 ? 17
                                 : blk_geom->sq_size > 8 ? 25 : blk_geom->sq_size == 8 ? 5 : 1;
@@ -2326,7 +2347,8 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs_ptr, PictureCo
         // derive split_flag
         split_flag = context_ptr->md_blk_arr_nsq[blk_index].split_flag;
 
-        if (pcs_ptr->parent_pcs_ptr->sb_geom[sb_index].block_is_inside_md_scan[blk_index] && is_blk_allowed) {
+        if (pcs_ptr->parent_pcs_ptr->sb_geom[sb_index].block_is_inside_md_scan[blk_index] &&
+            is_blk_allowed) {
             if (blk_geom->shape == PART_N) {
                 if (context_ptr->md_blk_arr_nsq[blk_index].split_flag == EB_FALSE) {
                     int8_t s_depth = 0;
@@ -2703,11 +2725,12 @@ void *enc_dec_kernel(void *input_ptr) {
                                              ? sb_row_index_count + 1
                                              : sb_row_index_count;
 #else
-                    sb_index        = (uint16_t)(y_sb_index * pic_width_in_sb + x_sb_index);
-                    sb_ptr          = pcs_ptr->sb_ptr_array[sb_index];
-                    sb_origin_x     = x_sb_index << sb_size_log2;
-                    sb_origin_y     = y_sb_index << sb_size_log2;
-                    last_sb_flag    = (sb_index == pcs_ptr->sb_total_count_pix - 1) ? EB_TRUE : EB_FALSE;
+                    sb_index    = (uint16_t)(y_sb_index * pic_width_in_sb + x_sb_index);
+                    sb_ptr      = pcs_ptr->sb_ptr_array[sb_index];
+                    sb_origin_x = x_sb_index << sb_size_log2;
+                    sb_origin_y = y_sb_index << sb_size_log2;
+                    last_sb_flag =
+                        (sb_index == pcs_ptr->sb_total_count_pix - 1) ? EB_TRUE : EB_FALSE;
                     end_of_row_flag = (x_sb_index == pic_width_in_sb - 1) ? EB_TRUE : EB_FALSE;
                     sb_row_index_start =
                         (x_sb_index == pic_width_in_sb - 1 && sb_row_index_count == 0)
@@ -2964,7 +2987,8 @@ void *enc_dec_kernel(void *input_ptr) {
             //CHKN these are not needed for DLF
             enc_dec_results_ptr->completed_sb_row_index_start = 0;
             enc_dec_results_ptr->completed_sb_row_count =
-                ((pcs_ptr->parent_pcs_ptr->aligned_height + scs_ptr->sb_size_pix - 1) >> sb_size_log2);
+                ((pcs_ptr->parent_pcs_ptr->aligned_height + scs_ptr->sb_size_pix - 1) >>
+                 sb_size_log2);
             // Post EncDec Results
             eb_post_full_object(enc_dec_results_wrapper_ptr);
         }

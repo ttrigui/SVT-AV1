@@ -37,8 +37,13 @@ extern "C" {
 #ifndef NON_AVX512_SUPPORT
 #define NON_AVX512_SUPPORT
 #endif
-
-#define TILES_PARALLEL 1
+#define SHUT_TX_SEARCH 1
+#define SHUT_PALETTE 1
+#define SHUT_INTRABC 1
+#define SHUT_FILTERING 1
+#define DC_ONLY_INTRA  0 //1
+#define ENCDEC_16BIT 0
+#define TILES_PARALLEL 0
 
 #if TILES_PARALLEL
 #define MAX_TILE_CNTS 128 // Annex A.3
@@ -120,7 +125,7 @@ enum {
 #define ALTREF_MAX_NFRAMES 10
 #define ALTREF_MAX_STRENGTH 6
 #define PAD_VALUE (128 + 32)
-#define PAD_VALUE_SCALED (128+128+32)
+#define PAD_VALUE_SCALED (128 + 128 + 32)
 #define NSQ_TAB_SIZE 8
 #define NUMBER_OF_DEPTH 6
 #define NUMBER_OF_SHAPES 10
@@ -367,8 +372,8 @@ static __inline void mem_put_le16(void *vmem, MEM_VALUE_T val) {
 static __inline void mem_put_le24(void *vmem, MEM_VALUE_T val) {
     MAU_T *mem = (MAU_T *)vmem;
 
-    mem[0] = (MAU_T)((val >>  0) & 0xff);
-    mem[1] = (MAU_T)((val >>  8) & 0xff);
+    mem[0] = (MAU_T)((val >> 0) & 0xff);
+    mem[1] = (MAU_T)((val >> 8) & 0xff);
     mem[2] = (MAU_T)((val >> 16) & 0xff);
 }
 #endif

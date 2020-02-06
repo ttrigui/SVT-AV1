@@ -941,7 +941,10 @@ EbErrorType signal_derivation_multi_processes_oq(
         frm_hdr->allow_screen_content_tools = pcs_ptr->sc_content_detected;
         frm_hdr->allow_intrabc = 0;
     }
-
+    
+        #if SHUT_INTRABC
+            frm_hdr->allow_intrabc =  0;
+        #endif
    /*Palette Modes:
         0:OFF
         1:Slow    NIC=7/4/4
@@ -959,6 +962,9 @@ EbErrorType signal_derivation_multi_processes_oq(
             pcs_ptr->palette_mode = scs_ptr->static_config.enable_palette;
     else
         pcs_ptr->palette_mode = 0;
+    #if SHUT_PALETTE
+    pcs_ptr->palette_mode =0;
+    #endif
 
     assert(pcs_ptr->palette_mode<7);
 

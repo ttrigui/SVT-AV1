@@ -3202,6 +3202,9 @@ void eb_av1_predict_intra_block(
 }
 
 void eb_av1_predict_intra_block_16bit(
+#if ENCDEC_16BIT
+    EbBitDepthEnum bit_depth,
+#endif
     TileInfo * tile,
     STAGE       stage,
     const BlockGeom * blk_geom,
@@ -3420,7 +3423,12 @@ void eb_av1_predict_intra_block_16bit(
         have_top ? AOMMIN(txwpx, xr + txwpx) : 0,
         have_top_right ? AOMMIN(txwpx, xr) : 0,
         have_left ? AOMMIN(txhpx, yd + txhpx) : 0,
-        have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane, EB_10BIT);
+        have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane, 
+#if ENCDEC_16BIT
+        bit_depth);
+#else
+        EB_10BIT);
+#endif
 }
 
 /** IntraPrediction()
@@ -3594,6 +3602,9 @@ EbErrorType eb_av1_intra_prediction_cl(
                 mode = candidate_buffer_ptr->candidate_ptr->pred_mode;
 
             eb_av1_predict_intra_block_16bit(
+#if ENCDEC_16BIT
+                EB_10BIT,
+#endif
                 &md_context_ptr->sb_ptr->tile_info,
                 !ED_STAGE,
                 md_context_ptr->blk_geom,
@@ -3707,6 +3718,9 @@ EbErrorType  intra_luma_prediction_for_interintra(
             top_neigh_array[0] = left_neigh_array[0] = ((uint16_t*)(md_context_ptr->luma_recon_neighbor_array16bit->top_left_array) + MAX_PICTURE_HEIGHT_SIZE + md_context_ptr->blk_origin_x - md_context_ptr->blk_origin_y)[0];
 
         eb_av1_predict_intra_block_16bit(
+#if ENCDEC_16BIT
+            EB_10BIT,
+#endif
             &md_context_ptr->sb_ptr->tile_info,
             !ED_STAGE,
             md_context_ptr->blk_geom,

@@ -1583,8 +1583,7 @@ BIPred     : NEARST_NEARST  + upto 3x NEAR_NEAR
 **********************************************************************
 **********************************************************************/
 void inject_mvp_candidates_ii(struct ModeDecisionContext *context_ptr, PictureControlSet *pcs_ptr,
-                              BlkStruct *blk_ptr, MvReferenceFrame ref_pair,
-                              uint32_t *candTotCnt) {
+                              BlkStruct *blk_ptr, MvReferenceFrame ref_pair, uint32_t *candTotCnt) {
     FrameHeader *frm_hdr = &pcs_ptr->parent_pcs_ptr->frm_hdr;
     EbBool       allow_compound =
         (frm_hdr->reference_mode == SINGLE_REFERENCE || context_ptr->blk_geom->bwidth == 4 ||
@@ -4984,6 +4983,10 @@ void  inject_intra_candidates(
     disable_angle_refinement    = 0;
     disable_angle_prediction    = 0;
 #endif
+
+    #if DC_ONLY_INTRA
+    intra_mode_end = DC_PRED;
+    #endif
     for (open_loop_intra_candidate = intra_mode_start; open_loop_intra_candidate <= intra_mode_end ; ++open_loop_intra_candidate) {
         if (av1_is_directional_mode((PredictionMode)open_loop_intra_candidate)) {
             if (!disable_angle_prediction &&

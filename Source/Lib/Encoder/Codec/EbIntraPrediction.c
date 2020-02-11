@@ -2908,8 +2908,7 @@ static void build_intra_predictors_high(
         left_col[-1] = above_row[-1];
     }
 if (use_filter_intra) {
-    highbd_filter_intra_predictor(dst, dst_stride, tx_size, above_row, left_col,
-                               filter_intra_mode,10);
+    highbd_filter_intra_predictor(dst, dst_stride, tx_size, above_row, left_col, filter_intra_mode, bd);
     return;
   }
     if (is_dr_mode) {

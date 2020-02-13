@@ -3342,7 +3342,7 @@ void eb_av1_predict_intra_block_16bit(
             chroma_left_available ? &mi_ptr[ss_y * mi_stride - 1].mbmi : NULL;
         xd->chroma_left_mbmi = chroma_left_mi;
     }
-
+    #if ENCDEC_16BIT
     //CHKN  const MbModeInfo *const mbmi = xd->mi[0];
     const int32_t txwpx = tx_size_wide[tx_size];
     const int32_t txhpx = tx_size_high[tx_size];
@@ -3353,6 +3353,24 @@ void eb_av1_predict_intra_block_16bit(
         const uint8_t *const map = palette_info->color_idx_map;
         const uint16_t *const palette =
             palette_info->pmi.palette_colors + plane * PALETTE_MAX_SIZE;
+        uint16_t              max_val = (bit_depth == EB_8BIT) ? 0xFF : 0xFFFF;
+        for (r = 0; r < txhpx; ++r) {
+            for (c = 0; c < txwpx; ++c) {
+                dst[r * dst_stride + c] = CLIP3(0, max_val, palette[map[(r + y) * wpx + c + x]]);
+            }
+        }
+        return;
+    }
+#else
+    //CHKN  const MbModeInfo *const mbmi = xd->mi[0];
+    const int32_t txwpx = tx_size_wide[tx_size];
+    const int32_t txhpx = tx_size_high[tx_size];
+    const int32_t x     = col_off << tx_size_wide_log2[0];
+    const int32_t y     = row_off << tx_size_high_log2[0];
+    if (use_palette) {
+        int32_t               r, c;
+        const uint8_t *const  map     = palette_info->color_idx_map;
+        const uint16_t *const palette = palette_info->pmi.palette_colors + plane * PALETTE_MAX_SIZE;
         for (r = 0; r < txhpx; ++r) {
             for (c = 0; c < txwpx; ++c) {
                 dst[r * dst_stride + c] = palette[map[(r + y) * wpx + c + x]];
@@ -3360,6 +3378,7 @@ void eb_av1_predict_intra_block_16bit(
         }
         return;
     }
+    #endif
 
     //CHKN BlockSize bsize = mbmi->sb_type;
 

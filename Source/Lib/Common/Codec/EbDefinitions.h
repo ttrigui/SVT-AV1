@@ -32,18 +32,22 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define MC_DYNAMIC_PAD              1
+#define MC_DYNAMIC_PAD 1
 #define GLOBAL_WARPED_MOTION 1 // Global warped motion detection and insertion
 #ifndef NON_AVX512_SUPPORT
 #define NON_AVX512_SUPPORT
 #endif
 #define DISABLE_CFL_EP 1
 #define SHUT_TX_SEARCH 1
-#define SHUT_PALETTE 1
+#define SHUT_PALETTE 0
 #define SHUT_INTRABC 1
 #define SHUT_FILTERING 1
-#define DC_ONLY_INTRA  0 //1
+#define DC_ONLY_INTRA 0 //1
+#define SHUT_GM_WM 1
 #define ENCDEC_16BIT 1
+#if ENCDEC_16BIT
+#define ENCDEC_16BIT_INTER 0
+#endif
 #define TILES_PARALLEL 0
 
 #if TILES_PARALLEL
@@ -167,7 +171,7 @@ enum {
 #define SB_STRIDE_UV (MAX_SB_SIZE >> 1)
 
 // Min superblock size
-#define MIN_SB_SIZE  64
+#define MIN_SB_SIZE 64
 #define MIN_SB_SIZE_LOG2 6
 
 // Pixels per Mode Info (MI) unit

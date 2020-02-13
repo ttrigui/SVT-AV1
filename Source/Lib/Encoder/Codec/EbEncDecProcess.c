@@ -1216,7 +1216,6 @@ void pad_ref_and_set_flags(PictureControlSet *pcs_ptr, SequenceControlSet *scs_p
                                ref_pic_16bit_ptr->height >> 1,
                                ref_pic_16bit_ptr->origin_x,
                                ref_pic_16bit_ptr->origin_y >> 1);
-
         // Hsan: unpack ref samples (to be used @ MD)
         un_pack2d((uint16_t *)ref_pic_16bit_ptr->buffer_y,
                   ref_pic_16bit_ptr->stride_y,
@@ -1245,6 +1244,98 @@ void pad_ref_and_set_flags(PictureControlSet *pcs_ptr, SequenceControlSet *scs_p
                   (ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1)) >> 1,
                   (ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1)) >> 1);
     }
+
+#if ENCDEC_16BIT
+    if (pcs_ptr->picture_number == 0)
+    {
+        //for (int j = 0; j < ref_pic_16bit_ptr->height; j++) {
+        //    printf("\n");
+        //    for (int i = 0; i < ref_pic_16bit_ptr->width; i++) {
+        //        printf(" %d \t",
+        //            ((uint16_t *)(ref_pic_16bit_ptr->buffer_y))[i + ref_pic_16bit_ptr->origin_x +
+        //                                           (ref_pic_16bit_ptr->origin_y + j) * ref_pic_16bit_ptr->stride_y]);
+        //    /*    if (ref_pic_16bit_ptr->buffer_y[i + ref_pic_16bit_ptr->origin_x +
+        //                                        (ref_pic_16bit_ptr->origin_y + j) *
+        //                                            ref_pic_16bit_ptr->stride_y] == 33)
+        //            printf(" i %d \t origin_x %d \t j %d \t origin_y %d \n",
+        //                   i,
+        //                   ref_pic_16bit_ptr->origin_x,
+        //                   j,
+        //                   ref_pic_16bit_ptr->origin_y);*/
+        //    }
+        //}
+
+        // Y samples
+        generate_padding16_bit(ref_pic_16bit_ptr->buffer_y,
+                               ref_pic_16bit_ptr->stride_y << 1,
+                               ref_pic_16bit_ptr->width << 1,
+                               ref_pic_16bit_ptr->height,
+                               ref_pic_16bit_ptr->origin_x << 1,
+                               ref_pic_16bit_ptr->origin_y);
+
+        // Cb samples
+        generate_padding16_bit(ref_pic_16bit_ptr->buffer_cb,
+                               ref_pic_16bit_ptr->stride_cb << 1,
+                               ref_pic_16bit_ptr->width,
+                               ref_pic_16bit_ptr->height >> 1,
+                               ref_pic_16bit_ptr->origin_x,
+                               ref_pic_16bit_ptr->origin_y >> 1);
+
+        // Cr samples
+        generate_padding16_bit(ref_pic_16bit_ptr->buffer_cr,
+                               ref_pic_16bit_ptr->stride_cr << 1,
+                               ref_pic_16bit_ptr->width,
+                               ref_pic_16bit_ptr->height >> 1,
+                               ref_pic_16bit_ptr->origin_x,
+                               ref_pic_16bit_ptr->origin_y >> 1);
+
+        // Hsan: unpack ref samples (to be used @ MD)
+        for (int j = 0; j < ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1); j++) {
+            for (int k = 0; k < ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1); k++) {
+                ref_pic_ptr->buffer_y[k + j * ref_pic_ptr->stride_y] = (uint8_t)(((
+                    uint16_t *)(ref_pic_16bit_ptr->buffer_y))[k + j * ref_pic_16bit_ptr->stride_y]);
+            }
+        }
+
+        for (int j = 0; j<(ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1))>> 1; j++) {
+            for (int k = 0; k<(ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1))>> 1; k++) {
+                ref_pic_ptr->buffer_cb[k + j * ref_pic_ptr->stride_cb] = (uint8_t)(
+                    ((uint16_t *)(ref_pic_16bit_ptr
+                                      ->buffer_cb))[k + j * ref_pic_16bit_ptr->stride_cb]);
+            }
+        }
+
+        for (int j = 0; j<(ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1))>> 1; j++) {
+            for (int k = 0; k<(ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1))>> 1; k++) {
+                ref_pic_ptr->buffer_cr[k + j * ref_pic_ptr->stride_cr] = (uint8_t)(
+                    ((uint16_t *)(ref_pic_16bit_ptr
+                                      ->buffer_cr))[k + j * ref_pic_16bit_ptr->stride_cr]);
+            }
+        }
+    }
+#endif
+    //if(pcs_ptr->picture_number == 0) {
+    ////int counter = 0;
+    //for (int j = 0; j < ref_pic_ptr->height + (ref_pic_ptr->origin_y << 1); j++) {
+    //    printf("\n");
+    //    for (int i = 0; i < ref_pic_ptr->width + (ref_pic_ptr->origin_x << 1); i++) {
+    //        //printf("counter %d", counter);
+    //        //counter++;
+    //        printf(
+    //            " %d \t",
+    //            (ref_pic_ptr->buffer_y)[i + /*ref_pic_ptr->origin_x +*/
+    //                                    (/*ref_pic_ptr->origin_y +*/ j) * ref_pic_ptr->stride_y]);
+    //        /* if (ref_pic_16bit_ptr->buffer_y[i + ref_pic_16bit_ptr->origin_x +
+    //                                        (ref_pic_16bit_ptr->origin_y + j) *
+    //                                            ref_pic_16bit_ptr->stride_y] == 0)
+    //            printf(" i %d \t origin_x %d \t j %d \t origin_y %d \n",
+    //                   i,
+    //                   ref_pic_16bit_ptr->origin_x,
+    //                   j,
+    //                   ref_pic_16bit_ptr->origin_y);*/
+    //    }
+    //}
+    //}
     // set up the ref POC
     reference_object->ref_poc = pcs_ptr->parent_pcs_ptr->picture_number;
 
@@ -1488,6 +1579,9 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
         }
     } else
         context_ptr->global_mv_injection = 0;
+#endif
+#if SHUT_GM_WM
+    context_ptr->global_mv_injection = 0;
 #endif
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->new_nearest_injection = 0;

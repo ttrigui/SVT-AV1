@@ -6500,7 +6500,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 (uint8_t)scs_ptr->static_config.encoder_bit_depth);
 
 #else
-                            for (int j = 0; j < blk_geom->bheight; j++) {
+                          /*  for (int j = 0; j < blk_geom->bheight; j++) {
                                 printf("\n");
                                 for (int i = 0; i < blk_geom->bwidth; i++) {
                                     printf(" %d \t",
@@ -6508,7 +6508,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                                                      (ref_pic_list0->origin_y + j) *
                                                                          ref_pic_list0->stride_y]);
                                 }
-                            }
+                            }*/
 
                             av1_inter_prediction_function_table[is_16bit](
                                 pcs_ptr,

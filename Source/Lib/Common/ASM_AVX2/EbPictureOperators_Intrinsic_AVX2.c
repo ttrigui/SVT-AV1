@@ -1901,3 +1901,31 @@ void convert_8bit_to_16bit_avx2(uint8_t* src, uint32_t src_stride, uint16_t* dst
     default: assert(0); break;
     }
 }
+
+//Function is created with assumption that src buffer store values in range [0..255]
+void convert_16bit_to_8bit_avx2(uint16_t *src, uint32_t src_stride, uint8_t *dst, uint32_t dst_stride,
+                             uint32_t width, uint32_t height) {
+    uint32_t k;
+    __m256i   tmp1, tmp2, tmp3;
+    uint8_t * _dst = dst;
+    uint16_t *_src = src;
+
+    for (uint32_t j = 0; j < height; j++) {
+        for (k = 0; k <= width - 32; k += 32) {
+            tmp1 = _mm256_loadu_si256((__m256i *)(_src + k));
+            tmp2 = _mm256_loadu_si256((__m256i *)(_src + k + 16));
+            tmp3 = _mm256_packus_epi16(tmp1, tmp2);
+            tmp3 = _mm256_permute4x64_epi64(tmp3, 0xd8);
+            _mm256_storeu_si256((__m256i *)(_dst + k), tmp3);
+        }
+        for (; k < width; k++) {
+            _dst[k] = (uint8_t)(_src[k]);
+        }
+        _dst += dst_stride;
+        _src += src_stride;
+    }
+
+
+
+
+}

@@ -82,6 +82,8 @@ uint64_t spatial_full_distortion_kernel128x_n_avx2_intrin(
 void convert_8bit_to_16bit_avx2(uint8_t *src, uint32_t src_stride, uint16_t *dst,
                                 uint32_t dst_stride, uint32_t width, uint32_t height);
 
+void convert_16bit_to_8bit_avx2(uint16_t *src, uint32_t src_stride, uint8_t *dst,
+                                uint32_t dst_stride, uint32_t width, uint32_t height);
 #ifdef __cplusplus
 }
 #endif

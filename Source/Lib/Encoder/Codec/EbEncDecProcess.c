@@ -24,6 +24,9 @@
 #include "EbUtility.h"
 #include "grainSynthesis.h"
 
+//To fix warning C4013: 'convert_16bit_to_8bit' undefined; assuming extern returning int
+#include "common_dsp_rtcd.h"
+
 #define FC_SKIP_TX_SR_TH025 125 // Fast cost skip tx search threshold.
 #define FC_SKIP_TX_SR_TH010 110 // Fast cost skip tx search threshold.
 void eb_av1_cdef_search(EncDecContext *context_ptr, SequenceControlSet *scs_ptr,
@@ -1294,28 +1297,37 @@ void pad_ref_and_set_flags(PictureControlSet *pcs_ptr, SequenceControlSet *scs_p
                                ref_pic_16bit_ptr->origin_y >> 1);
 
         // Hsan: unpack ref samples (to be used @ MD)
-        for (int j = 0; j < ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1); j++) {
-            for (int k = 0; k < ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1); k++) {
-                ref_pic_ptr->buffer_y[k + j * ref_pic_ptr->stride_y] = (uint8_t)(((
-                    uint16_t *)(ref_pic_16bit_ptr->buffer_y))[k + j * ref_pic_16bit_ptr->stride_y]);
-            }
-        }
 
-        for (int j = 0; j<(ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1))>> 1; j++) {
-            for (int k = 0; k<(ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1))>> 1; k++) {
-                ref_pic_ptr->buffer_cb[k + j * ref_pic_ptr->stride_cb] = (uint8_t)(
-                    ((uint16_t *)(ref_pic_16bit_ptr
-                                      ->buffer_cb))[k + j * ref_pic_16bit_ptr->stride_cb]);
-            }
-        }
+        //Y
+        uint16_t *buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_y);
+        uint8_t  *buf_8bit  = ref_pic_ptr->buffer_y;
+        convert_16bit_to_8bit(buf_16bit,
+                              ref_pic_16bit_ptr->stride_y,
+                              buf_8bit,
+                              ref_pic_ptr->stride_y,
+                              ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1),
+                              ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1));
 
-        for (int j = 0; j<(ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1))>> 1; j++) {
-            for (int k = 0; k<(ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1))>> 1; k++) {
-                ref_pic_ptr->buffer_cr[k + j * ref_pic_ptr->stride_cr] = (uint8_t)(
-                    ((uint16_t *)(ref_pic_16bit_ptr
-                                      ->buffer_cr))[k + j * ref_pic_16bit_ptr->stride_cr]);
-            }
-        }
+        //CB
+        buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_cb);
+        buf_8bit  = ref_pic_ptr->buffer_cb;
+        convert_16bit_to_8bit(buf_16bit,
+                              ref_pic_16bit_ptr->stride_cb,
+                              buf_8bit,
+                              ref_pic_ptr->stride_cb,
+                              (ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1)) >> 1,
+                              (ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1)) >> 1);
+
+        //CR
+        buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_cr);
+        buf_8bit  = ref_pic_ptr->buffer_cr;
+        convert_16bit_to_8bit(buf_16bit,
+                              ref_pic_16bit_ptr->stride_cr,
+                              buf_8bit,
+                              ref_pic_ptr->stride_cr,
+                              (ref_pic_16bit_ptr->width + (ref_pic_ptr->origin_x << 1)) >> 1,
+                              (ref_pic_16bit_ptr->height + (ref_pic_ptr->origin_y << 1)) >> 1);
+
     }
 #endif
     //if(pcs_ptr->picture_number == 0) {

@@ -2985,22 +2985,6 @@ void perform_intra_coding_loop_16bit(PictureControlSet *pcs_ptr, SuperBlock *sb_
             PICTURE_BUFFER_DESC_LUMA_MASK,
             1);
 #endif
-        // TTK ADDED Until INTRA_INTER is clean
-        // Update Recon Samples-INTRA-
-       /* encode_pass_update_recon_sample_neighbour_arrays(
-            ep_luma_recon_neighbor_array,
-            ep_cb_recon_neighbor_array,
-            ep_cr_recon_neighbor_array,
-            recon_buffer,
-            txb_origin_x,
-            txb_origin_y,
-            context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-            PICTURE_BUFFER_DESC_LUMA_MASK,
-            0);*/
-
         context_ptr->coded_area_sb +=
             context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr] *
             context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr];
@@ -3470,21 +3454,6 @@ void perform_intra_coding_loop_16bit(PictureControlSet *pcs_ptr, SuperBlock *sb_
             PICTURE_BUFFER_DESC_CHROMA_MASK,
             1);
 #endif
-        // TTK ADDED Until INTRA_INTER is clean
-        // Update Recon Samples-INTRA-
-       /* encode_pass_update_recon_sample_neighbour_arrays(
-            ep_luma_recon_neighbor_array,
-            ep_cb_recon_neighbor_array,
-            ep_cr_recon_neighbor_array,
-            recon_buffer,
-            txb_origin_x,
-            txb_origin_y,
-            context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-            context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-            PICTURE_BUFFER_DESC_CHROMA_MASK,
-            0);*/
         context_ptr->coded_area_sb_uv +=
             context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr] *
             context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr];

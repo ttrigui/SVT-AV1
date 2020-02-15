@@ -1639,6 +1639,9 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
     else
         context_ptr->warped_motion_injection = 1;
 
+#if SHUT_GM_WM
+    context_ptr->warped_motion_injection = 0;
+#endif
     // Set unipred3x3 injection
     // Level                Settings
     // 0                    OFF

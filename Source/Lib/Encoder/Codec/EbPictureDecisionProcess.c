@@ -1139,7 +1139,9 @@ EbErrorType signal_derivation_multi_processes_oq(
             pcs_ptr->enable_inter_intra = pcs_ptr->slice_type != I_SLICE ? scs_ptr->seq_header.enable_interintra_compound : 0;
         else
             pcs_ptr->enable_inter_intra = scs_ptr->static_config.inter_intra_compound;
-
+        #if SHUT_INTER_INTRA
+        pcs_ptr->enable_inter_intra  =0;
+        #endif
         // Set compound mode      Settings
         // 0                 OFF: No compond mode search : AVG only
         // 1                 ON: compond mode search: AVG/DIST/DIFF

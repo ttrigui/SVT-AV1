@@ -1276,6 +1276,9 @@ EbErrorType signal_derivation_mode_decision_config_kernel_oq(
                       pcs_ptr->parent_pcs_ptr->temporal_layer_index == 0))
                         ? EB_TRUE
                         : EB_FALSE;
+#if SHUT_GM_WM
+    enable_wm = EB_FALSE;
+#endif
     frm_hdr->allow_warped_motion =
         enable_wm &&
         !(frm_hdr->frame_type == KEY_FRAME || frm_hdr->frame_type == INTRA_ONLY_FRAME) &&

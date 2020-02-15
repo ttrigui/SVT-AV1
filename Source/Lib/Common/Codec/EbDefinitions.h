@@ -42,11 +42,12 @@ extern "C" {
 #define SHUT_PALETTE 0
 #define SHUT_INTRABC 1
 #define SHUT_FILTERING 1
+#define SHUT_INTER_INTRA 0 //1
 #define DC_ONLY_INTRA 0 //1
 #define SHUT_GM_WM 1
 #define ENCDEC_16BIT 1
 #if ENCDEC_16BIT
-#define ENCDEC_16BIT_INTER 0
+#define ENCDEC_16BIT_INTER 1
 #endif
 #define TILES_PARALLEL 0
 

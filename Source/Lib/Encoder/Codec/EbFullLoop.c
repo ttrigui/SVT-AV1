@@ -1732,7 +1732,7 @@ int32_t av1_quantize_inv_quantize(
     } else
         perform_rdoq = (EbBool)scs_ptr->static_config.enable_rdoq;
     if (perform_rdoq && md_context->rdoq_quantize_fp && !is_inter) {
-        if (bit_increment) {
+        if (bit_increment || scs_ptr->static_config.is_16bitPipeline) {
             eb_av1_highbd_quantize_fp_facade((TranLow *)coeff,
                                              n_coeffs,
                                              &candidate_plane,
@@ -1752,7 +1752,7 @@ int32_t av1_quantize_inv_quantize(
                                       &qparam);
         }
     } else {
-        if (bit_increment) {
+        if (bit_increment || scs_ptr->static_config.is_16bitPipeline) {
             eb_av1_highbd_quantize_b_facade((TranLow *)coeff,
                                             n_coeffs,
                                             &candidate_plane,

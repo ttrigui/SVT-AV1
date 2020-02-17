@@ -595,6 +595,8 @@ typedef struct EbSvtAv1EncConfiguration {
     // signal for automax_partition; on by default
     uint8_t enable_auto_max_partition;
 
+    EbBool is_16bitPipeline;
+
 } EbSvtAv1EncConfiguration;
 
 /* STEP 1: Call the library to construct a Component Handle.

@@ -6085,7 +6085,51 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                         ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
                                              ->reference_picture_wrapper_ptr->object_ptr)
                                             ->reference_picture16bit;
-
+                                #if ENCDEC_16BIT_INTER
+                                    EbPictureBufferDesc *ref_pic_list0_16bit =
+                                        ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
+                                             ->reference_picture_wrapper_ptr->object_ptr)
+                                            ->reference_picture16bit;
+                                                               
+                            
+                            av1_inter_prediction_ldb_in_hbd(
+                                    pcs_ptr,
+                                    blk_ptr->interp_filters,
+                                    blk_ptr,
+                                    blk_ptr->prediction_unit_array->ref_frame_type,
+                                    &context_ptr->mv_unit,
+                                    1, // use_intrabc,
+                                    SIMPLE_TRANSLATION,
+                                    0,
+                                    0,
+                                    1,
+                                    &blk_ptr->interinter_comp,
+                                    &sb_ptr->tile_info,
+                                    ep_luma_recon_neighbor_array,
+                                    ep_cb_recon_neighbor_array,
+                                    ep_cr_recon_neighbor_array,
+                                    ep_luma_recon_neighbor_array_16bit,
+                                    ep_cb_recon_neighbor_array_16bit,
+                                    ep_cr_recon_neighbor_array_16bit,
+                                    blk_ptr->is_interintra_used,
+                                    blk_ptr->interintra_mode,
+                                    blk_ptr->use_wedge_interintra,
+                                    blk_ptr->interintra_wedge_index,
+                                    context_ptr->blk_origin_x,
+                                    context_ptr->blk_origin_y,
+                                    blk_geom->bwidth,
+                                    blk_geom->bheight,
+                                    ref_pic_list0,
+                                    0,
+                                    ref_pic_list0_16bit,
+                                    0,
+                                    recon_buffer,
+                                    recon_buffer_16bit,
+                                    context_ptr->blk_origin_x,
+                                    context_ptr->blk_origin_y,
+                                    EB_TRUE,
+                                    (uint8_t)scs_ptr->static_config.encoder_bit_depth);
+                                #else
                                 av1_inter_prediction_function_table[is_16bit](
                                     pcs_ptr,
                                     blk_ptr->interp_filters,
@@ -6117,6 +6161,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     context_ptr->blk_origin_y,
                                     EB_TRUE,
                                     (uint8_t)scs_ptr->static_config.encoder_bit_depth);
+                                #endif
                             }
                             // Encode Transform Unit -INTRA-
                             {
@@ -6413,6 +6458,42 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
                         // Inter Prediction
                         if (do_mc && pu_ptr->motion_mode == WARPED_CAUSAL) {
+                            #if ENCDEC_16BIT_INTER
+                            warped_motion_prediction_16bit_pipeline(
+                                pcs_ptr,
+                                &context_ptr->mv_unit,
+                                blk_ptr->prediction_unit_array[0].ref_frame_type,
+                                blk_ptr->prediction_unit_array[0].compound_idx,
+                                &blk_ptr->prediction_unit_array[0].interinter_comp,
+                                context_ptr->blk_origin_x,
+                                context_ptr->blk_origin_y,
+                                blk_ptr,
+                                blk_geom,
+                                #if ENCDEC_16BIT_INTER
+                                is_16bit ? ref_obj_0->reference_picture16bit
+                                         : ref_obj_0->reference_picture,
+                                ref_obj_0->reference_picture16bit,
+                                ref_idx_l1 >= 0 ? is_16bit ? ref_obj_1->reference_picture16bit
+                                                           : ref_obj_1->reference_picture
+                                                : NULL,
+                                ref_idx_l1 >= 0 ? ref_obj_1->reference_picture16bit : NULL,
+                                recon_buffer,
+                                recon_buffer_16bit,
+                                #else
+                                is_16bit ? ref_obj_0->reference_picture16bit
+                                         : ref_obj_0->reference_picture,
+                                ref_idx_l1 >= 0 ? is_16bit ? ref_obj_1->reference_picture16bit
+                                                           : ref_obj_1->reference_picture
+                                                : NULL,
+                                recon_buffer,
+                                #endif
+                                context_ptr->blk_origin_x,
+                                context_ptr->blk_origin_y,
+                                &blk_ptr->prediction_unit_array[0].wm_params_l0,
+                                &blk_ptr->prediction_unit_array[0].wm_params_l1,
+                                (uint8_t)scs_ptr->static_config.encoder_bit_depth,
+                                EB_TRUE);
+                            #else
                             warped_motion_prediction(
                                 pcs_ptr,
                                 &context_ptr->mv_unit,
@@ -6435,6 +6516,8 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 &blk_ptr->prediction_unit_array[0].wm_params_l1,
                                 (uint8_t)scs_ptr->static_config.encoder_bit_depth,
                                 EB_TRUE);
+                            #endif
+
                         }
 
                         if (do_mc && pu_ptr->motion_mode != WARPED_CAUSAL) {
@@ -6488,13 +6571,16 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                           (recon_buffer->origin_y + j + context_ptr->blk_origin_y) * recon_buffer->stride_y] 
                                         )
                                         printf(" RECON Y");
-                                    
+                                    }
+                                }
+                            for (int j = 0; j < blk_geom->bheight_uv; j++) {
+                                for (int i = 0; i < blk_geom->bwidth_uv; i++) {
                                     if( (recon_buffer->buffer_cb)[
                           (recon_buffer->origin_x + i +((context_ptr->blk_origin_x >> 3) << 3)) / 2 +
                           (recon_buffer->origin_y + j +((context_ptr->blk_origin_y >> 3) << 3)) / 2 *
                               recon_buffer->stride_cb] != ((uint16_t *)recon_buffer_16bit->buffer_cb)[
-                          (recon_buffer_16bit->origin_x + ((context_ptr->blk_origin_x >> 3) << 3)) / 2 + i +
-                          (((recon_buffer_16bit->origin_y + ((context_ptr->blk_origin_y >> 3) << 3)) / 2 ) + j )*
+                          (recon_buffer_16bit->origin_x + i +((context_ptr->blk_origin_x >> 3) << 3)) / 2 +
+                          (((recon_buffer_16bit->origin_y + j +((context_ptr->blk_origin_y >> 3) << 3)) / 2 ))*
                               recon_buffer_16bit->stride_cb])
                                         printf(" RECON CB");
 
@@ -6502,8 +6588,8 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                           (recon_buffer->origin_x + i +((context_ptr->blk_origin_x >> 3) << 3)) / 2 +
                           (recon_buffer->origin_y + j +((context_ptr->blk_origin_y >> 3) << 3)) / 2 *
                               recon_buffer->stride_cr] != ((uint16_t *)recon_buffer_16bit->buffer_cr)[
-                          (recon_buffer_16bit->origin_x + ((context_ptr->blk_origin_x >> 3) << 3)) / 2 + i +
-                          (((recon_buffer_16bit->origin_y + ((context_ptr->blk_origin_y >> 3) << 3)) / 2) + j ) *
+                          (recon_buffer_16bit->origin_x + i + ((context_ptr->blk_origin_x >> 3) << 3)) / 2 +
+                          (((recon_buffer_16bit->origin_y + j + ((context_ptr->blk_origin_y >> 3) << 3)) / 2)) *
                               recon_buffer_16bit->stride_cr])
                                         printf(" RECON CR");
                                 }
@@ -6594,7 +6680,67 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 #endif
                         }
                     }
+ #if ENCDEC_16BIT_INTER
+        //copy recon from 16bit to 8bit
+        uint32_t pred_buf_x_offest = context_ptr->blk_origin_x;
+        uint32_t pred_buf_y_offest = context_ptr->blk_origin_y;
 
+        uint16_t *dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_y) +
+                              pred_buf_x_offest + recon_buffer_16bit->origin_x +
+                              (pred_buf_y_offest + recon_buffer_16bit->origin_y) *
+                                  recon_buffer_16bit->stride_y;
+        int32_t dst_stride_16bit = recon_buffer_16bit->stride_y;
+
+        uint8_t *dst;
+        int32_t  dst_stride;
+
+        dst = recon_buffer->buffer_y + pred_buf_x_offest + recon_buffer->origin_x +
+              (pred_buf_y_offest + recon_buffer->origin_y) * recon_buffer->stride_y;
+        dst_stride = recon_buffer->stride_y;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth; i++) {
+                dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
+            }
+        }
+
+
+        //copy recon from 16bit to 8bit
+        pred_buf_x_offest = ((context_ptr->blk_origin_x >> 3) << 3) >> 1;
+        pred_buf_y_offest = ((context_ptr->blk_origin_y >> 3) << 3) >> 1;
+
+        dst_16bit =
+            (uint16_t *)(recon_buffer_16bit->buffer_cb) + pred_buf_x_offest +
+            recon_buffer_16bit->origin_x / 2 +
+            (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) * recon_buffer_16bit->stride_cb;
+        dst_stride_16bit = recon_buffer_16bit->stride_cb;
+
+        dst = recon_buffer->buffer_cb + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cb;
+        dst_stride = recon_buffer->stride_cb;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
+            }
+        }
+
+        dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_cr) +
+                    (pred_buf_x_offest + recon_buffer_16bit->origin_x / 2 +
+                     (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) *
+                         recon_buffer_16bit->stride_cr);
+        dst_stride_16bit = recon_buffer_16bit->stride_cr;
+        dst = recon_buffer->buffer_cr + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cr;
+        dst_stride = recon_buffer->stride_cr;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
+            }
+        }
+
+#endif
                     context_ptr->txb_itr = 0;
                     // Transform Loop
                     blk_ptr->txb_array[0].y_has_coeff = EB_FALSE;

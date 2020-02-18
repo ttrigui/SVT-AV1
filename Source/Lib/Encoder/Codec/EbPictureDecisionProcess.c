@@ -941,7 +941,7 @@ EbErrorType signal_derivation_multi_processes_oq(
         frm_hdr->allow_screen_content_tools = pcs_ptr->sc_content_detected;
         frm_hdr->allow_intrabc = 0;
     }
-    
+
         #if SHUT_INTRABC
             frm_hdr->allow_intrabc =  0;
         #endif

@@ -3441,7 +3441,7 @@ void eb_av1_predict_intra_block_16bit(
         have_top ? AOMMIN(txwpx, xr + txwpx) : 0,
         have_top_right ? AOMMIN(txwpx, xr) : 0,
         have_left ? AOMMIN(txhpx, yd + txhpx) : 0,
-        have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane, 
+        have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane,
 #if ENCDEC_16BIT
         bit_depth);
 #else

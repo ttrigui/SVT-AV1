@@ -2199,15 +2199,7 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
             is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit
                      : pcs_ptr->ep_cr_recon_neighbor_array;
 #endif
-//#if ENCDEC_16BIT
-//        NeighborArrayUnit *ep_luma_recon_neighbor_array16bit =
-//            pcs_ptr->ep_luma_recon_neighbor_array16bit;
-//        NeighborArrayUnit *ep_cb_recon_neighbor_array16bit =
-//            pcs_ptr->ep_cb_recon_neighbor_array16bit;
-//        NeighborArrayUnit *ep_cr_recon_neighbor_array16bit =
-//            pcs_ptr->ep_cr_recon_neighbor_array16bit;
-//        EbPictureBufferDesc *residual_buffer16bit = context_ptr->residual_buffer16bit;
-//#endif
+
         EbPictureBufferDesc *residual_buffer           = context_ptr->residual_buffer;
         EbPictureBufferDesc *transform_buffer          = context_ptr->transform_buffer;
         EbPictureBufferDesc *inverse_quant_buffer      = context_ptr->inverse_quant_buffer;
@@ -2235,17 +2227,7 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                         ->reference_picture;
         else // non ref pictures
             recon_buffer = is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
-        //#if ENCDEC_16BIT
-        //    EbPictureBufferDesc *recon_buffer_16bit = pcs_ptr->recon_picture16bit_ptr;
-        //    if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
-        //        //get the 16bit form of the input SB
-        //        recon_buffer_16bit =
-        //            ((EbReferenceObject *)
-        //                 pcs_ptr->parent_pcs_ptr->reference_picture_wrapper_ptr->object_ptr)
-        //                ->reference_picture16bit;
-        //    else // non ref pictures
-        //        recon_buffer_16bit = pcs_ptr->recon_picture16bit_ptr;
-        //#endif
+
         uint32_t tot_tu = context_ptr->blk_geom->txb_count[blk_ptr->tx_depth];
 
         // Luma path
@@ -2330,7 +2312,6 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                     0,
                     0);
             }
-            //#if !ENCDEC_16BIT
             else {
                 uint8_t        top_neigh_array[64 * 2 + 1];
                 uint8_t        left_neigh_array[64 * 2 + 1];
@@ -2389,87 +2370,10 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                     0,
                     0);
             }
-            //#endif
             // Encode Transform Unit -INTRA-
 
-            //#if ENCDEC_16BIT
-            //        if (1) {
-            //            uint16_t       top_neigh_array[64 * 2 + 1];
-            //            uint16_t       left_neigh_array[64 * 2 + 1];
-            //            PredictionMode mode;
-            //
-            //            TxSize tx_size = context_ptr->blk_geom->txsize[blk_ptr->tx_depth][context_ptr->txb_itr];
-            //
-            //            if (txb_origin_y != 0)
-            //                memcpy(top_neigh_array + 1,
-            //                       (uint16_t *)(ep_luma_recon_neighbor_array16bit->top_array) + txb_origin_x,
-            //                       context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr] *
-            //                           2 * sizeof(uint16_t));
-            //            if (txb_origin_x != 0)
-            //                memcpy(left_neigh_array + 1,
-            //                       (uint16_t *)(ep_luma_recon_neighbor_array16bit->left_array) + txb_origin_y,
-            //                       context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr] *
-            //                           2 * sizeof(uint16_t));
-            //            if (txb_origin_y != 0 && txb_origin_x != 0)
-            //                top_neigh_array[0] = left_neigh_array[0] =
-            //                    ((uint16_t *)(ep_luma_recon_neighbor_array16bit->top_left_array) +
-            //                     MAX_PICTURE_HEIGHT_SIZE + txb_origin_x - txb_origin_y)[0];
-            //
-            //            mode = blk_ptr->pred_mode;
-            //
-            //            eb_av1_predict_intra_block_16bit(
-            //#if ENCDEC_16BIT
-            //                EB_8BIT,
-            //#endif
-            //                &sb_ptr->tile_info,
-            //                ED_STAGE,
-            //                context_ptr->blk_geom,
-            //                pcs_ptr->parent_pcs_ptr->av1_cm,
-            //                context_ptr->blk_geom->bwidth,
-            //                context_ptr->blk_geom->bheight,
-            //                tx_size,
-            //                mode,
-            //                pu_ptr->angle_delta[PLANE_TYPE_Y],
-            //                blk_ptr->palette_info.pmi.palette_size[0] > 0,
-            //                &blk_ptr->palette_info,
-            //                blk_ptr->filter_intra_mode,
-            //                top_neigh_array + 1,
-            //                left_neigh_array + 1,
-            //                recon_buffer_16bit,
-            //                context_ptr->blk_geom->tx_boff_x[blk_ptr->tx_depth][context_ptr->txb_itr] >> 2,
-            //                context_ptr->blk_geom->tx_boff_y[blk_ptr->tx_depth][context_ptr->txb_itr] >> 2,
-            //                0,
-            //                context_ptr->blk_geom->bsize,
-            //                txb_origin_x,
-            //                txb_origin_y,
-            //                context_ptr->blk_origin_x,
-            //                context_ptr->blk_origin_y,
-            //                0,
-            //                0);
-            //        }
-            //#endif
             uint16_t cb_qp = blk_ptr->qp;
 
-            //#if ENCDEC_16BIT
-            //        av1_encode_loop_8bit_input_16bit(pcs_ptr,
-            //                                         context_ptr,
-            //                                         sb_ptr,
-            //                                         txb_origin_x,
-            //                                         txb_origin_y,
-            //                                         cb_qp,
-            //                                         recon_buffer,
-            //                                         recon_buffer_16bit,
-            //                                         coeff_buffer_sb,
-            //                                         residual_buffer,
-            //                                         residual_buffer16bit,
-            //                                         transform_buffer,
-            //                                         inverse_quant_buffer,
-            //                                         transform_inner_array_ptr,
-            //                                         count_non_zero_coeffs,
-            //                                         PICTURE_BUFFER_DESC_LUMA_MASK,
-            //                                         eobs[context_ptr->txb_itr],
-            //                                         blk_plane);
-            //#endif
             av1_encode_loop_func_table[is_16bit](pcs_ptr,
                                                  context_ptr,
                                                  sb_ptr,
@@ -2538,42 +2442,6 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                                                  transform_inner_array_ptr,
                                                  PICTURE_BUFFER_DESC_LUMA_MASK,
                                                  eobs[context_ptr->txb_itr]);
-
-#if ENCDEC_16BIT
-            //copy recon from 16bit to 8bit
-            if (!context_ptr->is_16bit) {
-                uint32_t pred_buf_x_offest = txb_origin_x;
-                uint32_t pred_buf_y_offest = txb_origin_y;
-
-                uint16_t *dst_16bit =
-                    (uint16_t *)(recon_buffer->buffer_y) + pred_buf_x_offest +
-                    recon_buffer->origin_x +
-                    (pred_buf_y_offest + recon_buffer->origin_y) * recon_buffer->stride_y;
-                int32_t dst_stride_16bit = recon_buffer->stride_y;
-
-                uint8_t *dst;
-                int32_t  dst_stride;
-
-                dst = recon_buffer->buffer_y + pred_buf_x_offest + recon_buffer->origin_x +
-                      (pred_buf_y_offest + recon_buffer->origin_y) * recon_buffer->stride_y;
-                dst_stride = recon_buffer->stride_y;
-
-                for (int j = 0; j < context_ptr->blk_geom->bheight; j++) {
-                    for (int i = 0; i < context_ptr->blk_geom->bwidth; i++) {
-                        //dst_16bit[i + j * dst_stride_16bit] = (uint16_t)dst[i + j * dst_stride];
-                        dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
-                    }
-                }
-            }
-            /* if ((pred_buf_x_offest == 0) && (pred_buf_y_offest == 0)) {
-            for (int j = 0; j < context_ptr->blk_geom->bheight; j++) {
-                printf("\n");
-                for (int i = 0; i < context_ptr->blk_geom->bwidth; i++) {
-                    printf(" %d \t", dst_16bit[i + j * dst_stride_16bit]);
-                }
-            }
-        }*/
-#endif
 
 #if ENCDEC_16BIT
             // Update Recon Samples-INTRA-
@@ -2751,7 +2619,6 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                         0);
                 }
             } else
-//#if !ENCDEC_16BIT
             {
                 uint8_t        top_neigh_array[64 * 2 + 1];
                 uint8_t        left_neigh_array[64 * 2 + 1];
@@ -2842,97 +2709,6 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                         0);
                 }
             }
-//#endif
-//#if ENCDEC_16BIT
-//            if (1) {
-//                uint16_t       top_neigh_array[64 * 2 + 1];
-//                uint16_t       left_neigh_array[64 * 2 + 1];
-//                PredictionMode mode;
-//
-//                int32_t plane_end = 2;
-//
-//                for (int32_t plane = 1; plane <= plane_end; ++plane) {
-//                    TxSize tx_size = plane
-//                                         ? context_ptr->blk_geom
-//                                               ->txsize_uv[blk_ptr->tx_depth][context_ptr->txb_itr]
-//                                         : context_ptr->blk_geom
-//                                               ->txsize[blk_ptr->tx_depth][context_ptr->txb_itr];
-//
-//                    if (plane == 1) {
-//                        if (blk_originy_uv != 0)
-//                            memcpy(top_neigh_array + 1,
-//                                   (uint16_t *)(ep_cb_recon_neighbor_array16bit->top_array) +
-//                                       blk_originx_uv,
-//                                   context_ptr->blk_geom->bwidth_uv * 2 * sizeof(uint16_t));
-//                        if (blk_originx_uv != 0)
-//                            memcpy(left_neigh_array + 1,
-//                                   (uint16_t *)(ep_cb_recon_neighbor_array16bit->left_array) +
-//                                       blk_originy_uv,
-//                                   context_ptr->blk_geom->bheight_uv * 2 * sizeof(uint16_t));
-//                        if (blk_originy_uv != 0 && blk_originx_uv != 0)
-//                            top_neigh_array[0] = left_neigh_array[0] =
-//                                ((uint16_t *)(ep_cb_recon_neighbor_array16bit->top_left_array) +
-//                                 MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv - blk_originy_uv)[0];
-//                    } else if (plane == 2) {
-//                        if (blk_originy_uv != 0)
-//                            memcpy(top_neigh_array + 1,
-//                                   (uint16_t *)(ep_cr_recon_neighbor_array16bit->top_array) +
-//                                       blk_originx_uv,
-//                                   context_ptr->blk_geom->bwidth_uv * 2 * sizeof(uint16_t));
-//                        if (blk_originx_uv != 0)
-//                            memcpy(left_neigh_array + 1,
-//                                   (uint16_t *)(ep_cr_recon_neighbor_array16bit->left_array) +
-//                                       blk_originy_uv,
-//                                   context_ptr->blk_geom->bheight_uv * 2 * sizeof(uint16_t));
-//                        if (blk_originy_uv != 0 && blk_originx_uv != 0)
-//                            top_neigh_array[0] = left_neigh_array[0] =
-//                                ((uint16_t *)(ep_cr_recon_neighbor_array16bit->top_left_array) +
-//                                 MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv - blk_originy_uv)[0];
-//                    }
-//
-//                    mode = (pu_ptr->intra_chroma_mode == UV_CFL_PRED)
-//                               ? (PredictionMode)UV_DC_PRED
-//                               : (PredictionMode)pu_ptr->intra_chroma_mode;
-//
-//                    eb_av1_predict_intra_block_16bit(
-//#if ENCDEC_16BIT
-//                        EB_8BIT,
-//#endif
-//                        &sb_ptr->tile_info,
-//                        ED_STAGE,
-//                        context_ptr->blk_geom,
-//                        pcs_ptr->parent_pcs_ptr->av1_cm,
-//                        plane ? context_ptr->blk_geom->bwidth_uv : context_ptr->blk_geom->bwidth,
-//                        plane ? context_ptr->blk_geom->bheight_uv : context_ptr->blk_geom->bheight,
-//                        tx_size,
-//                        mode,
-//                        plane ? pu_ptr->angle_delta[PLANE_TYPE_UV]
-//                              : pu_ptr->angle_delta[PLANE_TYPE_Y],
-//                        0, //chroma
-//                        &blk_ptr->palette_info,
-//                        FILTER_INTRA_MODES,
-//                        top_neigh_array + 1,
-//                        left_neigh_array + 1,
-//                        recon_buffer,
-//                        plane ? 0
-//                              : context_ptr->blk_geom
-//                                        ->tx_boff_x[blk_ptr->tx_depth][context_ptr->txb_itr] >>
-//                                    2,
-//                        plane ? 0
-//                              : context_ptr->blk_geom
-//                                        ->tx_boff_y[blk_ptr->tx_depth][context_ptr->txb_itr] >>
-//                                    2,
-//                        plane,
-//                        context_ptr->blk_geom->bsize,
-//                        txb_origin_x,
-//                        txb_origin_y,
-//                        plane ? context_ptr->blk_origin_x : context_ptr->blk_origin_x,
-//                        plane ? context_ptr->blk_origin_y : context_ptr->blk_origin_y,
-//                        0,
-//                        0);
-//                }
-//            }
-//#endif
             // Encode Transform Unit -INTRA-
             uint16_t cb_qp = blk_ptr->qp;
 
@@ -2953,26 +2729,6 @@ static void av1_encode_loop_16bit(PictureControlSet *pcs_ptr, EncDecContext *con
                                                  eobs[context_ptr->txb_itr],
                                                  blk_plane);
 
-//#if ENCDEC_16BIT
-//            av1_encode_loop_8bit_input_16bit(pcs_ptr,
-//                                             context_ptr,
-//                                             sb_ptr,
-//                                             txb_origin_x,
-//                                             txb_origin_y,
-//                                             cb_qp,
-//                                             recon_buffer,
-//                                             recon_buffer,
-//                                             coeff_buffer_sb,
-//                                             residual_buffer,
-//                                             residual_buffer16bit,
-//                                             transform_buffer,
-//                                             inverse_quant_buffer,
-//                                             transform_inner_array_ptr,
-//                                             count_non_zero_coeffs,
-//                                             PICTURE_BUFFER_DESC_CHROMA_MASK,
-//                                             eobs[context_ptr->txb_itr],
-//                                             blk_plane);
-//#endif
             if (pcs_ptr->update_cdf) {
                 ModeDecisionCandidateBuffer **candidate_buffer_ptr_array_base =
                     context_ptr->md_context->candidate_buffer_ptr_array;
@@ -3023,53 +2779,6 @@ av1_enc_gen_recon_func_ptr[is_16bit](context_ptr,
                                                  transform_inner_array_ptr,
                                                  PICTURE_BUFFER_DESC_CHROMA_MASK,
                                                  eobs[context_ptr->txb_itr]);
-
-#if ENCDEC_16BIT
-            if (!context_ptr->is_16bit) {
-                uint8_t *dst;
-                int32_t  dst_stride;
-
-                uint16_t *dst_16bit;
-                int32_t   dst_stride_16bit;
-
-                //copy recon from 8bit to 16bit
-                uint32_t pred_buf_x_offest = ((context_ptr->blk_origin_x >> 3) << 3) >> 1;
-                uint32_t pred_buf_y_offest = ((context_ptr->blk_origin_y >> 3) << 3) >> 1;
-
-                dst_16bit =
-                    (uint16_t *)(recon_buffer->buffer_cb) + pred_buf_x_offest +
-                    recon_buffer->origin_x / 2 +
-                    (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cb;
-                dst_stride_16bit = recon_buffer->stride_cb;
-
-                dst = recon_buffer->buffer_cb + pred_buf_x_offest + recon_buffer->origin_x / 2 +
-                      (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cb;
-                dst_stride = recon_buffer->stride_cb;
-
-                for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
-                    for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
-                        //dst_16bit[i + j * dst_stride_16bit] = (uint16_t)dst[i + j * dst_stride];
-                        dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
-                    }
-                }
-
-                dst_16bit =
-                    (uint16_t *)(recon_buffer->buffer_cr) +
-                    (pred_buf_x_offest + recon_buffer->origin_x / 2 +
-                     (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cr);
-                dst_stride_16bit = recon_buffer->stride_cr;
-                dst = recon_buffer->buffer_cr + pred_buf_x_offest + recon_buffer->origin_x / 2 +
-                      (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cr;
-                dst_stride = recon_buffer->stride_cr;
-
-                for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
-                    for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
-                        //dst_16bit[i + j * dst_stride_16bit] = (uint16_t)dst[i + j * dst_stride];
-                        dst[i + j * dst_stride] = dst_16bit[i + j * dst_stride_16bit];
-                    }
-                }
-            }
-#endif
 
 #if ENCDEC_16BIT
             // Update Recon Samples-INTRA-

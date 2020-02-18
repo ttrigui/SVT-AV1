@@ -5843,7 +5843,9 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                 PredictionUnit *     pu_ptr           = (PredictionUnit *)EB_NULL; //  done
                 EbPictureBufferDesc *residual_buffer  = context_ptr->residual_buffer;
                 EbPictureBufferDesc *transform_buffer = context_ptr->transform_buffer;
-
+                #if ENCDEC_16BIT_INTER
+                EbPictureBufferDesc *residual_buffer_16bit  = context_ptr->residual_buffer16bit;
+                #endif
                 EbPictureBufferDesc *inverse_quant_buffer = context_ptr->inverse_quant_buffer;
 
                 int16_t *transform_inner_array_ptr = context_ptr->transform_inner_array_ptr;
@@ -6185,7 +6187,30 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                                      : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr],
                                     blk_plane);
-
+                                
+                            #if ENCDEC_16BIT_INTER
+                            
+                                av1_encode_loop_8bit_input_16bit(
+                                    pcs_ptr,
+                                    context_ptr,
+                                    sb_ptr,
+                                    context_ptr->blk_origin_x,
+                                    context_ptr->blk_origin_y,
+                                    cb_qp,
+                                    recon_buffer,
+                                    recon_buffer_16bit,
+                                    coeff_buffer_sb,
+                                    residual_buffer,
+                                    residual_buffer_16bit,
+                                    transform_buffer,
+                                    inverse_quant_buffer,
+                                    transform_inner_array_ptr,
+                                    count_non_zero_coeffs,
+                                    blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
+                                                     : PICTURE_BUFFER_DESC_LUMA_MASK,
+                                    eobs[context_ptr->txb_itr],
+                                    blk_plane);
+                                #endif
                                 if (allow_update_cdf) {
                                     ModeDecisionCandidateBuffer **candidate_buffer_ptr_array_base =
                                         context_ptr->md_context->candidate_buffer_ptr_array;
@@ -6241,6 +6266,18 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
                                                      : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr]);
+                                #if ENCDEC_16BIT_INTER
+                                av1_encode_generate_recon_8bit_input_16bit(
+                                    context_ptr,
+                                    context_ptr->blk_origin_x,
+                                    context_ptr->blk_origin_y,
+                                    recon_buffer_16bit,
+                                    inverse_quant_buffer,
+                                    transform_inner_array_ptr,
+                                    blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
+                                                     : PICTURE_BUFFER_DESC_LUMA_MASK,
+                                    eobs[context_ptr->txb_itr]);
+                                    #endif
                             }
 
                             // Update the Intra-specific Neighbor Arrays
@@ -6274,6 +6311,23 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
                                                  : PICTURE_BUFFER_DESC_LUMA_MASK,
                                 is_16bit);
+                            #if ENCDEC_16BIT_INTER
+                            // Update Recon Samples-INTRA-
+                            encode_pass_update_recon_sample_neighbour_arrays(
+                                ep_luma_recon_neighbor_array_16bit,
+                                ep_cb_recon_neighbor_array_16bit,
+                                ep_cr_recon_neighbor_array_16bit,
+                                recon_buffer_16bit,
+                                context_ptr->blk_origin_x,
+                                context_ptr->blk_origin_y,
+                                context_ptr->blk_geom->bwidth,
+                                context_ptr->blk_geom->bheight,
+                                context_ptr->blk_geom->bwidth_uv,
+                                context_ptr->blk_geom->bheight_uv,
+                                blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
+                                                 : PICTURE_BUFFER_DESC_LUMA_MASK,
+                                1);
+                            #endif
 
                             // Update the luma Dc Sign Level Coeff Neighbor Array
                             {
@@ -6830,6 +6884,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     &context_ptr->md_context->cr_dc_sign_context);
                             }
                             if (!zero_luma_cbf_md)
+                                {
                                 //inter mode  1
                                 av1_encode_loop_func_table[is_16bit](
                                     pcs_ptr,
@@ -6850,7 +6905,92 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                         : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr],
                                     blk_plane);
+                            #if ENCDEC_16BIT_INTER
+                            
+                                av1_encode_loop_8bit_input_16bit(pcs_ptr,
+                                         context_ptr,
+                                         sb_ptr,
+                                         txb_origin_x,
+                                         txb_origin_y,
+                                         cb_qp,
+                                         recon_buffer,
+                                         recon_buffer_16bit,
+                                         coeff_buffer_sb,
+                                         residual_buffer,
+                                         residual_buffer_16bit,
+                                         transform_buffer,
+                                         inverse_quant_buffer,
+                                         transform_inner_array_ptr,
+                                         count_non_zero_coeffs,
+                                        context_ptr->blk_geom->has_uv && uv_pass
+                                        ? PICTURE_BUFFER_DESC_FULL_MASK
+                                        : PICTURE_BUFFER_DESC_LUMA_MASK,
+                                         eobs[context_ptr->txb_itr],
+                                         blk_plane);
+                                
+        uint32_t pred_buf_x_offest = context_ptr->blk_origin_x;
+        uint32_t pred_buf_y_offest = context_ptr->blk_origin_y;
 
+        uint16_t *dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_y) +
+                              pred_buf_x_offest + recon_buffer_16bit->origin_x +
+                              (pred_buf_y_offest + recon_buffer_16bit->origin_y) *
+                                  recon_buffer_16bit->stride_y;
+        int32_t dst_stride_16bit = recon_buffer_16bit->stride_y;
+
+        uint8_t *dst;
+        int32_t  dst_stride;
+
+        dst = recon_buffer->buffer_y + pred_buf_x_offest + recon_buffer->origin_x +
+              (pred_buf_y_offest + recon_buffer->origin_y) * recon_buffer->stride_y;
+        dst_stride = recon_buffer->stride_y;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth; i++) {
+                if(dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf ("InvTran Y");
+            }
+        }
+        if (context_ptr->blk_geom->has_uv && uv_pass)
+            {
+                    pred_buf_x_offest = ((context_ptr->blk_origin_x >> 3) << 3) >> 1;
+        pred_buf_y_offest = ((context_ptr->blk_origin_y >> 3) << 3) >> 1;
+
+        dst_16bit =
+            (uint16_t *)(recon_buffer_16bit->buffer_cb) + pred_buf_x_offest +
+            recon_buffer_16bit->origin_x / 2 +
+            (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) * recon_buffer_16bit->stride_cb;
+        dst_stride_16bit = recon_buffer_16bit->stride_cb;
+
+        dst = recon_buffer->buffer_cb + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cb;
+        dst_stride = recon_buffer->stride_cb;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                if(dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf("InvTran CB");
+            }
+        }
+
+        dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_cr) +
+                    (pred_buf_x_offest + recon_buffer_16bit->origin_x / 2 +
+                     (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) *
+                         recon_buffer_16bit->stride_cr);
+        dst_stride_16bit = recon_buffer_16bit->stride_cr;
+        dst = recon_buffer->buffer_cr + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cr;
+        dst_stride = recon_buffer->stride_cr;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                if (dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf("InvTran CR");
+            }
+        }
+
+            }
+                            #endif
+                                }
                             // SKIP the CBF zero mode for DC path. There are problems with cost calculations
                             {
                                 // Compute Tu distortion
@@ -7197,7 +7337,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                             context_ptr->blk_ptr->quantized_dc[2][context_ptr->txb_itr] = 0;
                         } else if ((&blk_ptr->prediction_unit_array[0])->merge_flag == EB_TRUE) {
                             //inter mode  2
-
                             av1_encode_loop_func_table[is_16bit](
                                 pcs_ptr,
                                 context_ptr,
@@ -7217,7 +7356,92 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     : PICTURE_BUFFER_DESC_LUMA_MASK,
                                 eobs[context_ptr->txb_itr],
                                 blk_plane);
+                            
+                            #if ENCDEC_16BIT_INTER
+                            
+                                av1_encode_loop_8bit_input_16bit(pcs_ptr,
+                                         context_ptr,
+                                         sb_ptr,
+                                         txb_origin_x,
+                                         txb_origin_y,
+                                         cb_qp,
+                                         recon_buffer,
+                                         recon_buffer_16bit,
+                                         coeff_buffer_sb,
+                                         residual_buffer,
+                                         residual_buffer_16bit,
+                                         transform_buffer,
+                                         inverse_quant_buffer,
+                                         transform_inner_array_ptr,
+                                         count_non_zero_coeffs,
+                                        context_ptr->blk_geom->has_uv && uv_pass
+                                        ? PICTURE_BUFFER_DESC_FULL_MASK
+                                        : PICTURE_BUFFER_DESC_LUMA_MASK,
+                                         eobs[context_ptr->txb_itr],
+                                         blk_plane);
+                                
+        uint32_t pred_buf_x_offest = context_ptr->blk_origin_x;
+        uint32_t pred_buf_y_offest = context_ptr->blk_origin_y;
 
+        uint16_t *dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_y) +
+                              pred_buf_x_offest + recon_buffer_16bit->origin_x +
+                              (pred_buf_y_offest + recon_buffer_16bit->origin_y) *
+                                  recon_buffer_16bit->stride_y;
+        int32_t dst_stride_16bit = recon_buffer_16bit->stride_y;
+
+        uint8_t *dst;
+        int32_t  dst_stride;
+
+        dst = recon_buffer->buffer_y + pred_buf_x_offest + recon_buffer->origin_x +
+              (pred_buf_y_offest + recon_buffer->origin_y) * recon_buffer->stride_y;
+        dst_stride = recon_buffer->stride_y;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth; i++) {
+                if(dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf ("MERGE InvTran Y");
+            }
+        }
+        if (context_ptr->blk_geom->has_uv && uv_pass)
+            {
+                    pred_buf_x_offest = ((context_ptr->blk_origin_x >> 3) << 3) >> 1;
+        pred_buf_y_offest = ((context_ptr->blk_origin_y >> 3) << 3) >> 1;
+
+        dst_16bit =
+            (uint16_t *)(recon_buffer_16bit->buffer_cb) + pred_buf_x_offest +
+            recon_buffer_16bit->origin_x / 2 +
+            (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) * recon_buffer_16bit->stride_cb;
+        dst_stride_16bit = recon_buffer_16bit->stride_cb;
+
+        dst = recon_buffer->buffer_cb + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cb;
+        dst_stride = recon_buffer->stride_cb;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                if(dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf("MERGE InvTran CB");
+            }
+        }
+
+        dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_cr) +
+                    (pred_buf_x_offest + recon_buffer_16bit->origin_x / 2 +
+                     (pred_buf_y_offest + recon_buffer_16bit->origin_y / 2) *
+                         recon_buffer_16bit->stride_cr);
+        dst_stride_16bit = recon_buffer_16bit->stride_cr;
+        dst = recon_buffer->buffer_cr + pred_buf_x_offest + recon_buffer->origin_x / 2 +
+              (pred_buf_y_offest + recon_buffer->origin_y / 2) * recon_buffer->stride_cr;
+        dst_stride = recon_buffer->stride_cr;
+
+        for (int j = 0; j < context_ptr->blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < context_ptr->blk_geom->bwidth_uv; i++) {
+                if (dst[i + j * dst_stride] != dst_16bit[i + j * dst_stride_16bit])
+                    printf("MERGE InvTran CR");
+            }
+        }
+
+            }
+                            #endif
                             if (allow_update_cdf) {
                                 ModeDecisionCandidateBuffer **candidate_buffer_ptr_array_base =
                                     context_ptr->md_context->candidate_buffer_ptr_array;

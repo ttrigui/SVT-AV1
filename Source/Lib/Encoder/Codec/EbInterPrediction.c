@@ -3878,7 +3878,7 @@ static INLINE void build_prediction_by_above_pred_hbd(uint8_t bit_depth, MacroBl
                                                         ctxt->dst_origin_x,
                                                         ctxt->dst_origin_y,
                                                         bit_depth);
-        else 
+        else
             get_single_prediction_for_obmc_chroma_hbd(above_mbmi->block_mi.interp_filters,
                                                       xd,
                                                       &ctxt->mv_unit,
@@ -4043,7 +4043,7 @@ static INLINE void build_prediction_by_left_pred_hbd(uint8_t bit_depth, MacroBlo
                                                         ctxt->dst_origin_x,
                                                         ctxt->dst_origin_y,
                                                         bit_depth);
-        else 
+        else
             get_single_prediction_for_obmc_chroma_hbd(left_mbmi->block_mi.interp_filters,
                                                       xd,
                                                       &ctxt->mv_unit,
@@ -4066,7 +4066,7 @@ static void build_prediction_by_above_preds_hbd(EbBool perform_chroma, BlockSize
                                                 uint16_t *tmp_buf[MAX_MB_PLANE],
                                                 int       tmp_stride[MAX_MB_PLANE]
     #if ENCDEC_16BIT_INTER
-,uint8_t bit_depth 
+,uint8_t bit_depth
 #endif
 ) {
     if (!xd->up_available) return;
@@ -4592,7 +4592,7 @@ void av1_build_obmc_inter_prediction_hbd(uint8_t *final_dst_ptr_y, uint16_t fina
                                      int mi_row, int mi_col, uint8_t *above[MAX_MB_PLANE],
                                      int above_stride[MAX_MB_PLANE], uint8_t *left[MAX_MB_PLANE],
                                      int left_stride[MAX_MB_PLANE], uint8_t bit_depth) {
- 
+
     // handle above row
     struct obmc_inter_pred_ctxt ctxt_above;
 
@@ -6974,7 +6974,7 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                     src_ptr  = src_ptr + (mv_q4.row >> SUBPEL_BITS) * src_stride +
                               (mv_q4.col >> SUBPEL_BITS);
                     #if ENCDEC_16BIT_INTER
-                    
+
                     src_ptr_16bit =
                         (uint16_t *)ref_pic_16bit->buffer_cr + (ref_pic_16bit->origin_x + ((pu_origin_x >> 3) << 3)) / 2 +
                         (ref_pic_16bit->origin_y + ((pu_origin_y >> 3) << 3)) / 2 * ref_pic_16bit->stride_cr;
@@ -7147,7 +7147,7 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
             src_ptr =
                 src_ptr + (mv_q4.row >> SUBPEL_BITS) * src_stride + (mv_q4.col >> SUBPEL_BITS);
 #if ENCDEC_16BIT_INTER
-            src_ptr_16bit = 
+            src_ptr_16bit =
                 src_ptr_16bit + (mv_q4.row >> SUBPEL_BITS) * src_stride_16bit + (mv_q4.col >> SUBPEL_BITS);
 #endif
                 conv_params =
@@ -7400,7 +7400,7 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                                                                 subpel_x,
                                                                 subpel_y,
                                                                 &conv_params);
-            
+
             #if ENCDEC_16BIT_INTER
             convolveHbd[subpel_x != 0][subpel_y != 0][is_compound](src_ptr_16bit,
                                                                 src_stride_16bit,
@@ -7500,7 +7500,7 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                     bit_depth,
                     1 //plane=cb  seg_mask is computed based on luma and used for chroma
                 );
-                
+
             #if ENCDEC_16BIT_INTER
             av1_make_masked_inter_predictor_hbd(
                     (uint8_t *)src_ptr_16bit,
@@ -7626,7 +7626,7 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                     bit_depth,
                     1 //plane=Cr  seg_mask is computed based on luma and used for chroma
                 );
-                
+
             #if ENCDEC_16BIT_INTER
             av1_make_masked_inter_predictor_hbd(
                     (uint8_t *)src_ptr_16bit,
@@ -7944,24 +7944,24 @@ if (is_interintra_used) {
                 {
                     if (blk_originy_uv != 0)
                         {
-                        if(((uint16_t *)cr_recon_neighbor_array_16bit->top_array + blk_originx_uv)[j] != 
+                        if(((uint16_t *)cr_recon_neighbor_array_16bit->top_array + blk_originx_uv)[j] !=
                             (cr_recon_neighbor_array->top_array + blk_originx_uv)[j])
                             printf("CR TOP ARRAY");
                         }
                     if (blk_originx_uv != 0)
                         {
-                        if(((uint16_t *)cr_recon_neighbor_array_16bit->left_array + blk_originx_uv)[j] != 
+                        if(((uint16_t *)cr_recon_neighbor_array_16bit->left_array + blk_originx_uv)[j] !=
                             (cr_recon_neighbor_array->left_array + blk_originx_uv)[j])
                             printf("CR LEFT ARRAY");
                         }
                     }
                     if (blk_originy_uv != 0 && blk_originx_uv != 0)
                     {
-                        if(((uint16_t *)cr_recon_neighbor_array_16bit->top_left_array)[MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv -blk_originy_uv / 2] != 
+                        if(((uint16_t *)cr_recon_neighbor_array_16bit->top_left_array)[MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv -blk_originy_uv / 2] !=
                             (cr_recon_neighbor_array->top_left_array)[MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv -blk_originy_uv / 2])
                             printf("CR TOP LEFT ARRAY");
                         }
-               
+
                 if (blk_originy_uv != 0)
                     memcpy(topNeighArray + 1,
                            (uint16_t *)cr_recon_neighbor_array_16bit->top_array + blk_originx_uv,
@@ -8035,7 +8035,7 @@ if (is_interintra_used) {
                 dst_ptr = prediction_ptr->buffer_y + prediction_ptr->origin_x + dst_origin_x +
                           (prediction_ptr->origin_y + dst_origin_y) * prediction_ptr->stride_y;
                 dst_stride   = prediction_ptr->stride_y;
-                
+
                 dst_ptr_16bit = (uint16_t *)prediction_ptr_16bit->buffer_y + prediction_ptr_16bit->origin_x +
                           dst_origin_x +
                           (prediction_ptr_16bit->origin_y + dst_origin_y) * prediction_ptr_16bit->stride_y;
@@ -8271,7 +8271,7 @@ if (is_interintra_used) {
             #else
                                         0); // is16bit
             #endif
-    
+
      for (int j = 0; j < blk_geom->bheight; j++) {
                     for (int i = 0; i < blk_geom->bwidth; i++) {
                         if (final_dst_ptr_y[i + j * final_dst_stride_y] != final_dst_ptr_y_16bit[i + j * final_dst_stride_y_16bit])

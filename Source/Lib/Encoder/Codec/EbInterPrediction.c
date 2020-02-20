@@ -7164,7 +7164,12 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
         conv_params = get_conv_params_no_round(0, 0, 0, tmp_dstY, 128, is_compound, bit_depth);
         av1_get_convolve_filter_params(
             interp_filters, &filter_params_x, &filter_params_y, bwidth, bheight);
-
+        for (int j = 0; j < bheight; j++) {
+            for (int i = 0; i < bwidth; i++) {
+                if (src_ptr[i + j * src_stride] != src_ptr_16bit[i + j * src_stride_16bit])
+                    printf(" SRC convolve Y diff");
+            }
+        }
         convolve[subpel_x != 0][subpel_y != 0][is_compound](src_ptr,
                                                             src_stride,
                                                             dst_ptr,
@@ -7473,23 +7478,23 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
 
         if (is_compound && is_masked_compound_type(interinter_comp->type)) {
             conv_params.do_average = 0;
-            av1_make_masked_inter_predictor(
-                src_ptr,
-                src_stride,
-                dst_ptr,
-                dst_stride,
-                blk_geom,
-                bwidth,
-                bheight,
-                &filter_params_x,
-                &filter_params_y,
-                subpel_x,
-                subpel_y,
-                &conv_params,
-                interinter_comp,
-                bit_depth,
-                0 //plane=Luma  seg_mask is computed based on luma and used for chroma
-            );
+            //av1_make_masked_inter_predictor(
+            //    src_ptr,
+            //    src_stride,
+            //    dst_ptr,
+            //    dst_stride,
+            //    blk_geom,
+            //    bwidth,
+            //    bheight,
+            //    &filter_params_x,
+            //    &filter_params_y,
+            //    subpel_x,
+            //    subpel_y,
+            //    &conv_params,
+            //    interinter_comp,
+            //    bit_depth,
+            //    0 //plane=Luma  seg_mask is computed based on luma and used for chroma
+            //);
             #if ENCDEC_16BIT_INTER
             av1_make_masked_inter_predictor_hbd(
                 (uint8_t *)src_ptr_16bit,
@@ -7508,6 +7513,13 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                 bit_depth,
                 0 //plane=Luma  seg_mask is computed based on luma and used for chroma
             );
+            for (int j = 0; j < bheight; j++) {
+            for (int i = 0; i < bwidth; i++) {
+               /* if (dst_ptr[i + j * dst_stride] != dst_ptr_16bit[i + j * dst_stride_16bit])
+                    printf("L1 MASKED INTER  Y diff");*/
+                dst_ptr[i + j * dst_stride] = dst_ptr_16bit[i + j * dst_stride_16bit];
+            }
+        }
             #endif
         } else
             {
@@ -7536,6 +7548,13 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                                                                 subpel_y,
                                                                 &conv_params,
                                                                 bit_depth);
+            
+        for (int j = 0; j < bheight; j++) {
+            for (int i = 0; i < bwidth; i++) {
+                if (dst_ptr[i + j * dst_stride] != dst_ptr_16bit[i + j * dst_stride_16bit])
+                    printf("L1 convolve Y diff");
+            }
+        }
             #endif
             }
         if (perform_chroma && blk_geom->has_uv && sub8x8_inter == 0) {
@@ -7605,23 +7624,23 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
 
             if (is_compound && is_masked_compound_type(interinter_comp->type)) {
                 conv_params.do_average = 0;
-                av1_make_masked_inter_predictor(
-                    src_ptr,
-                    src_stride,
-                    dst_ptr,
-                    dst_stride,
-                    blk_geom,
-                    blk_geom->bwidth_uv,
-                    blk_geom->bheight_uv,
-                    &filter_params_x,
-                    &filter_params_y,
-                    subpel_x,
-                    subpel_y,
-                    &conv_params,
-                    interinter_comp,
-                    bit_depth,
-                    1 //plane=cb  seg_mask is computed based on luma and used for chroma
-                );
+                //av1_make_masked_inter_predictor(
+                //    src_ptr,
+                //    src_stride,
+                //    dst_ptr,
+                //    dst_stride,
+                //    blk_geom,
+                //    blk_geom->bwidth_uv,
+                //    blk_geom->bheight_uv,
+                //    &filter_params_x,
+                //    &filter_params_y,
+                //    subpel_x,
+                //    subpel_y,
+                //    &conv_params,
+                //    interinter_comp,
+                //    bit_depth,
+                //    1 //plane=cb  seg_mask is computed based on luma and used for chroma
+                //);
                 
             #if ENCDEC_16BIT_INTER
             av1_make_masked_inter_predictor_hbd(
@@ -7641,6 +7660,11 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                     bit_depth,
                     1 //plane=cb  seg_mask is computed based on luma and used for chroma
             );
+            for (int j = 0; j < blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < blk_geom->bwidth_uv; i++) {
+                dst_ptr[i + j * dst_stride] = dst_ptr_16bit[i + j * dst_stride_16bit];
+            }
+        }
             #endif
             } else
                 {
@@ -7668,6 +7692,13 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                                                                     subpel_y,
                                                                     &conv_params,
                                                                     bit_depth);
+                
+            for (int j = 0; j < blk_geom->bheight_uv; j++) {
+                    for (int i = 0; i < blk_geom->bwidth_uv; i++) {
+                        if (dst_ptr[i + j * dst_stride] != dst_ptr_16bit[i + j * dst_stride_16bit])
+                            printf("L1 convolve CB diff");
+                    }
+                }
                 #endif
                 }
 
@@ -7731,23 +7762,23 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
 
             if (is_compound && is_masked_compound_type(interinter_comp->type)) {
                 conv_params.do_average = 0;
-                av1_make_masked_inter_predictor(
-                    src_ptr,
-                    src_stride,
-                    dst_ptr,
-                    dst_stride,
-                    blk_geom,
-                    blk_geom->bwidth_uv,
-                    blk_geom->bheight_uv,
-                    &filter_params_x,
-                    &filter_params_y,
-                    subpel_x,
-                    subpel_y,
-                    &conv_params,
-                    interinter_comp,
-                    bit_depth,
-                    1 //plane=Cr  seg_mask is computed based on luma and used for chroma
-                );
+                //av1_make_masked_inter_predictor(
+                //    src_ptr,
+                //    src_stride,
+                //    dst_ptr,
+                //    dst_stride,
+                //    blk_geom,
+                //    blk_geom->bwidth_uv,
+                //    blk_geom->bheight_uv,
+                //    &filter_params_x,
+                //    &filter_params_y,
+                //    subpel_x,
+                //    subpel_y,
+                //    &conv_params,
+                //    interinter_comp,
+                //    bit_depth,
+                //    1 //plane=Cr  seg_mask is computed based on luma and used for chroma
+                //);
                 
             #if ENCDEC_16BIT_INTER
             av1_make_masked_inter_predictor_hbd(
@@ -7767,6 +7798,12 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                     bit_depth,
                     1 //plane=Cr  seg_mask is computed based on luma and used for chroma
             );
+            
+            for (int j = 0; j < blk_geom->bheight_uv; j++) {
+            for (int i = 0; i < blk_geom->bwidth_uv; i++) {
+                dst_ptr[i + j * dst_stride] = dst_ptr_16bit[i + j * dst_stride_16bit];
+            }
+        }
             #endif
             } else
                 {
@@ -7794,6 +7831,13 @@ EbErrorType av1_inter_prediction_ldb_in_hbd(
                                                                     subpel_y,
                                                                     &conv_params,
                                                                     bit_depth);
+                
+            for (int j = 0; j < blk_geom->bheight_uv; j++) {
+                    for (int i = 0; i < blk_geom->bwidth_uv; i++) {
+                        if (dst_ptr[i + j * dst_stride] != dst_ptr_16bit[i + j * dst_stride_16bit])
+                            printf("L1 convolve CR diff");
+                    }
+                }
                 #endif
                 }
         }
@@ -8014,6 +8058,31 @@ if (is_interintra_used) {
                     topNeighArray[0] = leftNeighArray[0] =
                         ((uint16_t *)luma_recon_neighbor_array_16bit
                              ->top_left_array)[MAX_PICTURE_HEIGHT_SIZE + pu_origin_x - pu_origin_y];
+
+                                for (int j = 0; j < blk_geom->bwidth ; j++)
+                {
+                    if (pu_origin_y != 0)
+                        {
+                        if((uint8_t)(((uint16_t *)luma_recon_neighbor_array_16bit->top_array + pu_origin_x)[j]) != 
+                            (luma_recon_neighbor_array->top_array + pu_origin_x)[j])
+                            printf("Y TOP ARRAY");
+                        }
+                    }
+                                for (int j = 0; j < blk_geom->bheight; j++)
+                                    {
+                    if (pu_origin_x != 0)
+                        {
+                        if((uint8_t)(((uint16_t *)luma_recon_neighbor_array_16bit->left_array + pu_origin_y)[j]) != 
+                            (luma_recon_neighbor_array->left_array + pu_origin_y)[j])
+                            printf("Y LEFT ARRAY");
+                        }
+                    }
+                    if (pu_origin_y != 0 && pu_origin_x != 0)
+                    {
+                        if((uint8_t)(((uint16_t *)luma_recon_neighbor_array_16bit->top_left_array)[MAX_PICTURE_HEIGHT_SIZE + pu_origin_x -pu_origin_y]) != 
+                            (luma_recon_neighbor_array->top_left_array)[MAX_PICTURE_HEIGHT_SIZE + pu_origin_x -pu_origin_y])
+                            printf("Y TOP LEFT ARRAY");
+                        }
             }
 
             else if (plane == 1) {
@@ -8023,7 +8092,28 @@ if (is_interintra_used) {
                               prediction_ptr_16bit->stride_cb;
                 dst_stride_16bit   = prediction_ptr_16bit->stride_cb;
                 intra_stride = intra_pred_desc.stride_cb;
-
+                
+                for (int j = 0; j < blk_geom->bwidth_uv * 2; j++)
+                {
+                    if (blk_originy_uv != 0)
+                        {
+                        if((uint8_t)(((uint16_t *)cb_recon_neighbor_array_16bit->top_array + blk_originx_uv)[j]) != 
+                            (cb_recon_neighbor_array->top_array + blk_originx_uv)[j])
+                            printf("CB TOP ARRAY");
+                        }
+                    if (blk_originx_uv != 0)
+                        {
+                        if((uint8_t)(((uint16_t *)cb_recon_neighbor_array_16bit->left_array + blk_originx_uv)[j]) != 
+                            (cb_recon_neighbor_array->left_array + blk_originx_uv)[j])
+                            printf("CB LEFT ARRAY");
+                        }
+                    }
+                    if (blk_originy_uv != 0 && blk_originx_uv != 0)
+                    {
+                        if((uint8_t)(((uint16_t *)cb_recon_neighbor_array_16bit->top_left_array)[MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv -blk_originy_uv / 2]) != 
+                            (cb_recon_neighbor_array->top_left_array)[MAX_PICTURE_HEIGHT_SIZE / 2 + blk_originx_uv -blk_originy_uv / 2])
+                            printf("CB TOP LEFT ARRAY");
+                        }
                 if (blk_originy_uv != 0)
                     memcpy(topNeighArray + 1,
                            (uint16_t *)cb_recon_neighbor_array_16bit->top_array + blk_originx_uv,
@@ -9578,7 +9668,7 @@ EbErrorType warped_motion_prediction_16bit_pipeline(PictureControlSet *picture_c
                                          ref_pic_list0_16bit->stride_cr);
             src_ptr_l1_16bit = is_compound
                              ? ref_pic_list1_16bit->buffer_cr +
-                                   (is16bit ? 2 : 1) *
+                                   2 *
                                        ((ref_pic_list1_16bit->origin_x + ((pu_origin_x >> 3) << 3)) / 2 +
                                         (ref_pic_list1_16bit->origin_y + ((pu_origin_y >> 3) << 3)) / 2 *
                                             ref_pic_list1_16bit->stride_cr)

@@ -1246,7 +1246,6 @@ void pad_ref_and_set_flags(PictureControlSet *pcs_ptr, SequenceControlSet *scs_p
     }
 
 #if ENCDEC_16BIT
-    if (pcs_ptr->picture_number == 0)
     {
         //for (int j = 0; j < ref_pic_16bit_ptr->height; j++) {
         //    printf("\n");

@@ -2985,6 +2985,22 @@ void perform_intra_coding_loop_16bit(PictureControlSet *pcs_ptr, SuperBlock *sb_
             PICTURE_BUFFER_DESC_LUMA_MASK,
             1);
 #endif
+        // TTK JUST FOR TESTING TO BE REMOVED
+        // Update Recon Samples-INTRA-
+        encode_pass_update_recon_sample_neighbour_arrays(
+            ep_luma_recon_neighbor_array,
+            ep_cb_recon_neighbor_array,
+            ep_cr_recon_neighbor_array,
+            recon_buffer,
+            txb_origin_x,
+            txb_origin_y,
+            context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
+            PICTURE_BUFFER_DESC_LUMA_MASK,
+            is_16bit);
+
         context_ptr->coded_area_sb +=
             context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr] *
             context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr];
@@ -3454,6 +3470,21 @@ void perform_intra_coding_loop_16bit(PictureControlSet *pcs_ptr, SuperBlock *sb_
             PICTURE_BUFFER_DESC_CHROMA_MASK,
             1);
 #endif
+        // TTK JUST FOR TESTING TO BE REMOVED
+        // Update Recon Samples-INTRA-
+        encode_pass_update_recon_sample_neighbour_arrays(
+            ep_luma_recon_neighbor_array,
+            ep_cb_recon_neighbor_array,
+            ep_cr_recon_neighbor_array,
+            recon_buffer,
+            txb_origin_x,
+            txb_origin_y,
+            context_ptr->blk_geom->tx_width[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_height[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
+            context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
+            PICTURE_BUFFER_DESC_CHROMA_MASK,
+            is_16bit);
         context_ptr->coded_area_sb_uv +=
             context_ptr->blk_geom->tx_width_uv[blk_ptr->tx_depth][context_ptr->txb_itr] *
             context_ptr->blk_geom->tx_height_uv[blk_ptr->tx_depth][context_ptr->txb_itr];
@@ -5726,14 +5757,13 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
         (((sb_origin_y + input_picture->origin_y) >> 1) * input_picture->stride_cr) +
         ((sb_origin_x + input_picture->origin_x) >> 1);
 
-    // TTK Should be removed after enabling generate padding for ref
     sb_width =
-        (sb_width < MIN_SB_SIZE)
+        ((sb_width < MIN_SB_SIZE) || ((sb_width > MIN_SB_SIZE) && (sb_width < MAX_SB_SIZE)))
             ? MIN(scs_ptr->sb_size_pix,
                   (pcs_ptr->parent_pcs_ptr->aligned_width + scs_ptr->right_padding) - sb_origin_x)
             : sb_width;
     sb_height =
-        (sb_height < MIN_SB_SIZE)
+        ((sb_height < MIN_SB_SIZE) || ((sb_height > MIN_SB_SIZE) && (sb_height < MAX_SB_SIZE)))
             ? MIN(scs_ptr->sb_size_pix,
                   (pcs_ptr->parent_pcs_ptr->aligned_height + scs_ptr->bot_padding) - sb_origin_y)
             : sb_height;
@@ -7654,8 +7684,8 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
 #if ENCDEC_16BIT
                         //copy recon from 8bit to 16bit
-                        uint32_t pred_buf_x_offest = txb_origin_x;
-                        uint32_t pred_buf_y_offest = txb_origin_y;
+                        uint32_t pred_buf_x_offest = context_ptr->blk_origin_x;
+                        uint32_t pred_buf_y_offest = context_ptr->blk_origin_y;
 
                         uint16_t *dst_16bit = (uint16_t *)(recon_buffer_16bit->buffer_y) +
                                               pred_buf_x_offest + recon_buffer_16bit->origin_x +

@@ -1732,7 +1732,7 @@ int32_t av1_quantize_inv_quantize(
     } else
         perform_rdoq = (EbBool)scs_ptr->static_config.enable_rdoq;
     if (perform_rdoq && md_context->rdoq_quantize_fp && !is_inter) {
-        if (bit_increment) {
+        if (bit_increment || scs_ptr->static_config.is_16bitPipeline) {
             eb_av1_highbd_quantize_fp_facade((TranLow *)coeff,
                                              n_coeffs,
                                              &candidate_plane,
@@ -1752,7 +1752,7 @@ int32_t av1_quantize_inv_quantize(
                                       &qparam);
         }
     } else {
-        if (bit_increment) {
+        if (bit_increment || scs_ptr->static_config.is_16bitPipeline) {
             eb_av1_highbd_quantize_b_facade((TranLow *)coeff,
                                             n_coeffs,
                                             &candidate_plane,
@@ -1816,204 +1816,6 @@ int32_t av1_quantize_inv_quantize(
     set_dc_sign(&cul_level, quant_coeff[0]);
     return cul_level;
 }
-#if ENCDEC_16BIT
-int32_t av1_quantize_inv_quantize_8bit_input_16bit(
-    PictureControlSet *pcs_ptr, ModeDecisionContext *md_context, int32_t *coeff,
-    const uint32_t coeff_stride, int32_t *quant_coeff, int32_t *recon_coeff, uint32_t qp,
-    int32_t segmentation_qp_offset, uint32_t width, uint32_t height, TxSize txsize, uint16_t *eob,
-    uint32_t *count_non_zero_coeffs,
-    uint32_t component_type, uint32_t bit_increment, TxType tx_type,
-    ModeDecisionCandidateBuffer *candidate_buffer,
-    int16_t txb_skip_context, // Hsan (Trellis): derived @ MD (what about re-generating @ EP ?)
-    int16_t dc_sign_context, // Hsan (Trellis): derived @ MD (what about re-generating @ EP ?)
-    PredictionMode pred_mode, EbBool is_intra_bc, EbBool is_encode_pass) {
-    (void)candidate_buffer;
-    (void)is_encode_pass;
-    (void)coeff_stride;
-    MacroblockPlane candidate_plane;
-    const QmVal *   q_matrix  = pcs_ptr->parent_pcs_ptr->gqmatrix[NUM_QM_LEVELS - 1][0][txsize];
-    const QmVal *   iq_matrix = pcs_ptr->parent_pcs_ptr->giqmatrix[NUM_QM_LEVELS - 1][0][txsize];
-    uint32_t        q_index   = pcs_ptr->parent_pcs_ptr->frm_hdr.delta_q_params.delta_q_present
-                           ? quantizer_to_qindex[qp]
-                           : pcs_ptr->parent_pcs_ptr->frm_hdr.quantization_params.base_q_idx +
-                                 segmentation_qp_offset;
-    if (bit_increment == 0) {
-        if (component_type == COMPONENT_LUMA) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.y_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.y_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.y_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants_md.y_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.y_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants_md.y_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq_md.y_dequant_qtx[q_index];
-        }
-
-        if (component_type == COMPONENT_CHROMA_CB) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.u_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.u_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.u_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants_md.u_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.u_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants_md.u_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq_md.u_dequant_qtx[q_index];
-        }
-
-        if (component_type == COMPONENT_CHROMA_CR) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.v_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.v_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants_md.v_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants_md.v_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants_md.v_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants_md.v_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq_md.v_dequant_qtx[q_index];
-        }
-    } else {
-        if (component_type == COMPONENT_LUMA) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants.y_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.y_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.y_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants.y_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants.y_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants.y_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq.y_dequant_qtx[q_index];
-        }
-
-        if (component_type == COMPONENT_CHROMA_CB) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants.u_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.u_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.u_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants.u_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants.u_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants.u_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq.u_dequant_qtx[q_index];
-        }
-
-        if (component_type == COMPONENT_CHROMA_CR) {
-            candidate_plane.quant_qtx    = pcs_ptr->parent_pcs_ptr->quants.v_quant[q_index];
-            candidate_plane.quant_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.v_quant_fp[q_index];
-            candidate_plane.round_fp_qtx = pcs_ptr->parent_pcs_ptr->quants.v_round_fp[q_index];
-            candidate_plane.quant_shift_qtx =
-                pcs_ptr->parent_pcs_ptr->quants.v_quant_shift[q_index];
-            candidate_plane.zbin_qtx    = pcs_ptr->parent_pcs_ptr->quants.v_zbin[q_index];
-            candidate_plane.round_qtx   = pcs_ptr->parent_pcs_ptr->quants.v_round[q_index];
-            candidate_plane.dequant_qtx = pcs_ptr->parent_pcs_ptr->deq.v_dequant_qtx[q_index];
-        }
-    }
-
-    const ScanOrder *const scan_order =
-        &av1_scan_orders[txsize][tx_type]; //get_scan(tx_size, tx_type);
-
-    const int32_t n_coeffs = av1_get_max_eob(txsize);
-
-    QuantParam qparam;
-
-    qparam.log_scale = av1_get_tx_scale(txsize);
-    qparam.tx_size   = txsize;
-    qparam.qmatrix   = q_matrix;
-    qparam.iqmatrix  = iq_matrix;
-
-    EbBool is_inter     = (pred_mode >= NEARESTMV);
-    EbBool perform_rdoq = ((md_context->md_staging_skip_rdoq == EB_FALSE || is_encode_pass) &&
-                           md_context->trellis_quant_coeff_optimization && !is_intra_bc);
-
-    SequenceControlSet *scs_ptr = (SequenceControlSet *)pcs_ptr->scs_wrapper_ptr->object_ptr;
-    if (scs_ptr->static_config.enable_rdoq == DEFAULT) {
-        perform_rdoq = perform_rdoq && (EbBool)scs_ptr->static_config.enable_rdoq;
-        if (scs_ptr->static_config.encoder_bit_depth > 8 && pcs_ptr->hbd_mode_decision == 0)
-            perform_rdoq = EB_FALSE;
-    } else
-        perform_rdoq = (EbBool)scs_ptr->static_config.enable_rdoq;
-    if (perform_rdoq && md_context->rdoq_quantize_fp && !is_inter) {
-       // if (bit_increment) {
-            eb_av1_highbd_quantize_fp_facade((TranLow *)coeff,
-                                             n_coeffs,
-                                             &candidate_plane,
-                                             quant_coeff,
-                                             (TranLow *)recon_coeff,
-                                             eob,
-                                             scan_order,
-                                             &qparam);
-     /*   } else {
-            eb_av1_quantize_fp_facade((TranLow *)coeff,
-                                      n_coeffs,
-                                      &candidate_plane,
-                                      quant_coeff,
-                                      (TranLow *)recon_coeff,
-                                      eob,
-                                      scan_order,
-                                      &qparam);
-        }*/
-    } else {
-       // if (bit_increment) {
-            eb_av1_highbd_quantize_b_facade((TranLow *)coeff,
-                                            n_coeffs,
-                                            &candidate_plane,
-                                            quant_coeff,
-                                            (TranLow *)recon_coeff,
-                                            eob,
-                                            scan_order,
-                                            &qparam);
-   /*     } else {
-            av1_quantize_b_facade_ii((TranLow *)coeff,
-                                     coeff_stride,
-                                     width,
-                                     height,
-                                     n_coeffs,
-                                     &candidate_plane,
-                                     quant_coeff,
-                                     (TranLow *)recon_coeff,
-                                     eob,
-                                     scan_order,
-                                     &qparam);
-        }*/
-    }
-
-    if (perform_rdoq && *eob != 0) {
-        // Perform Trellis
-        if (*eob != 0) {
-            eb_av1_optimize_b(md_context,
-                              txb_skip_context,
-                              dc_sign_context,
-                              (TranLow *)coeff,
-                              coeff_stride,
-                              n_coeffs,
-                              &candidate_plane,
-                              quant_coeff,
-                              (TranLow *)recon_coeff,
-                              eob,
-                              scan_order,
-                              &qparam,
-                              txsize,
-                              tx_type,
-                              is_inter,
-                              0/*bit_increment*/,
-                              (component_type == COMPONENT_LUMA) ? 0 : 1);
-        }
-    }
-
-    *count_non_zero_coeffs = *eob;
-
-    // Derive cul_level
-    int32_t              cul_level = 0;
-    const int16_t *const scan      = scan_order->scan;
-    for (int32_t c = 0; c < *eob; ++c) {
-        const int16_t pos   = scan[c];
-        const int32_t v     = quant_coeff[pos];
-        int32_t       level = ABS(v);
-        cul_level += level;
-    }
-
-    cul_level = AOMMIN(COEFF_CONTEXT_MASK, cul_level);
-    // DC value
-    set_dc_sign(&cul_level, quant_coeff[0]);
-    return cul_level;
-}
-#endif
 
 /****************************************
  ************  Full loop ****************
@@ -2802,7 +2604,7 @@ void encode_pass_tx_search_hbd(
             context_ptr->blk_geom->txsize[blk_ptr->tx_depth][context_ptr->txb_itr],
             &context_ptr->three_quad_energy,
             transform_scratch_buffer,
-            BIT_INCREMENT_10BIT,
+            context_ptr->is_16bit ? BIT_INCREMENT_10BIT : BIT_INCREMENT_8BIT,
             tx_type,
             PLANE_TYPE_Y,
             DEFAULT_SHAPE);
@@ -2826,7 +2628,7 @@ void encode_pass_tx_search_hbd(
             &eob[0],
             &y_count_non_zero_coeffs_temp,
             COMPONENT_LUMA,
-            BIT_INCREMENT_10BIT,
+            context_ptr->is_16bit ? BIT_INCREMENT_10BIT : BIT_INCREMENT_8BIT,
             tx_type,
             &(context_ptr->md_context->candidate_buffer_ptr_array[0][0]),
             0,

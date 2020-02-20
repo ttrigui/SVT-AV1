@@ -38,7 +38,7 @@ extern "C" {
 #define NON_AVX512_SUPPORT
 #endif
 #define DISABLE_CFL_EP 1
-#define SHUT_TX_SEARCH 1
+#define SHUT_TX_SEARCH 0
 #define SHUT_PALETTE 0
 #define SHUT_INTRABC 0 
 #define SHUT_FILTERING 1

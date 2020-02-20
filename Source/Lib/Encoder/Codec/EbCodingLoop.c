@@ -5151,6 +5151,31 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                     }
                     // Transform partitioning free patch (except the 128x128 case)
                     else {
+                        recon_buffer =
+                            is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
+                        ep_luma_recon_neighbor_array =
+                            is_16bit ? pcs_ptr->ep_luma_recon_neighbor_array16bit
+                                     : pcs_ptr->ep_luma_recon_neighbor_array;
+                        ep_cb_recon_neighbor_array = is_16bit
+                                                         ? pcs_ptr->ep_cb_recon_neighbor_array16bit
+                                                         : pcs_ptr->ep_cb_recon_neighbor_array;
+                        ep_cr_recon_neighbor_array = is_16bit
+                                                         ? pcs_ptr->ep_cr_recon_neighbor_array16bit
+                                                         : pcs_ptr->ep_cr_recon_neighbor_array;
+                        if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
+                            if (is_16bit)
+                                recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
+                                                    ->reference_picture_wrapper_ptr->object_ptr)
+                                                   ->reference_picture16bit;
+                            else
+                                recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
+                                                    ->reference_picture_wrapper_ptr->object_ptr)
+                                                   ->reference_picture;
+                        else // non ref pictures
+                            recon_buffer = is_16bit ? pcs_ptr->recon_picture16bit_ptr
+                                                    : pcs_ptr->recon_picture_ptr;
+
+
                         // Set the PU Loop Variables
                         pu_ptr = blk_ptr->prediction_unit_array;
                         // Generate Intra Luma Neighbor Modes
@@ -5608,6 +5633,30 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
                 // Inter
                 else if (blk_ptr->prediction_mode_flag == INTER_MODE) {
+
+                    recon_buffer =
+                        is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
+                    ep_luma_recon_neighbor_array = is_16bit
+                                                       ? pcs_ptr->ep_luma_recon_neighbor_array16bit
+                                                       : pcs_ptr->ep_luma_recon_neighbor_array;
+                    ep_cb_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cb_recon_neighbor_array16bit
+                                                          : pcs_ptr->ep_cb_recon_neighbor_array;
+                    ep_cr_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit
+                                                          : pcs_ptr->ep_cr_recon_neighbor_array;
+                    if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
+                        if (is_16bit)
+                            recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
+                                                ->reference_picture_wrapper_ptr->object_ptr)
+                                               ->reference_picture16bit;
+                        else
+                            recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
+                                                ->reference_picture_wrapper_ptr->object_ptr)
+                                               ->reference_picture;
+                    else // non ref pictures
+                        recon_buffer =
+                            is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
+
+
                     context_ptr->is_inter = 1;
                     int8_t ref_idx_l0 = (&blk_ptr->prediction_unit_array[0])->ref_frame_index_l0;
                     int8_t ref_idx_l1 = (&blk_ptr->prediction_unit_array[0])->ref_frame_index_l1;

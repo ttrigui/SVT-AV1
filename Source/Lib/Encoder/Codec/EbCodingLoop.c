@@ -5389,7 +5389,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 
                             #if ENCDEC_16BIT_INTER
                             
-                                av1_encode_loop_8bit_input_16bit(
+                                 av1_encode_loop_func_table[is_16bit || is_16bit_pipeline](
                                     pcs_ptr,
                                     context_ptr,
                                     sb_ptr,

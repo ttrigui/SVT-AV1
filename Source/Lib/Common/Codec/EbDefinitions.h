@@ -49,7 +49,7 @@ extern "C" {
 #if ENCDEC_16BIT
 #define ENCDEC_16BIT_INTER 1
 #endif
-#define TILES_PARALLEL 0
+#define TILES_PARALLEL 1
 
 #if TILES_PARALLEL
 #define MAX_TILE_CNTS 128 // Annex A.3

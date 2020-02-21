@@ -1478,14 +1478,14 @@ void move_blk_data(PictureControlSet *pcs, EncDecContext *context_ptr, BlkStruct
 #if TILES_PARALLEL
     uint16_t           tile_idx = context_ptr->tile_index;
     NeighborArrayUnit *ep_luma_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_cb_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_cr_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
 #else
     NeighborArrayUnit *ep_luma_recon_neighbor_array =
         (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_luma_recon_neighbor_array16bit
@@ -4162,14 +4162,14 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
         pcs_ptr->ep_intra_chroma_mode_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_mv_neighbor_array = pcs_ptr->ep_mv_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_luma_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_cb_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_cr_recon_neighbor_array =
-        is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
-                 : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
+        (is_16bit || is_16bit_pipeline) ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
+                                        : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
     NeighborArrayUnit *ep_skip_flag_neighbor_array = pcs_ptr->ep_skip_flag_neighbor_array[tile_idx];
 #else
     NeighborArrayUnit *ep_mode_type_neighbor_array = pcs_ptr->ep_mode_type_neighbor_array;
@@ -4187,7 +4187,15 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
         (is_16bit || is_16bit_pipeline)  ? pcs_ptr->ep_cr_recon_neighbor_array16bit : pcs_ptr->ep_cr_recon_neighbor_array;
     NeighborArrayUnit *ep_skip_flag_neighbor_array = pcs_ptr->ep_skip_flag_neighbor_array;
 #endif
-#if ENCDEC_16BIT_INTER || ENCDEC_16BIT
+
+#if TILES_PARALLEL && (ENCDEC_16BIT_INTER || ENCDEC_16BIT)
+    const NeighborArrayUnit *ep_luma_recon_neighbor_array_16bit =
+        pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx];
+    const NeighborArrayUnit *ep_cb_recon_neighbor_array_16bit =
+        pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx];
+    const NeighborArrayUnit *ep_cr_recon_neighbor_array_16bit =
+        pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx];
+#elif ENCDEC_16BIT_INTER || ENCDEC_16BIT
     const NeighborArrayUnit *ep_luma_recon_neighbor_array_16bit =
         pcs_ptr->ep_luma_recon_neighbor_array16bit;
     const NeighborArrayUnit *ep_cb_recon_neighbor_array_16bit =
@@ -4670,15 +4678,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                     else {
                         recon_buffer =
                             is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
-                        ep_luma_recon_neighbor_array =
-                            is_16bit ? pcs_ptr->ep_luma_recon_neighbor_array16bit
-                                     : pcs_ptr->ep_luma_recon_neighbor_array;
-                        ep_cb_recon_neighbor_array = is_16bit
-                                                         ? pcs_ptr->ep_cb_recon_neighbor_array16bit
-                                                         : pcs_ptr->ep_cb_recon_neighbor_array;
-                        ep_cr_recon_neighbor_array = is_16bit
-                                                         ? pcs_ptr->ep_cr_recon_neighbor_array16bit
-                                                         : pcs_ptr->ep_cr_recon_neighbor_array;
                         if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
                             if (is_16bit)
                                 recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
@@ -4691,6 +4690,32 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                         else // non ref pictures
                             recon_buffer = is_16bit ? pcs_ptr->recon_picture16bit_ptr
                                                     : pcs_ptr->recon_picture_ptr;
+
+#if TILES_PARALLEL
+                        ep_luma_recon_neighbor_array =
+                            (is_16bit)
+                                ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
+                                : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
+                        ep_cb_recon_neighbor_array =
+                            (is_16bit)
+                                ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
+                                : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
+                        ep_cr_recon_neighbor_array =
+                            (is_16bit)
+                                ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
+                                : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
+#else
+                        ep_luma_recon_neighbor_array =
+                            (is_16bit)
+                                ? pcs_ptr->ep_luma_recon_neighbor_array16bit
+                                : pcs_ptr->ep_luma_recon_neighbor_array;
+                        ep_cb_recon_neighbor_array = (is_16bit)
+                                                         ? pcs_ptr->ep_cb_recon_neighbor_array16bit
+                                                         : pcs_ptr->ep_cb_recon_neighbor_array;
+                        ep_cr_recon_neighbor_array = (is_16bit)
+                                                         ? pcs_ptr->ep_cr_recon_neighbor_array16bit
+                                                         : pcs_ptr->ep_cr_recon_neighbor_array;
+#endif
 
 
                         // Set the PU Loop Variables
@@ -5153,14 +5178,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
                     recon_buffer =
                         is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
-                   /* ep_luma_recon_neighbor_array = is_16bit
-                                                       ? pcs_ptr->ep_luma_recon_neighbor_array16bit
-                                                       : pcs_ptr->ep_luma_recon_neighbor_array;
-                    ep_cb_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cb_recon_neighbor_array16bit
-                                                          : pcs_ptr->ep_cb_recon_neighbor_array;
-                    ep_cr_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit
-                                                          : pcs_ptr->ep_cr_recon_neighbor_array;*/
-                    
+
                     if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
                         if (is_16bit)
                             recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
@@ -5173,6 +5191,31 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                     else // non ref pictures
                         recon_buffer =
                             is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
+
+#if TILES_PARALLEL
+                    ep_luma_recon_neighbor_array =
+                        (is_16bit)
+                            ? pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx]
+                            : pcs_ptr->ep_luma_recon_neighbor_array[tile_idx];
+                    ep_cb_recon_neighbor_array =
+                        (is_16bit)
+                            ? pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx]
+                            : pcs_ptr->ep_cb_recon_neighbor_array[tile_idx];
+                    ep_cr_recon_neighbor_array =
+                        (is_16bit)
+                            ? pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx]
+                            : pcs_ptr->ep_cr_recon_neighbor_array[tile_idx];
+#else
+                    ep_luma_recon_neighbor_array = (is_16bit)
+                                                       ? pcs_ptr->ep_luma_recon_neighbor_array16bit
+                                                       : pcs_ptr->ep_luma_recon_neighbor_array;
+                    ep_cb_recon_neighbor_array = (is_16bit)
+                                                     ? pcs_ptr->ep_cb_recon_neighbor_array16bit
+                                                     : pcs_ptr->ep_cb_recon_neighbor_array;
+                    ep_cr_recon_neighbor_array = (is_16bit)
+                                                     ? pcs_ptr->ep_cr_recon_neighbor_array16bit
+                                                     : pcs_ptr->ep_cr_recon_neighbor_array;
+#endif
 
 
                     context_ptr->is_inter = 1;

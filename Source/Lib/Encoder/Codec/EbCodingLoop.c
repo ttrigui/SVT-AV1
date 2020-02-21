@@ -1405,104 +1405,6 @@ static void av1_encode_generate_recon_16bit(EncDecContext *context_ptr, uint32_t
     return;
 }
 
-
-#if ENCDEC_16BIT
-static void av1_encode_generate_recon_8bit_input_16bit(
-    EncDecContext *context_ptr, uint32_t origin_x, uint32_t origin_y,
-    EbPictureBufferDesc *pred_samples, // no basis/offset
-    EbPictureBufferDesc *residual16bit, // no basis/offset
-    int16_t *transform_scratch_buffer, uint32_t component_mask, uint16_t *eob) {
-    uint32_t pred_luma_offset;
-    uint32_t pred_chroma_offset;
-
-    BlkStruct *    blk_ptr = context_ptr->blk_ptr;
-    TransformUnit *txb_ptr = &blk_ptr->txb_array[context_ptr->txb_itr];
-
-    (void)transform_scratch_buffer;
-    //**********************************
-    // Luma
-    //**********************************
-    if (component_mask & PICTURE_BUFFER_DESC_LUMA_MASK) {
-        {
-            pred_luma_offset = (pred_samples->origin_y + origin_y) * pred_samples->stride_y +
-                               (pred_samples->origin_x + origin_x);
-            if (txb_ptr->y_has_coeff == EB_TRUE && blk_ptr->skip_flag == EB_FALSE) {
-                uint16_t *pred_buffer = ((uint16_t *)pred_samples->buffer_y) + pred_luma_offset;
-                av1_inv_transform_recon(
-                    ((int32_t *)residual16bit->buffer_y) + context_ptr->coded_area_sb,
-                    CONVERT_TO_BYTEPTR(pred_buffer),
-                    pred_samples->stride_y,
-                    CONVERT_TO_BYTEPTR(pred_buffer),
-                    pred_samples->stride_y,
-                    context_ptr->blk_geom->txsize[blk_ptr->tx_depth][context_ptr->txb_itr],
-                    BIT_INCREMENT_8BIT,
-                    txb_ptr->transform_type[PLANE_TYPE_Y],
-                    PLANE_TYPE_Y,
-                    eob[0],
-                    0 /*lossless*/
-                );
-            }
-        }
-    }
-
-    if (component_mask & PICTURE_BUFFER_DESC_CHROMA_MASK) {
-        //**********************************
-        // Chroma
-        //**********************************
-
-        //**********************************
-        // Cb
-        //**********************************
-
-        uint32_t round_origin_x = (origin_x >> 3) << 3; // for Chroma blocks with size of 4
-        uint32_t round_origin_y = (origin_y >> 3) << 3; // for Chroma blocks with size of 4
-
-        pred_chroma_offset =
-            (((pred_samples->origin_y + round_origin_y) >> 1) * pred_samples->stride_cb) +
-            ((pred_samples->origin_x + round_origin_x) >> 1);
-
-        if (txb_ptr->u_has_coeff == EB_TRUE && blk_ptr->skip_flag == EB_FALSE) {
-            uint16_t *pred_buffer = ((uint16_t *)pred_samples->buffer_cb) + pred_chroma_offset;
-            av1_inv_transform_recon(
-                ((int32_t *)residual16bit->buffer_cb) + context_ptr->coded_area_sb_uv,
-                CONVERT_TO_BYTEPTR(pred_buffer),
-                pred_samples->stride_cb,
-                CONVERT_TO_BYTEPTR(pred_buffer),
-                pred_samples->stride_cb,
-                context_ptr->blk_geom->txsize_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-                BIT_INCREMENT_8BIT,
-                txb_ptr->transform_type[PLANE_TYPE_UV],
-                PLANE_TYPE_UV,
-                eob[1],
-                0 /*lossless*/);
-        }
-
-        //**********************************
-        // Cr
-        //**********************************
-        pred_chroma_offset =
-            (((pred_samples->origin_y + round_origin_y) >> 1) * pred_samples->stride_cr) +
-            ((pred_samples->origin_x + round_origin_x) >> 1);
-        if (txb_ptr->v_has_coeff == EB_TRUE && blk_ptr->skip_flag == EB_FALSE) {
-            uint16_t *pred_buffer = ((uint16_t *)pred_samples->buffer_cr) + pred_chroma_offset;
-            av1_inv_transform_recon(
-                ((int32_t *)residual16bit->buffer_cr) + context_ptr->coded_area_sb_uv,
-                CONVERT_TO_BYTEPTR(pred_buffer),
-                pred_samples->stride_cr,
-                CONVERT_TO_BYTEPTR(pred_buffer),
-                pred_samples->stride_cr,
-                context_ptr->blk_geom->txsize_uv[blk_ptr->tx_depth][context_ptr->txb_itr],
-                BIT_INCREMENT_8BIT,
-                txb_ptr->transform_type[PLANE_TYPE_UV],
-                PLANE_TYPE_UV,
-                eob[2],
-                0 /*lossless*/);
-        }
-    }
-
-    return;
-}
-#endif
 static EbAv1EncodeLoopFuncPtr av1_encode_loop_func_table[2] = {av1_encode_loop,
                                                                av1_encode_loop_16bit};
 
@@ -5106,7 +5008,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                                      : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr]);
                                 #if ENCDEC_16BIT_INTER
-                                av1_encode_generate_recon_8bit_input_16bit(
+                                av1_enc_gen_recon_func_ptr[is_16bit || is_16bit_pipeline](
                                     context_ptr,
                                     context_ptr->blk_origin_x,
                                     context_ptr->blk_origin_y,
@@ -6307,7 +6209,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                         if (do_recon)
                             {
                           #if ENCDEC_16BIT_INTER
-                            av1_encode_generate_recon_8bit_input_16bit(
+                            av1_enc_gen_recon_func_ptr[is_16bit || is_16bit_pipeline](
                                 context_ptr,
                                 txb_origin_x,
                                 txb_origin_y,

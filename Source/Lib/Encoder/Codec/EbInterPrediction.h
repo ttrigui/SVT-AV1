@@ -263,9 +263,7 @@ EbErrorType warped_motion_prediction_16bit_pipeline(
     PictureControlSet *pcs_ptr, MvUnit *mv_unit, uint8_t ref_frame_type, uint8_t compound_idx,
     InterInterCompoundData *interinter_comp, uint16_t pu_origin_x, uint16_t pu_origin_y,
     BlkStruct *blk_ptr, const BlockGeom *blk_geom, EbPictureBufferDesc *ref_pic_list0,
-    EbPictureBufferDesc *ref_pic_list0_16bit, EbPictureBufferDesc *ref_pic_list1,
-    EbPictureBufferDesc *ref_pic_list1_16bit, EbPictureBufferDesc *prediction_ptr,
-    EbPictureBufferDesc *prediction_ptr_16bit, uint16_t dst_origin_x,
+    EbPictureBufferDesc *ref_pic_list1, EbPictureBufferDesc *prediction_ptr,uint16_t dst_origin_x,
     uint16_t dst_origin_y, EbWarpedMotionParams *wm_params_l0, EbWarpedMotionParams *wm_params_l1,
     uint8_t bit_depth, EbBool perform_chroma);
 #endif

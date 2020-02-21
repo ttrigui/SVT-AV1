@@ -5251,13 +5251,14 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
                     recon_buffer =
                         is_16bit ? pcs_ptr->recon_picture16bit_ptr : pcs_ptr->recon_picture_ptr;
-                    ep_luma_recon_neighbor_array = is_16bit
+                   /* ep_luma_recon_neighbor_array = is_16bit
                                                        ? pcs_ptr->ep_luma_recon_neighbor_array16bit
                                                        : pcs_ptr->ep_luma_recon_neighbor_array;
                     ep_cb_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cb_recon_neighbor_array16bit
                                                           : pcs_ptr->ep_cb_recon_neighbor_array;
                     ep_cr_recon_neighbor_array = is_16bit ? pcs_ptr->ep_cr_recon_neighbor_array16bit
-                                                          : pcs_ptr->ep_cr_recon_neighbor_array;
+                                                          : pcs_ptr->ep_cr_recon_neighbor_array;*/
+                    
                     if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE)
                         if (is_16bit)
                             recon_buffer = ((EbReferenceObject *)pcs_ptr->parent_pcs_ptr
@@ -5599,7 +5600,45 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                           //      }
                           //  }
                            
-                            
+                            #if 0 // enable this to use new code
+                            av1_inter_prediction_16bit_pipeline(
+                                pcs_ptr,
+                                blk_ptr->interp_filters,
+                                blk_ptr,
+                                blk_ptr->prediction_unit_array->ref_frame_type,
+                                &context_ptr->mv_unit,
+                                0, //use_intrabc,
+                                blk_ptr->prediction_unit_array->motion_mode,
+                                0, //use_precomputed_obmc,
+                                0,
+                                blk_ptr->compound_idx,
+                                &blk_ptr->interinter_comp,
+                                &sb_ptr->tile_info,
+                                ep_luma_recon_neighbor_array_16bit,
+                                ep_cb_recon_neighbor_array_16bit,
+                                ep_cr_recon_neighbor_array_16bit,
+                                ep_luma_recon_neighbor_array_16bit,
+                                ep_cb_recon_neighbor_array_16bit,
+                                ep_cr_recon_neighbor_array_16bit,
+                                blk_ptr->is_interintra_used,
+                                blk_ptr->interintra_mode,
+                                blk_ptr->use_wedge_interintra,
+                                blk_ptr->interintra_wedge_index,
+                                context_ptr->blk_origin_x,
+                                context_ptr->blk_origin_y,
+                                blk_geom->bwidth,
+                                blk_geom->bheight,
+                                ref_pic_list0_16bit,
+                                ref_pic_list1_16bit,
+                                ref_pic_list0_16bit,
+                                ref_pic_list1_16bit,
+                                recon_buffer_16bit,
+                                recon_buffer_16bit,
+                                context_ptr->blk_origin_x,
+                                context_ptr->blk_origin_y,
+                                EB_TRUE,
+                                (uint8_t)scs_ptr->static_config.encoder_bit_depth);
+                            #else
                             av1_inter_prediction_16bit_pipeline(
                                 pcs_ptr,
                                 blk_ptr->interp_filters,
@@ -5637,6 +5676,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 context_ptr->blk_origin_y,
                                 EB_TRUE,
                                 (uint8_t)scs_ptr->static_config.encoder_bit_depth);
+                            #endif
 
 #else
                             /*  for (int j = 0; j < blk_geom->bheight; j++) {

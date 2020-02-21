@@ -12720,25 +12720,6 @@ EbErrorType aaaaa_av1_inter_prediction_16bit_pipeline(
                 intra_stride, // Intra pred stride
                 bit_depth);
         }
-
-        // Y
-        dst_ptr = (uint16_t *)prediction_ptr->buffer_y + prediction_ptr->origin_x + dst_origin_x +
-                  (prediction_ptr->origin_y + dst_origin_y) * prediction_ptr->stride_y;
-        dst_stride = prediction_ptr->stride_y;
-
-        // CB
-        dst_ptr =
-            (uint16_t *)prediction_ptr->buffer_cb +
-            (prediction_ptr->origin_x + ((dst_origin_x >> 3) << 3)) / 2 +
-            (prediction_ptr->origin_y + ((dst_origin_y >> 3) << 3)) / 2 * prediction_ptr->stride_cb;
-        dst_stride = prediction_ptr->stride_cb;
-
-        // CR
-        dst_ptr =
-            (uint16_t *)prediction_ptr->buffer_cr +
-            (prediction_ptr->origin_x + ((dst_origin_x >> 3) << 3)) / 2 +
-            (prediction_ptr->origin_y + ((dst_origin_y >> 3) << 3)) / 2 * prediction_ptr->stride_cr;
-        dst_stride = prediction_ptr->stride_cr;
     }
 #endif
     if (motion_mode == OBMC_CAUSAL) {
@@ -12826,7 +12807,7 @@ EbErrorType aaaaa_av1_inter_prediction_16bit_pipeline(
                                             dst_buf1,
                                             dst_stride1,
                                             dst_buf2,
-                                            dst_stride1,
+                                            dst_stride2,
 #if ENCDEC_16BIT_INTER
                                             bit_depth);
 #else

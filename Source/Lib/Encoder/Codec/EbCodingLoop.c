@@ -4351,6 +4351,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                  sb_height);
     }
 #if ENCDEC_16BIT
+
     if (!is_16bit) {
         const uint32_t input_luma_offset =
             ((sb_origin_y + input_picture->origin_y) * input_picture->stride_y) +
@@ -4362,47 +4363,49 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
             (((sb_origin_y + input_picture->origin_y) >> 1) * input_picture->stride_cr) +
             ((sb_origin_x + input_picture->origin_x) >> 1);
 
-        sb_width =
-            ((sb_width < MIN_SB_SIZE) || ((sb_width > MIN_SB_SIZE) && (sb_width < MAX_SB_SIZE)))
-                ? MIN(scs_ptr->sb_size_pix,
-                      (pcs_ptr->parent_pcs_ptr->aligned_width + scs_ptr->right_padding) -
-                          sb_origin_x)
-                : sb_width;
-        sb_height =
-            ((sb_height < MIN_SB_SIZE) || ((sb_height > MIN_SB_SIZE) && (sb_height < MAX_SB_SIZE)))
-                ? MIN(scs_ptr->sb_size_pix,
-                      (pcs_ptr->parent_pcs_ptr->aligned_height + scs_ptr->bot_padding) -
-                          sb_origin_y)
-                : sb_height;
+        // TTK Should be removed after enabling generate padding for ref
+        sb_width = (sb_width < MIN_SB_SIZE)
+                       ? MIN(scs_ptr->sb_size_pix,
+                             (pcs_ptr->parent_pcs_ptr->aligned_width + scs_ptr->right_padding) -
+                                 sb_origin_x)
+                       : sb_width;
+        sb_height = (sb_height < MIN_SB_SIZE)
+                        ? MIN(scs_ptr->sb_size_pix,
+                              (pcs_ptr->parent_pcs_ptr->aligned_height + scs_ptr->bot_padding) -
+                                  sb_origin_y)
+                        : sb_height;
+
         // PACK Y
-        for (int j = 0; j < sb_height; j++) {
-            for (int k = 0; k < sb_width; k++) {
-                ((uint16_t *)context_ptr->input_sample16bit_buffer
-                     ->buffer_y)[k + j * context_ptr->input_sample16bit_buffer->stride_y] =
-                    (uint16_t)(input_picture->buffer_y +
-                               input_luma_offset)[k + j * input_picture->stride_y];
-            }
-        }
+        uint16_t *buf_16bit = (uint16_t *)context_ptr->input_sample16bit_buffer->buffer_y;
+        uint8_t * buf_8bit  = input_picture->buffer_y + input_luma_offset;
+        convert_8bit_to_16bit(buf_8bit,
+                              input_picture->stride_y,
+                              buf_16bit,
+                              context_ptr->input_sample16bit_buffer->stride_y,
+                              sb_width,
+                              sb_height);
+
         // PACK CB
-        for (int j = 0; j<sb_height>> 1; j++) {
-            for (int k = 0; k<sb_width>> 1; k++) {
-                ((uint16_t *)context_ptr->input_sample16bit_buffer
-                     ->buffer_cb)[k + j * context_ptr->input_sample16bit_buffer->stride_cr] =
-                    (uint16_t)(input_picture->buffer_cb +
-                               input_cb_offset)[k + j * input_picture->stride_cr];
-            }
-        }
+        buf_16bit = (uint16_t *)context_ptr->input_sample16bit_buffer->buffer_cb;
+        buf_8bit  = input_picture->buffer_cb + input_cb_offset;
+        convert_8bit_to_16bit(buf_8bit,
+                              input_picture->stride_cb,
+                              buf_16bit,
+                              context_ptr->input_sample16bit_buffer->stride_cb,
+                              sb_width >> 1,
+                              sb_height >> 1);
 
         // PACK CR
-        for (int j = 0; j<sb_height>> 1; j++) {
-            for (int k = 0; k<sb_width>> 1; k++) {
-                ((uint16_t *)context_ptr->input_sample16bit_buffer
-                     ->buffer_cr)[k + j * context_ptr->input_sample16bit_buffer->stride_cr] =
-                    (uint16_t)(input_picture->buffer_cr +
-                               input_cr_offset)[k + j * input_picture->stride_cr];
-            }
-        }
+        buf_16bit = (uint16_t *)context_ptr->input_sample16bit_buffer->buffer_cr;
+        buf_8bit  = input_picture->buffer_cr + input_cr_offset;
+        convert_8bit_to_16bit(buf_8bit,
+                              input_picture->stride_cr,
+                              buf_16bit,
+                              context_ptr->input_sample16bit_buffer->stride_cr,
+                              sb_width >> 1,
+                              sb_height >> 1);
     }
+
 #endif
     if ((scs_ptr->input_resolution == INPUT_SIZE_4K_RANGE) &&
         !pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag) {

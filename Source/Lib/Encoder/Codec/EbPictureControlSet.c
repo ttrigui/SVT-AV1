@@ -179,12 +179,18 @@ void picture_control_set_dctor(EbPtr p) {
         if (obj->hbd_mode_decision > EB_8_BIT_MD) {
             EB_DELETE_PTR_ARRAY(obj->md_luma_recon_neighbor_array16bit[depth], tile_cnt);
             EB_DELETE_PTR_ARRAY(obj->md_tx_depth_1_luma_recon_neighbor_array16bit[depth], tile_cnt);
+#if TXS_DEPTH_2
+            EB_DELETE_PTR_ARRAY(obj->md_tx_depth_2_luma_recon_neighbor_array16bit[depth], tile_cnt);
+#endif
             EB_DELETE_PTR_ARRAY(obj->md_cb_recon_neighbor_array16bit[depth], tile_cnt);
             EB_DELETE_PTR_ARRAY(obj->md_cr_recon_neighbor_array16bit[depth], tile_cnt);
         }
         if (obj->hbd_mode_decision != EB_10_BIT_MD) {
             EB_DELETE_PTR_ARRAY(obj->md_luma_recon_neighbor_array[depth], tile_cnt);
             EB_DELETE_PTR_ARRAY(obj->md_tx_depth_1_luma_recon_neighbor_array[depth], tile_cnt);
+#if TXS_DEPTH_2
+            EB_DELETE_PTR_ARRAY(obj->md_tx_depth_2_luma_recon_neighbor_array[depth], tile_cnt);
+#endif
             EB_DELETE_PTR_ARRAY(obj->md_cb_recon_neighbor_array[depth], tile_cnt);
             EB_DELETE_PTR_ARRAY(obj->md_cr_recon_neighbor_array[depth], tile_cnt);
         }
@@ -455,6 +461,9 @@ EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object
                eb_recon_picture_buffer_desc_ctor,
                (EbPtr)&input_pic_buf_desc_init_data);
     }
+    EB_NEW(object_ptr->recon_picture16bit_ptr,
+           eb_recon_picture_buffer_desc_ctor,
+           (EbPtr)&coeff_buffer_desc_init_data);
     // Film Grain Picture Buffer
     if (init_data_ptr->film_grain_noise_level) {
         if (is_16bit) {
@@ -468,7 +477,7 @@ EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object
         }
     }
 
-    if (is_16bit) {
+    {
         EB_NEW(object_ptr->input_frame16bit,
                eb_picture_buffer_desc_ctor,
                (EbPtr)&coeff_buffer_desc_init_data);
@@ -575,12 +584,20 @@ EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object
         if (init_data_ptr->hbd_mode_decision != EB_10_BIT_MD) {
             EB_ALLOC_PTR_ARRAY(object_ptr->md_luma_recon_neighbor_array[depth], total_tile_cnt);
             EB_ALLOC_PTR_ARRAY(object_ptr->md_tx_depth_1_luma_recon_neighbor_array[depth], total_tile_cnt);
+#if TXS_DEPTH_2
+            EB_ALLOC_PTR_ARRAY(object_ptr->md_tx_depth_2_luma_recon_neighbor_array[depth],
+                               total_tile_cnt);
+#endif
             EB_ALLOC_PTR_ARRAY(object_ptr->md_cb_recon_neighbor_array[depth], total_tile_cnt);
             EB_ALLOC_PTR_ARRAY(object_ptr->md_cr_recon_neighbor_array[depth], total_tile_cnt);
         }
         if (init_data_ptr->hbd_mode_decision > EB_8_BIT_MD) {
             EB_ALLOC_PTR_ARRAY(object_ptr->md_luma_recon_neighbor_array16bit[depth], total_tile_cnt);
             EB_ALLOC_PTR_ARRAY(object_ptr->md_tx_depth_1_luma_recon_neighbor_array16bit[depth], total_tile_cnt);
+#if TXS_DEPTH_2
+            EB_ALLOC_PTR_ARRAY(object_ptr->md_tx_depth_2_luma_recon_neighbor_array16bit[depth],
+                               total_tile_cnt);
+#endif
             EB_ALLOC_PTR_ARRAY(object_ptr->md_cb_recon_neighbor_array16bit[depth], total_tile_cnt);
             EB_ALLOC_PTR_ARRAY(object_ptr->md_cr_recon_neighbor_array16bit[depth], total_tile_cnt);
         }
@@ -750,6 +767,17 @@ EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object
                         SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
                         NEIGHBOR_ARRAY_UNIT_FULL_MASK,
                     },
+#if TXS_DEPTH_2
+                    {
+                        &object_ptr->md_tx_depth_2_luma_recon_neighbor_array[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE,
+                        MAX_PICTURE_HEIGHT_SIZE,
+                        sizeof(uint8_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    },
+#endif
                     {
                         &object_ptr->md_cb_recon_neighbor_array[depth][tile_idx],
                         MAX_PICTURE_WIDTH_SIZE >> subsampling_x,
@@ -774,42 +802,55 @@ EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object
                 if (return_error == EB_ErrorInsufficientResources) return EB_ErrorInsufficientResources;
             }
             if (init_data_ptr->hbd_mode_decision > EB_8_BIT_MD) {
-                InitData data[] = {{
-                    &object_ptr->md_luma_recon_neighbor_array16bit[depth][tile_idx],
-                    MAX_PICTURE_WIDTH_SIZE,
-                    MAX_PICTURE_HEIGHT_SIZE,
-                    sizeof(uint16_t),
-                    SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                    SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                    NEIGHBOR_ARRAY_UNIT_FULL_MASK,
-                },
-                         {
-                             &object_ptr->md_tx_depth_1_luma_recon_neighbor_array16bit[depth][tile_idx],
-                             MAX_PICTURE_WIDTH_SIZE,
-                             MAX_PICTURE_HEIGHT_SIZE,
-                             sizeof(uint16_t),
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             NEIGHBOR_ARRAY_UNIT_FULL_MASK,
-                         },
-                         {
-                             &object_ptr->md_cb_recon_neighbor_array16bit[depth][tile_idx],
-                             MAX_PICTURE_WIDTH_SIZE >> subsampling_x,
-                             MAX_PICTURE_HEIGHT_SIZE >> subsampling_y,
-                             sizeof(uint16_t),
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             NEIGHBOR_ARRAY_UNIT_FULL_MASK,
-                         },
-                         {
-                             &object_ptr->md_cr_recon_neighbor_array16bit[depth][tile_idx],
-                             MAX_PICTURE_WIDTH_SIZE >> subsampling_x,
-                             MAX_PICTURE_HEIGHT_SIZE >> subsampling_y,
-                             sizeof(uint16_t),
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
-                             NEIGHBOR_ARRAY_UNIT_FULL_MASK,
-                         }};
+                InitData data[] = {
+                    {
+                        &object_ptr->md_luma_recon_neighbor_array16bit[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE,
+                        MAX_PICTURE_HEIGHT_SIZE,
+                        sizeof(uint16_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    },
+                    {
+                        &object_ptr->md_tx_depth_1_luma_recon_neighbor_array16bit[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE,
+                        MAX_PICTURE_HEIGHT_SIZE,
+                        sizeof(uint16_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    },
+#if TXS_DEPTH_2
+                    {
+                        &object_ptr->md_tx_depth_2_luma_recon_neighbor_array16bit[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE,
+                        MAX_PICTURE_HEIGHT_SIZE,
+                        sizeof(uint16_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    },
+#endif
+                    {
+                        &object_ptr->md_cb_recon_neighbor_array16bit[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE >> subsampling_x,
+                        MAX_PICTURE_HEIGHT_SIZE >> subsampling_y,
+                        sizeof(uint16_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    },
+                    {
+                        &object_ptr->md_cr_recon_neighbor_array16bit[depth][tile_idx],
+                        MAX_PICTURE_WIDTH_SIZE >> subsampling_x,
+                        MAX_PICTURE_HEIGHT_SIZE >> subsampling_y,
+                        sizeof(uint16_t),
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        SAMPLE_NEIGHBOR_ARRAY_GRANULARITY,
+                        NEIGHBOR_ARRAY_UNIT_FULL_MASK,
+                    }
+                };
                 return_error    = create_neighbor_array_units(data, DIM(data));
                 if (return_error == EB_ErrorInsufficientResources) return EB_ErrorInsufficientResources;
             }

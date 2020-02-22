@@ -1360,10 +1360,14 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->interpolation_search_level = IT_SEARCH_OFF;
     else if (context_ptr->pd_pass == PD_PASS_1) {
+#if ENHANCED_MULTI_PASS_PD_MD_STAGING_SETTINGS
+        context_ptr->interpolation_search_level = IT_SEARCH_OFF;
+#else
         if (pcs_ptr->temporal_layer_index == 0)
             context_ptr->interpolation_search_level = IT_SEARCH_FAST_LOOP_UV_BLIND;
         else
             context_ptr->interpolation_search_level = IT_SEARCH_OFF;
+#endif
     } else if (MR_MODE)
         context_ptr->interpolation_search_level = IT_SEARCH_FAST_LOOP;
     else if (pcs_ptr->parent_pcs_ptr->sc_content_detected)
@@ -1388,10 +1392,14 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->chroma_level = CHROMA_MODE_2; // or CHROMA_MODE_3
     else if (context_ptr->pd_pass == PD_PASS_1) {
+#if ENHANCED_MULTI_PASS_PD_MD_STAGING_SETTINGS
+        context_ptr->chroma_level = CHROMA_MODE_1;
+#else
         if (pcs_ptr->temporal_layer_index == 0)
             context_ptr->chroma_level = CHROMA_MODE_0;
         else
             context_ptr->chroma_level = CHROMA_MODE_1;
+#endif
     } else if (scs_ptr->static_config.set_chroma_mode == DEFAULT) {
         if (pcs_ptr->parent_pcs_ptr->sc_content_detected)
             if (pcs_ptr->enc_mode <= ENC_M6)
@@ -1489,7 +1497,7 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
     else
         context_ptr->new_nearest_near_comb_injection =
             scs_ptr->static_config.new_nearest_comb_inject;
-
+#if !ENHANCED_ME_MV
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->nx4_4xn_parent_mv_injection = 0;
     else if (context_ptr->pd_pass == PD_PASS_1)
@@ -1507,7 +1515,7 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
 
     else
         context_ptr->nx4_4xn_parent_mv_injection = scs_ptr->static_config.nx4_4xn_parent_mv_inject;
-
+#endif
     // Set warped motion injection
     // Level                Settings
     // 0                    OFF
@@ -1620,43 +1628,42 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
 
     // Derive md_staging_mode
     //
-    // MD_STAGING_MODE_0
-    // Default Parameters
-    //
     // MD_STAGING_MODE_1
-    //  __________________________________________________________________________________________________________________
-    // |        | md_stage_0                  | md_stage_1                     | md_stage_2                              |
-    // |________|_____________________________|________________________________|_________________________________________|
-    // |CLASS_0 |Prediction for Luma & Chroma |T, Q, Q-1, T-1 for Luma Only    |T, Q, Q-1, T-1 or Luma & Chroma          |
-    // |CLASS_6 |                             |No RDOQ                         |RDOQ                                     |
-    // |CLASS_7 |                             |No Tx Type Search               |Tx Type Search                           |
-    // |        |                             |No Tx Size Search               |Tx Size Search                           |
-    // |        |                             |                                |CFL vs. Independent                      |
-    // |________|_____________________________|________________________________|_________________________________________|
-    // |CLASS_1 |Prediction for Luma Only     |T, Q, Q-1, T-1 for Luma Only    |T, Q, Q-1, T-1 for Luma & Chroma         |
-    // |CLASS_2 |No Interpolation Search      |No RDOQ                         |RDOQ                                     |
-    // |CLASS_3 |Bilinear Interpolation       |No Tx Type Search               |Tx Type Search                           |
-    // |CLASS_4 |                             |No Tx Size Search               |Tx Size Search                           |
-    // |CLASS_5 |                             |Interpolation Search            |                                         |
-    // |CLASS_8 |                             |                                |                                         |
-    // |________|_____________________________|________________________________|_________________________________________|
+    //  ____________________________________________________________________________________________________________________________________________________________
+    // |        | md_stage_0                  | md_stage_1                     | md_stage_2                              | md_stage_3                              |
+    // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
+    // |CLASS_0 |Prediction for Luma & Chroma |Res, T, Q, Q-1 for Luma Only    |Bypassed                                 |Res, T, Q, Q-1, T-1 or Luma & Chroma     |
+    // |CLASS_6 |SAD                          |No RDOQ                         |                                         |RDOQ (f(RDOQ Level))                     |
+    // |CLASS_7 |                             |No Tx Type Search               |                                         |Tx Type Search (f(Tx Type Search Level)) |
+    // |        |                             |No Tx Size Search               |                                         |Tx Size Search (f(Tx Size Search Level))|
+    // |        |                             |SSD @ Frequency Domain          |                                         |CFL vs. Independent                      |
+    // |        |                             |                                |                                         |SSD @ Spatial Domain                     |
+    // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
+    // |CLASS_1 |Prediction for Luma Only     |IFS (f(IFS))                    |Bypassed                                 |Prediction for Luma & Chroma  (Best IF)  |
+    // |CLASS_2 |Bilinear Only (IFS OFF)      |Res, T, Q, Q-1 for Luma Only    |                                         |Res, T, Q, Q-1, T-1 or Luma & Chroma     |
+    // |CLASS_3 |SAD                          |No RDOQ                         |                                         |RDOQ (f(RDOQ Level))                     |
+    // |CLASS_4 |                             |No Tx Type Search               |                                         |Tx Type Search (f(Tx Type Search Level)) |
+    // |CLASS_5 |                             |No Tx Size Search               |                                         |Tx Size Search  (f(Tx Size Search Level))|
+    // |CLASS_8 |                             |SSD @ Frequency Domain          |                                         |SSD @ Spatial Domain                     |
+    // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
     //
     // MD_STAGING_MODE_2
     //  ____________________________________________________________________________________________________________________________________________________________
     // |        | md_stage_0                  | md_stage_1                     | md_stage_2                              | md_stage_3                              |
     // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
-    // |CLASS_0 |Prediction for Luma & Chroma |T, Q, Q-1, T-1 for Luma Only    |T, Q, Q-1, T-1 or Luma                   |T, Q, Q-1, T-1 or Luma & Chroma          |
-    // |CLASS_6 |                             |No RDOQ                         |RDOQ                                     |RDOQ                                     |
-    // |CLASS_7 |                             |No Tx Type Search               |Tx Type Search                           |Tx Type Search                           |
-    // |        |                             |No Tx Size Search               |                                         |Tx Size Search                           |
-    // |        |                             |                                |                                         |CFL vs. Independent                      |
+    // |CLASS_0 |Prediction for Luma & Chroma |Res, T, Q, Q-1 for Luma Only    |Res, T, Q, Q-1 for Luma Only             |Res, T, Q, Q-1, T-1 or Luma & Chroma     |
+    // |CLASS_6 |SAD                          |No RDOQ                         |RDOQ (f(RDOQ Level))                     |RDOQ (f(RDOQ Level))                     |
+    // |CLASS_7 |                             |No Tx Type Search               |Tx Type Search (f(Tx Type Search Level)) |Tx Type Search (f(Tx Type Search Level)) |
+    // |        |                             |No Tx Size Search               |No Tx Size Search                        |Tx Size Search (f(Tx Size Search Level))|
+    // |        |                             |SSD @ Frequency Domain          |SSD @ Frequency Domain                   |CFL vs. Independent                      |
+    // |        |                             |                                |                                         |SSD @ Spatial Domain                     |
     // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
-    // |CLASS_1 |Prediction for Luma Only     |T, Q, Q-1, T-1 for Luma Only    |T, Q, Q-1, T-1 or Luma                   |T, Q, Q-1, T-1 for Luma & Chroma         |
-    // |CLASS_2 |No Interpolation Search      |No RDOQ                         |RDOQ                                     |RDOQ                                     |
-    // |CLASS_3 |Bilinear Interpolation       |No Tx Type Search               |Tx Type Search                           |Tx Type Search                           |
-    // |CLASS_4 |                             |No Tx Size Search               |                                         |Tx Size Search                           |
-    // |CLASS_5 |                             |Interpolation Search            |                                         |                                         |
-    // |CLASS_8 |                             |                                |                                         |                                         |
+    // |CLASS_1 |Prediction for Luma Only     |IFS (f(IFS))                    |Res, T, Q, Q-1  for Luma Only            |Prediction for Luma & Chroma  (Best IF)  |
+    // |CLASS_2 |Bilinear Only (IFS OFF)      |Res, T, Q, Q-1 for Luma Only    |RDOQ (f(RDOQ Level))                     |Res, T, Q, Q-1, T-1 or Luma & Chroma     |
+    // |CLASS_3 |SAD                          |No RDOQ                         |Tx Type Search (f(Tx Type Search Level)) |RDOQ (f(RDOQ Level))                     |
+    // |CLASS_4 |                             |No Tx Type Search               |No Tx Size Search                        |Tx Type Search (f(Tx Type Search Level)) |
+    // |CLASS_5 |                             |No Tx Size Search               |SSD @ Frequency Domain                   |Tx Size Search  (f(Tx Size Search Level))|
+    // |CLASS_8 |                             |SSD @ Frequency Domain          |                                         |SSD @ Spatial Domain                     |
     // |________|_____________________________|________________________________|_________________________________________|_________________________________________|
     if (context_ptr->pd_pass == PD_PASS_0) {
         context_ptr->md_staging_mode = MD_STAGING_MODE_0;
@@ -1921,6 +1928,17 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
                 ? FULL_PEL_REF_WINDOW_HEIGHT_EXTENDED
                 : FULL_PEL_REF_WINDOW_HEIGHT;
     }
+#if COMP_SIMILAR
+    //comp_similar_mode
+    //0: OFF
+    //1: If previous similar block is not compound, do not inject compound
+    //2: If previous similar block is not compound, do not inject compound
+    //   else consider the compound modes up the mode for the similar block
+    if (pcs_ptr->enc_mode <= ENC_M3)
+        context_ptr->comp_similar_mode = 1;
+    else
+        context_ptr->comp_similar_mode = 2;
+#else
 
     // set compound_types_to_try
     if (context_ptr->pd_pass == PD_PASS_0)
@@ -1934,6 +1952,15 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
         else
             context_ptr->compound_types_to_try = MD_COMP_AVG;
     }
+#endif
+
+#if  INTRA_SIMILAR
+    //intra_similar_mode
+    //0: OFF
+    //1: If previous similar block is intra, do not inject any inter
+    context_ptr->intra_similar_mode = 1;
+#endif
+
     // Set coeff_based_nsq_cand_reduction
     if (context_ptr->pd_pass == PD_PASS_0)
         context_ptr->coeff_based_nsq_cand_reduction = EB_FALSE;
@@ -2029,6 +2056,16 @@ EbErrorType signal_derivation_enc_dec_kernel_oq(SequenceControlSet * scs_ptr,
         context_ptr->best_me_cand_only_flag = EB_FALSE;
     else
         context_ptr->best_me_cand_only_flag = EB_FALSE;
+
+#if ENHANCED_ME_MV
+    // Set perform_me_mv_1_8_pel_ref
+    if (context_ptr->pd_pass == PD_PASS_0)
+        context_ptr->perform_me_mv_1_8_pel_ref = EB_FALSE;
+    else if (context_ptr->pd_pass == PD_PASS_1)
+        context_ptr->perform_me_mv_1_8_pel_ref = EB_FALSE;
+    else
+        context_ptr->perform_me_mv_1_8_pel_ref = (pcs_ptr->parent_pcs_ptr->frm_hdr.allow_high_precision_mv);
+#endif
 
     return return_error;
 }
@@ -2555,9 +2592,44 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs_ptr, PictureCo
     }
 }
 
-/******************************************************
- * EncDec Kernel
- ******************************************************/
+/* EncDec (Encode Decode) Kernel */
+/*********************************************************************************
+*
+* @brief
+*  The EncDec process contains both the mode decision and the encode pass engines
+*  of the encoder. The mode decision encapsulates multiple partitioning decision (PD) stages
+*  and multiple mode decision (MD) stages. At the end of the last mode decision stage,
+*  the winning partition and modes combinations per block get reconstructed in the encode pass
+*  operation which is part of the common section between the encoder and the decoder
+*  Common encoder and decoder tasks such as Intra Prediction, Motion Compensated Prediction,
+*  Transform, Quantization are performed in this process.
+*
+* @par Description:
+*  The EncDec process operates on an SB basis.
+*  The EncDec process takes as input the Motion Vector XY pairs candidates
+*  and corresponding distortion estimates from the Motion Estimation process,
+*  and the picture-level QP from the Rate Control process. All inputs are passed
+*  through the picture structures: PictureControlSet and SequenceControlSet.
+*  local structures of type EncDecContext and ModeDecisionContext contain all parameters
+*  and results corresponding to the SuperBlock being processed.
+*  each of the context structures is local to on thread and thus there's no risk of
+*  affecting (changing) other SBs data in the process.
+*
+* @param[in] Vector
+*  Motion Vector XY pairs from Motion Estimation process
+*
+* @param[in] Distortion Estimates
+*  Distortion estimates from Motion Estimation process
+*
+* @param[in] Picture QP
+*  Picture Quantization Parameter from Rate Control process
+*
+* @param[out] Blocks
+*  The encode pass takes the selected partitioning and coding modes as input from mode decision for each
+*  superblock and produces quantized transfrom coefficients for the residuals and the appropriate syntax
+*  elements to be sent to the entropy coding engine
+*
+********************************************************************************/
 void *enc_dec_kernel(void *input_ptr) {
     // Context & SCS & PCS
     EbThreadContext *   thread_context_ptr = (EbThreadContext *)input_ptr;

@@ -103,7 +103,12 @@ typedef struct ModeDecisionContext {
     ModeDecisionCandidate **      fast_candidate_ptr_array;
     ModeDecisionCandidate *       fast_candidate_array;
     ModeDecisionCandidateBuffer **candidate_buffer_ptr_array;
+#if TXS_DEPTH_2
+    ModeDecisionCandidateBuffer *candidate_buffer_tx_depth_1;
+    ModeDecisionCandidateBuffer *candidate_buffer_tx_depth_2;
+#else
     ModeDecisionCandidateBuffer * scratch_candidate_buffer;
+#endif
     MdRateEstimationContext *     md_rate_estimation_ptr;
     EbBool                        is_md_rate_estimation_ptr_owner;
     InterPredictionContext *      inter_prediction_context;
@@ -253,7 +258,11 @@ typedef struct ModeDecisionContext {
     Part                 nsq_table[NSQ_TAB_SIZE];
     uint8_t              full_loop_escape;
     uint8_t              global_mv_injection;
+#if ENHANCED_ME_MV
+    uint8_t              perform_me_mv_1_8_pel_ref;
+#else
     uint8_t              nx4_4xn_parent_mv_injection;
+#endif
     uint8_t              new_nearest_injection;
     uint8_t              new_nearest_near_comb_injection;
     uint8_t              warped_motion_injection;
@@ -262,11 +271,23 @@ typedef struct ModeDecisionContext {
     uint8_t              predictive_me_level;
     uint8_t              interpolation_filter_search_blk_size;
     uint8_t              redundant_blk;
+#if COMP_SIMILAR
+    uint8_t              similar_blk_avail;
+    uint16_t             similar_blk_mds;
+    uint8_t              comp_similar_mode;
+#endif
+#if INTRA_SIMILAR
+    uint8_t              inject_inter_candidates;
+    uint8_t              intra_similar_mode;
+#endif
     uint8_t *            cfl_temp_luma_recon;
     uint16_t *           cfl_temp_luma_recon16bit;
     EbBool               spatial_sse_full_loop;
     EbBool               blk_skip_decision;
     EbBool               trellis_quant_coeff_optimization;
+#if ENHANCED_ME_MV
+    int16_t              sb_me_mv[BLOCK_MAX_COUNT_SB_128][2][4][2];
+#endif
     int16_t              best_spatial_pred_mv[2][4][2];
     int8_t               valid_refined_mv[2][4];
     EbPictureBufferDesc *input_sample16bit_buffer;

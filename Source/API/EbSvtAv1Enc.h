@@ -152,6 +152,13 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 8. */
     uint32_t encoder_bit_depth;
+    /* Specifies whether to use 16bit pipeline.
+     *
+     * 0: 8 bit pipeline.
+     * 1: 16 bit pipeline.
+     * Now 16bit pipeline is only enabled in filter
+     * Default is 0. */
+    EbBool encoder_16bit_pipeline;
     /* Specifies the chroma subsampleing format of input video.
      *
      * 0 = mono.
@@ -433,7 +440,7 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* Flag to signal the content being a screen sharing content type
     *
-    * Default is 2. */
+    * Default is 0. */
     uint32_t screen_content_mode;
 
     /* Enable adaptive quantization within a frame using segmentation.

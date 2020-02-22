@@ -47,9 +47,6 @@ static void enc_dec_context_dctor(EbPtr p) {
     EncDecContext *  obj                = (EncDecContext *)thread_context_ptr->priv;
     EB_DELETE(obj->md_context);
     EB_DELETE(obj->residual_buffer);
-#if ENCDEC_16BIT
-    EB_DELETE(obj->residual_buffer16bit);
-#endif
     EB_DELETE(obj->transform_buffer);
     EB_DELETE(obj->inverse_quant_buffer);
     EB_DELETE(obj->input_sample16bit_buffer);
@@ -161,9 +158,6 @@ EbErrorType enc_dec_context_ctor(EbThreadContext *  thread_context_ptr,
                (EbPtr)&init_32bit_data);
         EB_NEW(context_ptr->transform_buffer, eb_picture_buffer_desc_ctor, (EbPtr)&init_32bit_data);
         EB_NEW(context_ptr->residual_buffer, eb_picture_buffer_desc_ctor, (EbPtr)&init_data);
-#if ENCDEC_16BIT
-        EB_NEW(context_ptr->residual_buffer16bit, eb_picture_buffer_desc_ctor, (EbPtr)&init_data);
-#endif
     }
 
     // Mode Decision Context
@@ -1254,24 +1248,7 @@ void pad_ref_and_set_flags(PictureControlSet *pcs_ptr, SequenceControlSet *scs_p
     }
 
 #if ENCDEC_16BIT
-    {
-        //for (int j = 0; j < ref_pic_16bit_ptr->height; j++) {
-        //    printf("\n");
-        //    for (int i = 0; i < ref_pic_16bit_ptr->width; i++) {
-        //        printf(" %d \t",
-        //            ((uint16_t *)(ref_pic_16bit_ptr->buffer_y))[i + ref_pic_16bit_ptr->origin_x +
-        //                                           (ref_pic_16bit_ptr->origin_y + j) * ref_pic_16bit_ptr->stride_y]);
-        //    /*    if (ref_pic_16bit_ptr->buffer_y[i + ref_pic_16bit_ptr->origin_x +
-        //                                        (ref_pic_16bit_ptr->origin_y + j) *
-        //                                            ref_pic_16bit_ptr->stride_y] == 33)
-        //            printf(" i %d \t origin_x %d \t j %d \t origin_y %d \n",
-        //                   i,
-        //                   ref_pic_16bit_ptr->origin_x,
-        //                   j,
-        //                   ref_pic_16bit_ptr->origin_y);*/
-        //    }
-        //}
-
+    if (!is_16bit) {
         // Y samples
         generate_padding16_bit(ref_pic_16bit_ptr->buffer_y,
                                ref_pic_16bit_ptr->stride_y << 1,

@@ -43,9 +43,6 @@ typedef struct EncDecContext {
     MotionCompensationPredictionContext *mcp_context;
 
     // Coding Unit Workspace---------------------------
-#if ENCDEC_16BIT
-    EbPictureBufferDesc *residual_buffer16bit;
-#endif
     EbPictureBufferDesc *residual_buffer;
     EbPictureBufferDesc *transform_buffer;
     EbPictureBufferDesc *input_samples;

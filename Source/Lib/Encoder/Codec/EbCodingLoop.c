@@ -4188,14 +4188,14 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
     NeighborArrayUnit *ep_skip_flag_neighbor_array = pcs_ptr->ep_skip_flag_neighbor_array;
 #endif
 
-#if TILES_PARALLEL && (ENCDEC_16BIT_INTER || ENCDEC_16BIT)
+#if TILES_PARALLEL 
     const NeighborArrayUnit *ep_luma_recon_neighbor_array_16bit =
         pcs_ptr->ep_luma_recon_neighbor_array16bit[tile_idx];
     const NeighborArrayUnit *ep_cb_recon_neighbor_array_16bit =
         pcs_ptr->ep_cb_recon_neighbor_array16bit[tile_idx];
     const NeighborArrayUnit *ep_cr_recon_neighbor_array_16bit =
         pcs_ptr->ep_cr_recon_neighbor_array16bit[tile_idx];
-#elif ENCDEC_16BIT_INTER || ENCDEC_16BIT
+#else
     const NeighborArrayUnit *ep_luma_recon_neighbor_array_16bit =
         pcs_ptr->ep_luma_recon_neighbor_array16bit;
     const NeighborArrayUnit *ep_cb_recon_neighbor_array_16bit =
@@ -4488,9 +4488,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                 PredictionUnit *     pu_ptr           = (PredictionUnit *)EB_NULL; //  done
                 EbPictureBufferDesc *residual_buffer  = context_ptr->residual_buffer;
                 EbPictureBufferDesc *transform_buffer = context_ptr->transform_buffer;
-                #if ENCDEC_16BIT_INTER
-                EbPictureBufferDesc *residual_buffer_16bit  = context_ptr->residual_buffer16bit;
-                #endif
                 EbPictureBufferDesc *inverse_quant_buffer = context_ptr->inverse_quant_buffer;
 
                 int16_t *transform_inner_array_ptr = context_ptr->transform_inner_array_ptr;
@@ -4804,8 +4801,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                             {
                                 uint16_t cb_qp = blk_ptr->qp;
 
-#if ENCDEC_16BIT_INTER
-
                                 av1_encode_loop_func_table[is_16bit || is_16bit_pipeline](
                                     pcs_ptr,
                                     context_ptr,
@@ -4813,11 +4808,9 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     context_ptr->blk_origin_x,
                                     context_ptr->blk_origin_y,
                                     cb_qp,
-                                    //recon_buffer,
                                     recon_buffer_16bit,
                                     coeff_buffer_sb,
                                     residual_buffer,
-                                    //residual_buffer_16bit,
                                     transform_buffer,
                                     inverse_quant_buffer,
                                     transform_inner_array_ptr,
@@ -4826,7 +4819,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                                      : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr],
                                     blk_plane);
-#endif
+
                                 if (allow_update_cdf) {
                                     ModeDecisionCandidateBuffer **candidate_buffer_ptr_array_base =
                                         context_ptr->md_context->candidate_buffer_ptr_array;
@@ -4871,8 +4864,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                         context_ptr->blk_geom->has_uv ? COMPONENT_ALL
                                                                       : COMPONENT_LUMA);
                                 }
-//intra mode
-#if ENCDEC_16BIT_INTER
+                                //intra mode
                                 av1_enc_gen_recon_func_ptr[is_16bit || is_16bit_pipeline](
                                     context_ptr,
                                     context_ptr->blk_origin_x,
@@ -4883,7 +4875,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
                                                      : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr]);
-#endif
                             }
 
                             // Update the Intra-specific Neighbor Arrays
@@ -4902,8 +4893,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
                                                  : PICTURE_BUFFER_DESC_LUMA_MASK);
 
-// Update Recon Samples-INTRA-
-#if ENCDEC_16BIT_INTER
                             // Update Recon Samples-INTRA-
                             encode_pass_update_recon_sample_neighbour_arrays(
                                 ep_luma_recon_neighbor_array_16bit,
@@ -4919,7 +4908,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 blk_geom->has_uv ? PICTURE_BUFFER_DESC_FULL_MASK
                                                  : PICTURE_BUFFER_DESC_LUMA_MASK,
                                 1);
-#endif
 
                             // Update the luma Dc Sign Level Coeff Neighbor Array
                             {
@@ -5154,18 +5142,9 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     context_ptr->blk_origin_y,
                                     blk_ptr,
                                     blk_geom,
-#if ENCDEC_16BIT_INTER
                                     ref_obj_0->reference_picture16bit,
                                     ref_idx_l1 >= 0 ? ref_obj_1->reference_picture16bit : NULL,
                                     recon_buffer_16bit,
-#else
-                                    is_16bit ? ref_obj_0->reference_picture16bit
-                                             : ref_obj_0->reference_picture,
-                                    ref_idx_l1 >= 0 ? is_16bit ? ref_obj_1->reference_picture16bit
-                                                               : ref_obj_1->reference_picture
-                                                    : NULL,
-                                    recon_buffer,
-#endif
                                     context_ptr->blk_origin_x,
                                     context_ptr->blk_origin_y,
                                     &blk_ptr->prediction_unit_array[0].wm_params_l0,
@@ -5391,9 +5370,9 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 blk_ptr->compound_idx,
                                 &blk_ptr->interinter_comp,
                                 &sb_ptr->tile_info,
-                                ep_luma_recon_neighbor_array,
-                                ep_cb_recon_neighbor_array,
-                                ep_cr_recon_neighbor_array,
+                                ep_luma_recon_neighbor_array_16bit,
+                                ep_cb_recon_neighbor_array_16bit,
+                                ep_cr_recon_neighbor_array_16bit,
                                 blk_ptr->is_interintra_used,
                                 blk_ptr->interintra_mode,
                                 blk_ptr->use_wedge_interintra,
@@ -5405,7 +5384,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                 blk_geom->bheight,
                                 ref_pic_list0,
                                 ref_pic_list1,
-                                recon_buffer,
+                                recon_buffer_16bit,
                                 context_ptr->blk_origin_x,
                                 context_ptr->blk_origin_y,
                                 EB_TRUE,
@@ -5503,7 +5482,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                             }
                             if (!zero_luma_cbf_md) {
                                 //inter mode  1
-#if ENCDEC_16BIT_INTER
                                 av1_encode_loop_func_table[is_16bit || is_16bit_pipeline](
                                     pcs_ptr,
                                     context_ptr,
@@ -5523,28 +5501,6 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                         : PICTURE_BUFFER_DESC_LUMA_MASK,
                                     eobs[context_ptr->txb_itr],
                                     blk_plane);
-#else
-
-                                av1_encode_loop_func_table[is_16bit](
-                                    pcs_ptr,
-                                    context_ptr,
-                                    sb_ptr,
-                                    txb_origin_x, //pic org
-                                    txb_origin_y,
-                                    cb_qp,
-                                    recon_buffer,
-                                    coeff_buffer_sb,
-                                    residual_buffer,
-                                    transform_buffer,
-                                    inverse_quant_buffer,
-                                    transform_inner_array_ptr,
-                                    count_non_zero_coeffs,
-                                    context_ptr->blk_geom->has_uv && uv_pass
-                                        ? PICTURE_BUFFER_DESC_FULL_MASK
-                                        : PICTURE_BUFFER_DESC_LUMA_MASK,
-                                    eobs[context_ptr->txb_itr],
-                                    blk_plane);
-#endif
                             }
                             // SKIP the CBF zero mode for DC path. There are problems with cost calculations
                             {
@@ -5891,8 +5847,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                             context_ptr->blk_ptr->quantized_dc[1][context_ptr->txb_itr] = 0;
                             context_ptr->blk_ptr->quantized_dc[2][context_ptr->txb_itr] = 0;
                         } else if ((&blk_ptr->prediction_unit_array[0])->merge_flag == EB_TRUE) {
-//inter mode  2
-#if ENCDEC_16BIT_INTER
+                            //inter mode  2
                             av1_encode_loop_func_table[is_16bit || is_16bit_pipeline](
                                 pcs_ptr,
                                 context_ptr,
@@ -5912,28 +5867,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     : PICTURE_BUFFER_DESC_LUMA_MASK,
                                 eobs[context_ptr->txb_itr],
                                 blk_plane);
-#else
-                            av1_encode_loop_func_table[is_16bit](
-                                pcs_ptr,
-                                context_ptr,
-                                sb_ptr,
-                                txb_origin_x, //pic offset
-                                txb_origin_y,
-                                cb_qp,
-                                recon_buffer,
-                                coeff_buffer_sb,
-                                residual_buffer,
-                                transform_buffer,
-                                inverse_quant_buffer,
-                                transform_inner_array_ptr,
-                                count_non_zero_coeffs,
-                                context_ptr->blk_geom->has_uv && uv_pass
-                                    ? PICTURE_BUFFER_DESC_FULL_MASK
-                                    : PICTURE_BUFFER_DESC_LUMA_MASK,
-                                eobs[context_ptr->txb_itr],
-                                blk_plane);
 
-#endif
                             if (allow_update_cdf) {
                                 ModeDecisionCandidateBuffer **candidate_buffer_ptr_array_base =
                                     context_ptr->md_context->candidate_buffer_ptr_array;
@@ -5993,7 +5927,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
 
                         //inter mode
                         if (do_recon) {
-#if ENCDEC_16BIT_INTER
+
                             av1_enc_gen_recon_func_ptr[is_16bit || is_16bit_pipeline](
                                 context_ptr,
                                 txb_origin_x,
@@ -6005,19 +5939,7 @@ EB_EXTERN void av1_encode_pass_16bit(SequenceControlSet *scs_ptr, PictureControl
                                     ? PICTURE_BUFFER_DESC_FULL_MASK
                                     : PICTURE_BUFFER_DESC_LUMA_MASK,
                                 eobs[context_ptr->txb_itr]);
-#else
-                            av1_enc_gen_recon_func_ptr[is_16bit](
-                                context_ptr,
-                                txb_origin_x, //pic offset
-                                txb_origin_y,
-                                recon_buffer,
-                                inverse_quant_buffer,
-                                transform_inner_array_ptr,
-                                context_ptr->blk_geom->has_uv && uv_pass
-                                    ? PICTURE_BUFFER_DESC_FULL_MASK
-                                    : PICTURE_BUFFER_DESC_LUMA_MASK,
-                                eobs[context_ptr->txb_itr]);
-#endif
+
                         }
 
                         if (context_ptr->blk_geom->has_uv && uv_pass) {

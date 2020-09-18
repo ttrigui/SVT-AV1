@@ -4,9 +4,9 @@
 ; This source code is subject to the terms of the BSD 2 Clause License and
 ; the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 ; was not distributed with this source code in the LICENSE file, you can
-; obtain it at www.aomedia.org/license/software. If the Alliance for Open
+; obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 ; Media Patent License 1.0 was not distributed with this source code in the
-; PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+; PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 ;
 
 ;
@@ -110,8 +110,8 @@
 
 SECTION .text
 
-global sym(aom_filter_block1d4_v2_ssse3) PRIVATE
-sym(aom_filter_block1d4_v2_ssse3):
+global sym(eb_aom_filter_block1d4_v2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d4_v2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -134,8 +134,8 @@ sym(aom_filter_block1d4_v2_ssse3):
     pop         rbp
     ret
 
-global sym(aom_filter_block1d8_v2_ssse3) PRIVATE
-sym(aom_filter_block1d8_v2_ssse3):
+global sym(eb_aom_filter_block1d8_v2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d8_v2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -160,8 +160,8 @@ sym(aom_filter_block1d8_v2_ssse3):
     pop         rbp
     ret
 
-global sym(aom_filter_block1d16_v2_ssse3) PRIVATE
-sym(aom_filter_block1d16_v2_ssse3):
+global sym(eb_aom_filter_block1d16_v2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d16_v2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -187,8 +187,8 @@ sym(aom_filter_block1d16_v2_ssse3):
     pop         rbp
     ret
 
-global sym(aom_filter_block1d4_h2_ssse3) PRIVATE
-sym(aom_filter_block1d4_h2_ssse3):
+global sym(eb_aom_filter_block1d4_h2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d4_h2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -212,8 +212,8 @@ sym(aom_filter_block1d4_h2_ssse3):
     pop         rbp
     ret
 
-global sym(aom_filter_block1d8_h2_ssse3) PRIVATE
-sym(aom_filter_block1d8_h2_ssse3):
+global sym(eb_aom_filter_block1d8_h2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d8_h2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -239,8 +239,8 @@ sym(aom_filter_block1d8_h2_ssse3):
     pop         rbp
     ret
 
-global sym(aom_filter_block1d16_h2_ssse3) PRIVATE
-sym(aom_filter_block1d16_h2_ssse3):
+global sym(eb_aom_filter_block1d16_h2_ssse3) PRIVATE
+sym(eb_aom_filter_block1d16_h2_ssse3):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6

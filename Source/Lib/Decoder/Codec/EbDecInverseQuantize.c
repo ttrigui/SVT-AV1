@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbDefinitions.h"
@@ -42,10 +38,9 @@ void setup_segmentation_dequant(DecModCtxt *dec_mod_ctxt) {
     int          bit_depth  = seq_header->color_config.bit_depth;
     /*int max_segments = frame_info->segmentation_params.segmentation_enabled ?
         MAX_SEGMENTS : 1;*/
-    int32_t qindex;
     int32_t dc_delta_q, ac_delta_q;
     for (int i = 0; i < MAX_SEGMENTS; i++) {
-        qindex = get_qindex(
+        const int qindex = get_qindex(
             &frame_info->segmentation_params, i, frame_info->quantization_params.base_q_idx);
 
         for (int plane = 0; plane < MAX_MB_PLANE; plane++) {
@@ -97,8 +92,6 @@ void av1_init_sb(FrameHeader *frame)
 // Called in parse_decode_block()
 // Update de-quantization parameter based on delta qp param
 void update_dequant(DecModCtxt *dec_mod_ctxt, SBInfo *sb_info) {
-    int32_t      current_qindex;
-    int          dc_delta_q, ac_delta_q;
     SeqHeader *  seq_header = dec_mod_ctxt->seq_header;
     FrameHeader *frame      = dec_mod_ctxt->frame_header;
 
@@ -106,11 +99,12 @@ void update_dequant(DecModCtxt *dec_mod_ctxt, SBInfo *sb_info) {
     dec_mod_ctxt->dequants_delta_q = &dec_mod_ctxt->dequants;
     if (frame->delta_q_params.delta_q_present) {
         for (int i = 0; i < MAX_SEGMENTS; i++) {
-            current_qindex = get_qindex(&frame->segmentation_params, i, sb_info->sb_delta_q[0]);
+            const int current_qindex = get_qindex(
+                &frame->segmentation_params, i, sb_info->sb_delta_q[0]);
 
             for (int plane = 0; plane < MAX_MB_PLANE; plane++) {
-                dc_delta_q = frame->quantization_params.delta_q_dc[plane];
-                ac_delta_q = frame->quantization_params.delta_q_ac[plane];
+                const int dc_delta_q = frame->quantization_params.delta_q_dc[plane];
+                const int ac_delta_q = frame->quantization_params.delta_q_ac[plane];
 
                 dec_mod_ctxt->dequants_delta_q->dequant_qtx[i][plane][0] =
                     get_dc_quant(current_qindex, dc_delta_q, bit_depth);

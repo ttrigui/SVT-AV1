@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #ifndef EbWarpedMotion_h
@@ -91,15 +91,15 @@ EbBool eb_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, int mvy
 
 int eb_get_shear_params(EbWarpedMotionParams *wm);
 
-void highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, int width,
-                       int height, int stride, const uint8_t *const pred8, int p_col,
-                       int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
-                       int subsampling_y, int bd, ConvolveParams *conv_params);
+void eb_highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, int width,
+                          int height, int stride, const uint8_t *const pred8, int p_col,
+                          int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
+                          int subsampling_y, int bd, ConvolveParams *conv_params);
 
-void warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int width, int height,
-                int stride, uint8_t *pred, int p_col, int p_row, int p_width, int p_height,
-                int p_stride, int subsampling_x, int subsampling_y,
-                ConvolveParams *conv_params);
+void eb_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int width, int height,
+                   int stride, uint8_t *pred, int p_col, int p_row, int p_width, int p_height,
+                   int p_stride, int subsampling_x, int subsampling_y,
+                   ConvolveParams *conv_params);
 
 int select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize);
 

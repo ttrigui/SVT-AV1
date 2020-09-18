@@ -4,13 +4,13 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
-#ifndef AOM_AV1_ENCODER_MCOMP_H_
-#define AOM_AV1_ENCODER_MCOMP_H_
+#ifndef AOM_AV1_ENCODER_ME_H_
+#define AOM_AV1_ENCODER_ME_H_
 
 #include "EbDefinitions.h"
 #include "EbCodingUnit.h"
@@ -86,9 +86,9 @@ int eb_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MAC
                              int run_mesh_search, int error_per_bit, int *cost_list,
                              const MV *ref_mv, int var_max, int rd, int x_pos, int y_pos,
                              int intra);
-
+int mv_err_cost(const MV *mv, const MV *ref, const int *mvjcost, int *mvcost[2], int error_per_bit);
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif // AOM_AV1_ENCODER_MCOMP_H_
+#endif // AOM_AV1_ENCODER_ME_H_

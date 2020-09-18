@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbDefinitions.h"
@@ -23,7 +19,7 @@
 #include "EbDecRestoration.h"
 #include "EbPictureOperators.h"
 #include "EbRestoration.h"
-
+#include "common_dsp_rtcd.h"
 void save_tile_row_boundary_lines(uint8_t *src, int32_t src_stride, int32_t src_width,
                                   int32_t src_height, int32_t use_highbd, int32_t plane,
                                   Av1Common *cm, int32_t after_cdef,
@@ -62,12 +58,12 @@ void lr_generate_padding(
     for (vertical_idx = LR_PAD_SIDE; vertical_idx > 0; --vertical_idx) {
         // top part data copy
         temp_src_pic2 -= src_stride;
-        EB_MEMCPY(
+        eb_memcpy(
             temp_src_pic2, temp_src_pic0, sizeof(uint8_t) * (original_src_width + LR_PAD_MAX));
         // bottom part data copy
         temp_src_pic3 += src_stride;
-        EB_MEMCPY(
-            temp_src_pic3, temp_src_pic1, sizeof(uint8_t) * (original_src_width + LR_PAD_MAX));
+        eb_memcpy(
+           temp_src_pic3, temp_src_pic1, sizeof(uint8_t) * (original_src_width + LR_PAD_MAX));
     }
     return;
 }
@@ -107,13 +103,13 @@ void lr_generate_padding16_bit(
     for (vertical_idx = LR_PAD_SIDE; vertical_idx > 0; --vertical_idx) {
         // top part data copy
         temp_src_pic2 -= src_stride;
-        EB_MEMCPY(temp_src_pic2,
-                  temp_src_pic0,
+        eb_memcpy(temp_src_pic2,
+                 temp_src_pic0,
                   sizeof(uint8_t) * (original_src_width + (LR_PAD_MAX << use_highbd)));
         // bottom part data copy
         temp_src_pic3 += src_stride;
-        EB_MEMCPY(temp_src_pic3,
-                  temp_src_pic1,
+        eb_memcpy(temp_src_pic3,
+                 temp_src_pic1,
                   sizeof(uint8_t) * (original_src_width + (LR_PAD_MAX << use_highbd)));
     }
 
@@ -127,7 +123,8 @@ void lr_pad_pic(EbPictureBufferDesc *recon_picture_buf, FrameHeader *frame_hdr,
     uint8_t    sx         = color_cfg->subsampling_x;
     uint8_t    sy         = color_cfg->subsampling_y;
 
-    if (recon_picture_buf->bit_depth == EB_8BIT) {
+    if (recon_picture_buf->bit_depth == EB_8BIT &&
+        (!recon_picture_buf->is_16bit_pipeline)) {
         // Y samples
         lr_generate_padding(recon_picture_buf->buffer_y + recon_picture_buf->origin_x +
                                 recon_picture_buf->stride_y * recon_picture_buf->origin_y,
@@ -243,8 +240,10 @@ void eb_dec_av1_loop_restoration_filter_unit(uint8_t need_bounadaries,
            restoration unit */
         const int32_t nominal_stripe_height =
             full_stripe_height - ((tile_stripe == 0) ? runit_offset : 0);
+        /*In wiener filter leaf level function assumes always h to be multiple of 2.
+          we can see assert related to h in this function->eb_av1_wiener_convolve_add_src_avx2*/
         const int32_t h = AOMMIN(nominal_stripe_height,
-            remaining_stripes.v_end - remaining_stripes.v_start);
+            ((remaining_stripes.v_end - remaining_stripes.v_start) + 1) & ~1);
 
         if (need_bounadaries)
             setup_processing_stripe_boundary(&remaining_stripes,
@@ -275,7 +274,8 @@ void dec_av1_loop_restoration_filter_row(EbDecHandle *dec_handle, int32_t sb_row
     const int32_t num_planes = av1_num_planes(&dec_handle->seq_header.
         color_config);
     int bit_depth = dec_handle->seq_header.color_config.bit_depth;
-    int use_highbd = bit_depth > 8;
+    int use_highbd = (bit_depth > EB_8BIT ||
+        dec_handle->is_16bit_pipeline);
     int w_y = 0, tile_stripe0 = 0;
     int tile_w_y = tile_rect[AOM_PLANE_Y].right - tile_rect[AOM_PLANE_Y].left;
     int tile_h_y = tile_rect[AOM_PLANE_Y].bottom - tile_rect[AOM_PLANE_Y].top;
@@ -388,7 +388,7 @@ void dec_av1_loop_restoration_filter_row(EbDecHandle *dec_handle, int32_t sb_row
             uint8_t *bdry_lr_ptr = bdry_lr;
             int width = RESTORATION_EXTRA_HORZ << use_highbd;
             int height = tile_limit.v_end - tile_limit.v_start;
-            assert(height <= MAX_SB_SIZE);
+            assert(height <= MAX_SB_SIZE + voffset);
             int stride = use_highbd ? src_stride << use_highbd : src_stride;
             proc_width = proc_width << use_highbd;
 
@@ -400,7 +400,7 @@ void dec_av1_loop_restoration_filter_row(EbDecHandle *dec_handle, int32_t sb_row
             {
                 /* save cdef_data of current block to temp
                 _buf before LR processing */
-                memcpy(bdry_cdef_ptr, src_ptr, width);
+                eb_memcpy(bdry_cdef_ptr, src_ptr, width);
                 src_ptr += stride;
                 bdry_cdef_ptr += width;
             }
@@ -422,7 +422,7 @@ void dec_av1_loop_restoration_filter_row(EbDecHandle *dec_handle, int32_t sb_row
             // restore LR_data of previous block
             if (col)
                 for (int proc = 0; proc < height; proc++) {
-                    memcpy(src_ptr, bdry_lr_ptr, width);
+                    eb_memcpy(src_ptr, bdry_lr_ptr, width);
                     src_ptr += stride;
                     bdry_lr_ptr += width;
                 }
@@ -430,9 +430,9 @@ void dec_av1_loop_restoration_filter_row(EbDecHandle *dec_handle, int32_t sb_row
             if ((col + block_w) < plane_tile_w)
                 for (int proc = 0; proc < height; proc++) {
                     // save lr_data of current block to temp_buf
-                    memcpy(bdry_lr, src_proc, width);
+                    eb_memcpy(bdry_lr, src_proc, width);
                     // save cdef_data of current block to src
-                    memcpy(src_proc, bdry_cdef, width);
+                    eb_memcpy(src_proc, bdry_cdef, width);
 
                     src_proc += stride;
                     bdry_cdef += width;
@@ -508,7 +508,8 @@ void dec_av1_loop_restoration_filter_frame(EbDecHandle *dec_handle, int optimize
 void dec_av1_loop_restoration_save_boundary_lines(EbDecHandle *dec_handle,
                                                   int after_cdef) {
     const int num_planes = av1_num_planes(&dec_handle->seq_header.color_config);
-    const int use_highbd = (dec_handle->seq_header.color_config.bit_depth > 8);
+    const int use_highbd = (dec_handle->seq_header.color_config.bit_depth > EB_8BIT ||
+        dec_handle->is_16bit_pipeline);
 
     for (int p = 0; p < num_planes; ++p) {
         LrCtxt *   lr_ctxt    = (LrCtxt *)dec_handle->pv_lr_ctxt;

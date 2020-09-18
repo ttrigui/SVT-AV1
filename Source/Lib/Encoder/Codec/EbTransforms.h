@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbTransforms_h
@@ -71,7 +67,6 @@ static const int8_t fadst4_range_mult2[7]      = {0, 2, 4, 3, 3, 3, 3};
 static const int8_t fadst8_range_mult2[8]      = {0, 0, 1, 3, 3, 5, 5, 5};
 static const int8_t fadst16_range_mult2[10]    = {0, 0, 1, 3, 3, 5, 5, 7, 7, 7};
 static const int8_t fadst32_range_mult2[12]    = {0, 0, 1, 3, 3, 5, 5, 7, 7, 9, 9, 9};
-static const int8_t max_fwd_range_mult2_col[5] = {3, 5, 7, 9, 11};
 static const int8_t fidtx4_range_mult2[1]      = {1};
 static const int8_t fidtx8_range_mult2[1]      = {2};
 static const int8_t fidtx16_range_mult2[1]     = {3};
@@ -130,18 +125,21 @@ static const uint32_t q_func[] = {26214, 23302, 20560, 18396, 16384, 14564};
 extern EbErrorType av1_estimate_transform(int16_t *residual_buffer, uint32_t residual_stride,
                                           int32_t *coeff_buffer, uint32_t coeff_stride,
                                           TxSize transform_size, uint64_t *three_quad_energy,
-                                          uint32_t bit_increment, TxType transform_type,
+                                          uint32_t bit_depth, TxType transform_type,
                                           PlaneType            component_type,
                                           EB_TRANS_COEFF_SHAPE trans_coeff_shape);
 
 extern int32_t av1_quantize_inv_quantize(
         PictureControlSet *pcs_ptr, ModeDecisionContext *md_context, int32_t *coeff,
-        const uint32_t coeff_stride, int32_t *quant_coeff, int32_t *recon_coeff, uint32_t qp,
+        const uint32_t coeff_stride, int32_t *quant_coeff, int32_t *recon_coeff, uint32_t qindex,
         int32_t segmentation_qp_offset, uint32_t width, uint32_t height, TxSize txsize, uint16_t *eob,
         uint32_t *y_count_non_zero_coeffs, uint32_t component_type, uint32_t bit_increment,
         TxType tx_type, ModeDecisionCandidateBuffer *candidate_buffer, int16_t txb_skip_context,
-        int16_t dc_sign_context, PredictionMode pred_mode, EbBool is_intra_bc, EbBool is_encode_pass);
+        int16_t dc_sign_context, PredictionMode pred_mode, EbBool is_intra_bc, uint32_t lambda,EbBool is_encode_pass);
 
+void svt_av1_wht_fwd_txfm(int16_t *src_diff, int bw,
+                  int32_t *coeff, TxSize tx_size,
+                  int bit_depth, int is_hbd);
 
 #ifdef __cplusplus
 }

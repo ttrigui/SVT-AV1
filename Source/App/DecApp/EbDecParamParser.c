@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 // Command line argument parsing
@@ -29,6 +35,14 @@ static void set_limit_frame(const char *value, EbSvtAv1DecConfiguration *cfg) {
 };
 static void set_bit_depth(const char *value, EbSvtAv1DecConfiguration *cfg) {
     cfg->max_bit_depth = strtoul(value, NULL, 0);
+};
+static void set_decoder_16bit_pipeline(const char *value, EbSvtAv1DecConfiguration *cfg) {
+    cfg->is_16bit_pipeline = (EbBool)strtoul(value, NULL, 0);
+    if (cfg->is_16bit_pipeline != 1 && cfg->is_16bit_pipeline != 0) {
+        fprintf(stderr,
+            "Warning : Invalid value for is_16bit_pipeline, setting value to 0. \n");
+        cfg->is_16bit_pipeline = 0;
+    }
 };
 static void set_pic_width(const char *value, EbSvtAv1DecConfiguration *cfg) {
     cfg->max_picture_width = strtoul(value, NULL, 0);
@@ -61,6 +75,7 @@ ConfigEntry config_entry[] = {
     {LIMIT_FRAME_TOKEN, "LimitFrame", 1, set_limit_frame},
     // Picture properties
     {BIT_DEPTH_TOKEN, "InputBitDepth", 1, set_bit_depth},
+    {DECODER_16BIT_PIPELINE, "Decoder16BitPipeline", 1, set_decoder_16bit_pipeline},
     {PIC_WIDTH_TOKEN, "PictureWidth", 1, set_pic_width},
     {PIC_HEIGHT_TOKEN, "PictureHeight", 1, set_pic_height},
     {COLOUR_SPACE_TOKEN, "InputColourSpace", 1, set_colour_space},
@@ -87,6 +102,7 @@ static void show_help() {
     H0( " -fps-frm                  Show fps after each frame decoded\n");
     H0( " -fps-summary              Show fps summary");
     H0( " -skip-film-grain          Disable Film Grain");
+    H0( " -16bit-pipeline           Enable 16b pipeline. [1 - enable, 0 - disable]");
 
     exit(1);
 }
@@ -116,7 +132,7 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EbSvtAv1DecConfi
     while (token_index < cmd_token_cnt) {
         if (cmd_copy[token_index] != NULL) {
             if (EB_STRCMP(cmd_copy[token_index], INPUT_FILE_TOKEN) == 0) {
-                FILE *fin = NULL;
+                FILE *fin;
                 FOPEN(fin, config_strings[token_index], "rb");
                 if (!fin) {
                     fprintf(stderr, "Invalid input file \n");
@@ -126,7 +142,7 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EbSvtAv1DecConfi
                     cli->in_filename = config_strings[token_index];
                 }
             } else if (EB_STRCMP(cmd_copy[token_index], OUTPUT_FILE_TOKEN) == 0) {
-                FILE *fout = NULL;
+                FILE *fout;
                 FOPEN(fout, config_strings[token_index], "wb");
                 if (!fout) {
                     fprintf(stderr, "Invalid output file \n");

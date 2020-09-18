@@ -1,17 +1,14 @@
 /*
+ * Copyright(c) 2019 Netflix, Inc.
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
-/*
-* Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
 
 #include "EbResize.h"
 #include "EbUtility.h"
@@ -39,7 +36,7 @@ void calculate_scaled_size_helper(uint16_t *dim, uint8_t denom) {
     }
 }
 
-int32_t av1_get_upscale_convolve_step(int in_length, int out_length) {
+static int32_t av1_get_upscale_convolve_step(int in_length, int out_length) {
     return ((in_length << RS_SCALE_SUBPEL_BITS) + out_length / 2) / out_length;
 }
 
@@ -51,8 +48,8 @@ int32_t get_upscale_convolve_x0(int in_length, int out_length, int32_t x_step_qn
     return (int32_t)((uint32_t)x0 & RS_SCALE_SUBPEL_MASK);
 }
 
-void av1_convolve_horiz_rs_c(const uint8_t *src, int src_stride, uint8_t *dst, int dst_stride,
-                             int w, int h, const int16_t *x_filters, int x0_qn, int x_step_qn) {
+static void av1_convolve_horiz_rs_c(const uint8_t *src, int src_stride, uint8_t *dst, int dst_stride,
+                                    int w, int h, const int16_t *x_filters, int x0_qn, int x_step_qn) {
     src -= UPSCALE_NORMATIVE_TAPS / 2 - 1;
     for (int y = 0; y < h; ++y) {
         int x_qn = x0_qn;
@@ -71,9 +68,9 @@ void av1_convolve_horiz_rs_c(const uint8_t *src, int src_stride, uint8_t *dst, i
     }
 }
 
-void av1_highbd_convolve_horiz_rs_c(const uint16_t *src, int src_stride, uint16_t *dst,
-                                    int dst_stride, int w, int h, const int16_t *x_filters,
-                                    int x0_qn, int x_step_qn, int bd) {
+static void av1_highbd_convolve_horiz_rs_c(const uint16_t *src, int src_stride, uint16_t *dst,
+                                           int dst_stride, int w, int h, const int16_t *x_filters,
+                                           int x0_qn, int x_step_qn, int bd) {
     src -= UPSCALE_NORMATIVE_TAPS / 2 - 1;
     for (int y = 0; y < h; ++y) {
         int x_qn = x0_qn;
@@ -116,14 +113,14 @@ void upscale_normative_rect(const uint8_t *const input, int height, int width, i
     if (pad_left) {
         tmp_left = (uint8_t *)eb_aom_malloc(sizeof(*tmp_left) * border_cols * height);
         for (int i = 0; i < height; i++) {
-            memcpy(tmp_left + i * border_cols, in_tl + i * in_stride, border_cols);
+            eb_memcpy(tmp_left + i * border_cols, in_tl + i * in_stride, border_cols);
             memset(in_tl + i * in_stride, input[i * in_stride], border_cols);
         }
     }
     if (pad_right) {
         tmp_right = (uint8_t *)eb_aom_malloc(sizeof(*tmp_right) * border_cols * height);
         for (int i = 0; i < height; i++) {
-            memcpy(tmp_right + i * border_cols, in_tr + i * in_stride, border_cols);
+            eb_memcpy(tmp_right + i * border_cols, in_tr + i * in_stride, border_cols);
             memset(in_tr + i * in_stride, input[i * in_stride + width - 1], border_cols);
         }
     }
@@ -141,13 +138,13 @@ void upscale_normative_rect(const uint8_t *const input, int height, int width, i
     /* Restore the left/right border pixels */
     if (pad_left) {
         for (int i = 0; i < height; i++) {
-            memcpy(in_tl + i * in_stride, tmp_left + i * border_cols, border_cols);
+            eb_memcpy(in_tl + i * in_stride, tmp_left + i * border_cols, border_cols);
         }
         eb_aom_free(tmp_left);
     }
     if (pad_right) {
         for (int i = 0; i < height; i++) {
-            memcpy(in_tr + i * in_stride, tmp_right + i * border_cols, border_cols);
+            eb_memcpy(in_tr + i * in_stride, tmp_right + i * border_cols, border_cols);
         }
         eb_aom_free(tmp_right);
     }
@@ -178,14 +175,14 @@ void highbd_upscale_normative_rect(const uint8_t *const input, int height, int w
     if (pad_left) {
         tmp_left = (uint16_t *)eb_aom_malloc(sizeof(*tmp_left) * border_cols * height);
         for (int i = 0; i < height; i++) {
-            memcpy(tmp_left + i * border_cols, in_tl + i * in_stride, border_size);
+            eb_memcpy(tmp_left + i * border_cols, in_tl + i * in_stride, border_size);
             eb_aom_memset16(in_tl + i * in_stride, input16[i * in_stride], border_cols);
         }
     }
     if (pad_right) {
         tmp_right = (uint16_t *)eb_aom_malloc(sizeof(*tmp_right) * border_cols * height);
         for (int i = 0; i < height; i++) {
-            memcpy(tmp_right + i * border_cols, in_tr + i * in_stride, border_size);
+            eb_memcpy(tmp_right + i * border_cols, in_tr + i * in_stride, border_size);
             eb_aom_memset16(in_tr + i * in_stride, input16[i * in_stride + width - 1], border_cols);
         }
     }
@@ -204,21 +201,21 @@ void highbd_upscale_normative_rect(const uint8_t *const input, int height, int w
     /*Restore the left/right border pixels*/
     if (pad_left) {
         for (int i = 0; i < height; i++) {
-            memcpy(in_tl + i * in_stride, tmp_left + i * border_cols, border_size);
+            eb_memcpy(in_tl + i * in_stride, tmp_left + i * border_cols, border_size);
         }
         eb_aom_free(tmp_left);
     }
     if (pad_right) {
         for (int i = 0; i < height; i++) {
-            memcpy(in_tr + i * in_stride, tmp_right + i * border_cols, border_size);
+            eb_memcpy(in_tr + i * in_stride, tmp_right + i * border_cols, border_size);
         }
         eb_aom_free(tmp_right);
     }
 }
 
-void av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride,
-                                uint8_t *dst, int dst_stride, int rows, int sub_x, int bd) {
-    int       high_bd                = bd > 8;
+void eb_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride,
+                                   uint8_t *dst, int dst_stride, int rows, int sub_x, int bd, EbBool is_16bit_pipeline) {
+    int       high_bd                = bd > EB_8BIT || is_16bit_pipeline;
     const int downscaled_plane_width = ROUND_POWER_OF_TWO(cm->frm_size.frame_width, sub_x);
     const int upscaled_plane_width =
         ROUND_POWER_OF_TWO(cm->frm_size.superres_upscaled_width, sub_x);

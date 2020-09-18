@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbMotionEstimationLcuResults_h
@@ -14,26 +20,15 @@ extern "C" {
 
 #define MAX_ME_PU_COUNT \
     209 // Sum of all the possible partitions which have both deminsions greater than 4.
-
-#define ME_RES_CAND_MRP_MODE_0 23 // [Single Ref = 7] + [BiDir = 12 = 3*4 ] + [UniDir = 4 = 3+1]
-#define ME_MV_MRP_MODE_0 7 // [7 = 4+3]
-
-#define ME_RES_CAND_MRP_MODE_1 10 // [Single Ref = 4] + [UniDir = 4 = 2*2] + [UniDir = 2 = 1+1]
-#define ME_MV_MRP_MODE_1 4 // [4 = 2+2]
-
-#define MAX_SS_ME_PU_COUNT \
-    (849 * 4 +             \
-     5) // Sum of all the possible partitions which have both deminsions greater or equal to 4.
-
-// i.e. no 4x4, 8x4, or 4x8 partitions
+#define MAX_PA_ME_MV 7 // 1 per ref = up 7 = up 4+ up to 3
+#define MAX_PA_ME_CAND 23 // [Single Ref = 7] + [BiDir = 12 = 3*4 ] + [4 = 3+1]
 #define SQUARE_PU_COUNT 85
 typedef struct MeCandidate {
-    unsigned distortion : 20; // 20-bits holds maximum SAD of 64x64 PU
-    unsigned direction : 2;
-    unsigned ref_idx_l0 : 2; // allows for up to 4 references
-    unsigned ref_idx_l1 : 2;
-    unsigned ref0_list : 1;
-    unsigned ref1_list : 1;
+    uint8_t direction : 2;
+    uint8_t ref_idx_l0 : 2; // allows for up to 4 references
+    uint8_t ref_idx_l1 : 2;
+    uint8_t ref0_list : 1;
+    uint8_t ref1_list : 1;
 } MeCandidate;
 typedef struct MvCandidate {
     signed short x_mv;
@@ -44,16 +39,11 @@ typedef struct MeSbResults {
     EbDctor       dctor;
     uint32_t      sb_distortion;
     uint8_t *     total_me_candidate_index;
-    MeCandidate **me_candidate;
-    MeCandidate * me_candidate_array;
-    uint8_t *     me_nsq_0; // 2 Number of reference lists
-    uint8_t *     me_nsq_1; // 2 Number of reference lists
-
-    MvCandidate **me_mv_array;
+    MvCandidate *me_mv_array;
+    MeCandidate *me_candidate_array;
     // [PU][LAST, LAST2, LAST3, GOLD, BWD, ALT2, ALT] if MRP Mode 0,
     // [PU][LAST, LAST2, BWD, ALT2] if MRP Mode 1,
-    uint32_t max_number_of_pus_per_sb;
-
+    uint8_t do_comp[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 } MeSbResults;
 #ifdef __cplusplus
 }

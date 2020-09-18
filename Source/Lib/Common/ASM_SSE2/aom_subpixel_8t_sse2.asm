@@ -4,9 +4,9 @@
 ; This source code is subject to the terms of the BSD 2 Clause License and
 ; the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 ; was not distributed with this source code in the LICENSE file, you can
-; obtain it at www.aomedia.org/license/software. If the Alliance for Open
+; obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 ; Media Patent License 1.0 was not distributed with this source code in the
-; PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+; PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 ;
 
 ;
@@ -181,7 +181,7 @@
 
 SECTION .text
 
-;void aom_filter_block1d4_v8_sse2
+;void eb_aom_filter_block1d4_v8_sse2
 ;(
 ;    unsigned char *src_ptr,
 ;    unsigned int   src_pitch,
@@ -190,8 +190,8 @@ SECTION .text
 ;    unsigned int   output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d4_v8_sse2) PRIVATE
-sym(aom_filter_block1d4_v8_sse2):
+global sym(eb_aom_filter_block1d4_v8_sse2) PRIVATE
+sym(eb_aom_filter_block1d4_v8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -248,7 +248,7 @@ sym(aom_filter_block1d4_v8_sse2):
     pop         rbp
     ret
 
-;void aom_filter_block1d8_v8_sse2
+;void eb_aom_filter_block1d8_v8_sse2
 ;(
 ;    unsigned char *src_ptr,
 ;    unsigned int   src_pitch,
@@ -257,8 +257,8 @@ sym(aom_filter_block1d4_v8_sse2):
 ;    unsigned int   output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d8_v8_sse2) PRIVATE
-sym(aom_filter_block1d8_v8_sse2):
+global sym(eb_aom_filter_block1d8_v8_sse2) PRIVATE
+sym(eb_aom_filter_block1d8_v8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -307,7 +307,7 @@ sym(aom_filter_block1d8_v8_sse2):
     pop         rbp
     ret
 
-;void aom_filter_block1d16_v8_sse2
+;void eb_aom_filter_block1d16_v8_sse2
 ;(
 ;    unsigned char *src_ptr,
 ;    unsigned int   src_pitch,
@@ -316,8 +316,8 @@ sym(aom_filter_block1d8_v8_sse2):
 ;    unsigned int   output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d16_v8_sse2) PRIVATE
-sym(aom_filter_block1d16_v8_sse2):
+global sym(eb_aom_filter_block1d16_v8_sse2) PRIVATE
+sym(eb_aom_filter_block1d16_v8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -370,7 +370,7 @@ sym(aom_filter_block1d16_v8_sse2):
     pop         rbp
     ret
 
-;void aom_filter_block1d4_h8_sse2
+;void eb_aom_filter_block1d4_h8_sse2
 ;(
 ;    unsigned char  *src_ptr,
 ;    unsigned int    src_pixels_per_line,
@@ -379,8 +379,8 @@ sym(aom_filter_block1d16_v8_sse2):
 ;    unsigned int    output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d4_h8_sse2) PRIVATE
-sym(aom_filter_block1d4_h8_sse2):
+global sym(eb_aom_filter_block1d4_h8_sse2) PRIVATE
+sym(eb_aom_filter_block1d4_h8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -444,7 +444,7 @@ sym(aom_filter_block1d4_h8_sse2):
     pop         rbp
     ret
 
-;void aom_filter_block1d8_h8_sse2
+;void eb_aom_filter_block1d8_h8_sse2
 ;(
 ;    unsigned char  *src_ptr,
 ;    unsigned int    src_pixels_per_line,
@@ -453,8 +453,8 @@ sym(aom_filter_block1d4_h8_sse2):
 ;    unsigned int    output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d8_h8_sse2) PRIVATE
-sym(aom_filter_block1d8_h8_sse2):
+global sym(eb_aom_filter_block1d8_h8_sse2) PRIVATE
+sym(eb_aom_filter_block1d8_h8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -519,7 +519,7 @@ sym(aom_filter_block1d8_h8_sse2):
     pop         rbp
     ret
 
-;void aom_filter_block1d16_h8_sse2
+;void eb_aom_filter_block1d16_h8_sse2
 ;(
 ;    unsigned char  *src_ptr,
 ;    unsigned int    src_pixels_per_line,
@@ -528,8 +528,8 @@ sym(aom_filter_block1d8_h8_sse2):
 ;    unsigned int    output_height,
 ;    short *filter
 ;)
-global sym(aom_filter_block1d16_h8_sse2) PRIVATE
-sym(aom_filter_block1d16_h8_sse2):
+global sym(eb_aom_filter_block1d16_h8_sse2) PRIVATE
+sym(eb_aom_filter_block1d16_h8_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6

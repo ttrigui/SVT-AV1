@@ -1,7 +1,13 @@
 // clang-format off
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbMdRateEstimation_h
@@ -139,7 +145,6 @@ extern "C" {
         70, 66, 63, 60, 57, 54, 51, 48, 45, 42, 38, 35, 32, 29, 26,
         23, 20, 18, 15, 12, 9, 6, 3,
     };
-#if TXS_DEPTH_2
     static const int use_inter_ext_tx_for_txsize[EXT_TX_SETS_INTER]
         [EXT_TX_SIZES] = {
           { 1, 1, 1, 1 },  // unused
@@ -147,15 +152,6 @@ extern "C" {
           { 0, 0, 1, 0 },
           { 0, 1, 1, 1 },
     };
-#else
-    static const int32_t use_inter_ext_tx_for_txsize[EXT_TX_SETS_INTER][EXT_TX_SIZES] =
-    {
-        { 1, 1, 1, 1 },  // unused
-        { 1, 1, 0, 0 },
-        { 0, 0, 1, 0 },
-        { 0, 0, 0, 1 },
-    };
-#endif
     static const int32_t use_intra_ext_tx_for_txsize[EXT_TX_SETS_INTRA][EXT_TX_SIZES] =
     {
         { 1, 1, 1, 1 },  // unused
@@ -224,8 +220,7 @@ static AOM_INLINE void avg_cdf_symbol(AomCdfProb *cdf_ptr_left,
                 (int)cdf_ptr_tr[i * cdf_stride + j] * wt_tr +
                     ((wt_left + wt_tr) / 2)) /
                     (wt_left + wt_tr));
-            assert(cdf_ptr_left[i * cdf_stride + j] >= 0 &&
-                cdf_ptr_left[i * cdf_stride + j] < CDF_PROB_TOP);
+            assert(cdf_ptr_left[i * cdf_stride + j] < CDF_PROB_TOP);
         }
     }
 }
@@ -402,9 +397,7 @@ void update_stats(
 void update_part_stats(
     struct PictureControlSet   *pcs_ptr,
     struct BlkStruct          *blk_ptr,
-#if TILES_PARALLEL
     uint16_t                    tile_idx,
-#endif
     int                         mi_row,
     int                         mi_col);
 

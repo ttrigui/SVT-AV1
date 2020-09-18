@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbMemory_AVX2_h
@@ -43,15 +49,17 @@ static INLINE __m256i load_u8_8x2_avx2(const uint8_t *const src, const ptrdiff_t
 static INLINE __m256i load_u8_8x4_avx2(const uint8_t *const src, const ptrdiff_t stride) {
     __m128i src01, src23;
     src01 = _mm_loadl_epi64((__m128i *)(src + 0 * stride));
-    src01 = _mm_castpd_si128(_mm_loadh_pd(_mm_castsi128_pd(src01), (double *)(src + 1 * stride)));
+    src01 = _mm_castpd_si128(
+        _mm_loadh_pd(_mm_castsi128_pd(src01), (double *)(void *)(src + 1 * stride)));
     src23 = _mm_loadl_epi64((__m128i *)(src + 2 * stride));
-    src23 = _mm_castpd_si128(_mm_loadh_pd(_mm_castsi128_pd(src23), (double *)(src + 3 * stride)));
+    src23 = _mm_castpd_si128(
+        _mm_loadh_pd(_mm_castsi128_pd(src23), (double *)(void *)(src + 3 * stride)));
     return _mm256_setr_m128i(src01, src23);
 }
 
 static INLINE __m256i load_u8_16x2_avx2(const uint8_t *const src, const ptrdiff_t stride) {
-    const __m128i src0 = _mm_load_si128((__m128i *)(src + 0 * stride));
-    const __m128i src1 = _mm_load_si128((__m128i *)(src + 1 * stride));
+    const __m128i src0 = _mm_loadu_si128((__m128i *)(src + 0 * stride));
+    const __m128i src1 = _mm_loadu_si128((__m128i *)(src + 1 * stride));
     return _mm256_setr_m128i(src0, src1);
 }
 

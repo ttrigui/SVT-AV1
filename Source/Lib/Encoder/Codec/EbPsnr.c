@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "EbDefinitions.h"
@@ -24,9 +24,6 @@ double eb_aom_sse_to_psnr(double samples, double peak, double sse) {
         return MAX_PSNR;
 }
 
-/* TODO(yaowu): The block_variance calls the unoptimized versions of variance()
- * and highbd_8_variance(). It should not.
- */
 static int32_t encoder_variance(const uint8_t *a, int32_t a_stride, const uint8_t *b,
                                 int32_t b_stride, int32_t w, int32_t h) {
     int32_t i, j;
@@ -174,8 +171,8 @@ static int64_t highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t 
 static void highbd_variance64(const uint8_t *a8, int a_stride,
                               const uint8_t *b8, int b_stride, int w, int h,
                               uint64_t *sse, int64_t *sum) {
-  const uint16_t *a = (uint16_t *)a8;
-  const uint16_t *b = (uint16_t *)b8;
+  const uint16_t *a = CONVERT_TO_SHORTPTR(a8);
+  const uint16_t *b = CONVERT_TO_SHORTPTR(b8);
   int64_t tsum = 0;
   uint64_t tsse = 0;
   for (int i = 0; i < h; ++i) {

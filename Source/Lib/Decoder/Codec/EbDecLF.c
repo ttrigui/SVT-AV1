@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 /*SUMMARY
@@ -27,7 +23,7 @@ Contains the Decoder Loop Filtering related functions*/
 #include "EbDeblockingCommon.h"
 #include "EbDecNbr.h"
 #include "EbDecLF.h"
-
+#include "common_dsp_rtcd.h"
 #define FILTER_LEN 4
 
 /*Filter_length is mapped to int indx for the filter tap arrays*/
@@ -40,27 +36,27 @@ SvtLbdFilterTapFn lbd_horz_filter_tap[FILTER_LEN];
 SvtHbdFilterTapFn hbd_horz_filter_tap[FILTER_LEN];
 
 void set_lbd_lf_filter_tap_functions(void) {
-    lbd_horz_filter_tap[0] = aom_lpf_horizontal_4;
-    lbd_horz_filter_tap[1] = aom_lpf_horizontal_6;
-    lbd_horz_filter_tap[2] = aom_lpf_horizontal_8;
-    lbd_horz_filter_tap[3] = aom_lpf_horizontal_14;
+    lbd_horz_filter_tap[0] = svt_aom_lpf_horizontal_4;
+    lbd_horz_filter_tap[1] = svt_aom_lpf_horizontal_6;
+    lbd_horz_filter_tap[2] = svt_aom_lpf_horizontal_8;
+    lbd_horz_filter_tap[3] = svt_aom_lpf_horizontal_14;
 
-    lbd_vert_filter_tap[0] = aom_lpf_vertical_4;
-    lbd_vert_filter_tap[1] = aom_lpf_vertical_6;
-    lbd_vert_filter_tap[2] = aom_lpf_vertical_8;
-    lbd_vert_filter_tap[3] = aom_lpf_vertical_14;
+    lbd_vert_filter_tap[0] = svt_aom_lpf_vertical_4;
+    lbd_vert_filter_tap[1] = svt_aom_lpf_vertical_6;
+    lbd_vert_filter_tap[2] = svt_aom_lpf_vertical_8;
+    lbd_vert_filter_tap[3] = svt_aom_lpf_vertical_14;
 }
 
 void set_hbd_lf_filter_tap_functions(void) {
-    hbd_horz_filter_tap[0] = aom_highbd_lpf_horizontal_4;
-    hbd_horz_filter_tap[1] = aom_highbd_lpf_horizontal_6;
-    hbd_horz_filter_tap[2] = aom_highbd_lpf_horizontal_8;
-    hbd_horz_filter_tap[3] = aom_highbd_lpf_horizontal_14;
+    hbd_horz_filter_tap[0] = svt_aom_highbd_lpf_horizontal_4;
+    hbd_horz_filter_tap[1] = svt_aom_highbd_lpf_horizontal_6;
+    hbd_horz_filter_tap[2] = svt_aom_highbd_lpf_horizontal_8;
+    hbd_horz_filter_tap[3] = svt_aom_highbd_lpf_horizontal_14;
 
-    hbd_vert_filter_tap[0] = aom_highbd_lpf_vertical_4;
-    hbd_vert_filter_tap[1] = aom_highbd_lpf_vertical_6;
-    hbd_vert_filter_tap[2] = aom_highbd_lpf_vertical_8;
-    hbd_vert_filter_tap[3] = aom_highbd_lpf_vertical_14;
+    hbd_vert_filter_tap[0] = svt_aom_highbd_lpf_vertical_4;
+    hbd_vert_filter_tap[1] = svt_aom_highbd_lpf_vertical_6;
+    hbd_vert_filter_tap[2] = svt_aom_highbd_lpf_vertical_8;
+    hbd_vert_filter_tap[3] = svt_aom_highbd_lpf_vertical_14;
 }
 
 /*Population of neighbour block lf params for each 4x4 block*/
@@ -284,14 +280,14 @@ void dec_av1_filter_block_plane_vert(EbDecHandle *dec_handle,
                                      EbPictureBufferDesc *recon_picture_buf,
                                      LfCtxt *lf_ctxt,
                                      const int32_t num_planes,
-                                     BlockSize sb_size,
                                      const int32_t sb_mi_row,
                                      const int32_t sb_mi_col,
                                      int32_t *sb_delta_lf)
 {
     FrameHeader *frm_hdr = &dec_handle->frame_header;
     EbColorConfig *color_config = &dec_handle->seq_header.color_config;
-    EbBitDepthEnum is16bit = recon_picture_buf->bit_depth > 8;
+    EbBitDepthEnum is16bit = (recon_picture_buf->bit_depth > EB_8BIT ||
+        dec_handle->is_16bit_pipeline);
     int32_t sub_x = color_config->subsampling_x;
     int32_t sub_y = color_config->subsampling_y;
     uint8_t no_lf_luma = !(frm_hdr->loop_filter_params.filter_level[0]) &&
@@ -325,15 +321,15 @@ void dec_av1_filter_block_plane_vert(EbDecHandle *dec_handle,
         int32_t mb_to_right_edge  = ((mi_cols - bw4 - blk_mi_col) * MI_SIZE) * 8;
 
         uint8_t lossless   = frm_hdr->lossless_array[mode_info->segment_id];
-        int lossless_block = (lossless && ((sb_size >= BLOCK_64X64) &&
-            (sb_size <= BLOCK_128X128)));
+        int lossless_block = (lossless && ((bsize >= BLOCK_64X64) &&
+                             (bsize <= BLOCK_128X128)));
 
         int max_blocks_wide = block_size_wide[bsize];
         int max_blocks_high = block_size_high[bsize];
         if (mb_to_right_edge < 0)
-            max_blocks_wide += mb_to_right_edge >> 3;
+            max_blocks_wide += gcc_right_shift(mb_to_right_edge, 3);
         if (mb_to_bottom_edge < 0)
-            max_blocks_high += mb_to_bottom_edge >> 3;
+            max_blocks_high += gcc_right_shift(mb_to_right_edge, 3);
         max_blocks_wide = max_blocks_wide >> tx_size_wide_log2[0];
         max_blocks_high = max_blocks_high >> tx_size_high_log2[0];
 
@@ -411,7 +407,7 @@ void dec_av1_filter_block_plane_vert(EbDecHandle *dec_handle,
                                       (trans_info->txb_x_offset << sub_x);
 
                 /* For VERT_EDGE edge and x_range is for SB scan */
-                sb_delta_lf_left = blk_mi_col == sb_mi_col ?
+                sb_delta_lf_left = (left_mi_col == sb_mi_col) ?
                                    sb_delta_lf - FRAME_LF_COUNT : sb_delta_lf;
 
                 min_txh = cur_txh;
@@ -451,7 +447,7 @@ void dec_av1_filter_block_plane_vert(EbDecHandle *dec_handle,
                     int32_t frame_height = frm_hdr->frame_size.frame_height;
                     int32_t ext_height = curr_luma_y + (min_high << sub_y);
                     if (frame_height < ext_height)
-                        min_high = (frame_height - (int32_t)curr_luma_y) >> sub_y;
+                        min_high = ((frame_height - (int32_t)curr_luma_y) + sub_y) >> sub_y;
 
                     for (int32_t h = 0; h < min_high; h += 4) {
                         int8_t filter_idx = filter_map[params.filter_length];
@@ -483,14 +479,17 @@ void dec_av1_filter_block_plane_vert(EbDecHandle *dec_handle,
 }
 
 void dec_av1_filter_block_plane_horz(EbDecHandle *dec_handle, SBInfo *sb_info,
-                                     EbPictureBufferDesc *recon_picture_buf, LfCtxt *lf_ctxt,
-                                     const int32_t num_planes, BlockSize sb_size,
-                                     const int32_t sb_mi_row, const uint32_t sb_mi_col,
+                                     EbPictureBufferDesc *recon_picture_buf,
+                                     LfCtxt *lf_ctxt,
+                                     const int32_t num_planes,
+                                     const int32_t sb_mi_row,
+                                     const uint32_t sb_mi_col,
                                      int32_t *sb_delta_lf) {
     FrameHeader *frm_hdr        = &dec_handle->frame_header;
     EbColorConfig *color_config = &dec_handle->seq_header.color_config;
 
-    EbBool is16bit = recon_picture_buf->bit_depth > 8;
+    EbBool is16bit = (recon_picture_buf->bit_depth > EB_8BIT ||
+        dec_handle->is_16bit_pipeline);
 
     int32_t sub_x = color_config->subsampling_x;
     int32_t sub_y = color_config->subsampling_y;
@@ -526,15 +525,15 @@ void dec_av1_filter_block_plane_horz(EbDecHandle *dec_handle, SBInfo *sb_info,
                                     * MI_SIZE) * 8;
 
         uint8_t lossless = frm_hdr->lossless_array[mode_info->segment_id];
-        int lossless_block = (lossless && ((sb_size >= BLOCK_64X64) &&
-                             (sb_size <= BLOCK_128X128)));
+        int lossless_block = (lossless && ((bsize >= BLOCK_64X64) &&
+                             (bsize <= BLOCK_128X128)));
 
         int max_blocks_wide = block_size_wide[bsize];
         int max_blocks_high = block_size_high[bsize];
         if (mb_to_right_edge < 0)
-            max_blocks_wide += mb_to_right_edge >> 3;
+            max_blocks_wide += gcc_right_shift(mb_to_right_edge, 3);
         if (mb_to_bottom_edge < 0)
-            max_blocks_high += mb_to_bottom_edge >> 3;
+            max_blocks_high += gcc_right_shift(mb_to_bottom_edge, 3);
         max_blocks_wide = max_blocks_wide >> tx_size_wide_log2[0];
         max_blocks_high = max_blocks_high >> tx_size_high_log2[0];
 
@@ -611,7 +610,7 @@ void dec_av1_filter_block_plane_horz(EbDecHandle *dec_handle, SBInfo *sb_info,
                                       (trans_info->txb_x_offset << sub_x);
 
                 /* For VERT_EDGE edge and x_range is for SB scan */
-                sb_delta_lf_above = blk_mi_row == sb_mi_row ?
+                sb_delta_lf_above = (left_mi_row == sb_mi_row) ?
                                     sb_delta_lf - lf_ctxt->delta_lf_stride :
                                     sb_delta_lf;
 
@@ -648,9 +647,9 @@ void dec_av1_filter_block_plane_horz(EbDecHandle *dec_handle, SBInfo *sb_info,
                     /*Do the filtering for only for the actual frame boundry*/
                     int32_t min_width = min_txw << MI_SIZE_LOG2;
                     int32_t frame_width = frm_hdr->frame_size.frame_width;
-                    int32_t ext_height = curr_luma_x + (min_width << sub_x);
-                    if (frame_width < ext_height)
-                        min_width = (frame_width - (int32_t)curr_luma_x) >> sub_x;
+                    int32_t ext_width = curr_luma_x + (min_width << sub_x);
+                    if (frame_width < ext_width)
+                        min_width = ((frame_width - (int32_t)curr_luma_x) + sub_x) >> sub_x;
 
                     for (uint8_t w = 0; w < min_width; w += 4) {
                         int filter_idx = filter_map[params.filter_length];
@@ -702,7 +701,6 @@ void dec_loop_filter_sb(EbDecHandle *dec_handle,
                                         recon_picture_buf,
                                         lf_ctxt,
                                         num_planes,
-                                        seq_header->sb_size,
                                         mi_row,
                                         mi_col,
                                         sb_delta_lf);
@@ -717,7 +715,6 @@ void dec_loop_filter_sb(EbDecHandle *dec_handle,
                                             recon_picture_buf,
                                             lf_ctxt,
                                             num_planes,
-                                            seq_header->sb_size,
                                             mi_row,
                                             mi_col - max_mib_size,
                                             (sb_delta_lf - FRAME_LF_COUNT));
@@ -729,7 +726,6 @@ void dec_loop_filter_sb(EbDecHandle *dec_handle,
                                             recon_picture_buf,
                                             lf_ctxt,
                                             num_planes,
-                                            seq_header->sb_size,
                                             mi_row,
                                             mi_col,
                                             sb_delta_lf);
@@ -740,7 +736,6 @@ void dec_loop_filter_sb(EbDecHandle *dec_handle,
                                         recon_picture_buf,
                                         lf_ctxt,
                                         num_planes,
-                                        seq_header->sb_size,
                                         mi_row,
                                         mi_col,
                                         sb_delta_lf);
@@ -750,7 +745,6 @@ void dec_loop_filter_sb(EbDecHandle *dec_handle,
                                         recon_picture_buf,
                                         lf_ctxt,
                                         num_planes,
-                                        seq_header->sb_size,
                                         mi_row,
                                         mi_col,
                                         sb_delta_lf);
@@ -769,7 +763,7 @@ void dec_loop_filter_row(EbDecHandle *dec_handle_ptr,
     SeqHeader *     seq_header       = &dec_handle_ptr->seq_header;
     uint8_t         sb_size_log2     = seq_header->sb_size_log2;
     int32_t         sb_size_w        = block_size_wide[seq_header->sb_size];
-    int32_t         pic_width_in_sb  = (seq_header->max_frame_width + sb_size_w - 1) / sb_size_w;
+    int32_t         pic_width_in_sb  = (frm_hdr->frame_size.frame_width + sb_size_w - 1) / sb_size_w;
     uint32_t        sb_origin_y      = y_sb_index << sb_size_log2;
 
     volatile int32_t *sb_lf_completed_in_prev_row = NULL;
@@ -823,19 +817,14 @@ void dec_av1_loop_filter_frame(EbDecHandle *dec_handle_ptr,
     FrameHeader *frm_hdr      = &dec_handle_ptr->frame_header;
     SeqHeader *  seq_header   = &dec_handle_ptr->seq_header;
     uint8_t      sb_size_log2 = seq_header->sb_size_log2;
-    uint32_t     x_sb_index;
-    uint32_t     y_sb_index;
-    uint32_t     sb_origin_x;
-    uint32_t     sb_origin_y;
-    EbBool       end_of_row_flag;
 
     LoopFilterInfoN *lf_info = &lf_ctxt->lf_info;
     lf_ctxt->delta_lf_stride = dec_handle_ptr->master_frame_buf.sb_cols * FRAME_LF_COUNT;
 
     int32_t  sb_size_w            = block_size_wide[seq_header->sb_size];
     int32_t  sb_size_h            = block_size_high[seq_header->sb_size];
-    uint32_t pic_width_in_sb      = (seq_header->max_frame_width + sb_size_w - 1) / sb_size_w;
-    uint32_t picture_height_in_sb = (seq_header->max_frame_height + sb_size_h - 1) / sb_size_h;
+    uint32_t pic_width_in_sb      = (frm_hdr->frame_size.frame_width + sb_size_w - 1) / sb_size_w;
+    uint32_t picture_height_in_sb = (frm_hdr->frame_size.frame_height + sb_size_h - 1) / sb_size_h;
 
     frm_hdr->loop_filter_params.combine_vert_horz_lf = 1;
     /*init hev threshold const vectors*/
@@ -848,7 +837,7 @@ void dec_av1_loop_filter_frame(EbDecHandle *dec_handle_ptr,
     set_hbd_lf_filter_tap_functions();
 
     if (is_mt) {
-        for (y_sb_index = 0; y_sb_index < picture_height_in_sb; ++y_sb_index) {
+        for (uint32_t y_sb_index = 0; y_sb_index < picture_height_in_sb; ++y_sb_index) {
             dec_loop_filter_row(dec_handle_ptr,
                                 recon_picture_buf,
                                 lf_ctxt,
@@ -858,11 +847,11 @@ void dec_av1_loop_filter_frame(EbDecHandle *dec_handle_ptr,
         }
     } else {
         /*Loop over a frame : tregger dec_loop_filter_sb for each SB*/
-        for (y_sb_index = 0; y_sb_index < picture_height_in_sb; ++y_sb_index) {
-            for (x_sb_index = 0; x_sb_index < pic_width_in_sb; ++x_sb_index) {
-                sb_origin_x     = x_sb_index << sb_size_log2;
-                sb_origin_y     = y_sb_index << sb_size_log2;
-                end_of_row_flag = (x_sb_index == pic_width_in_sb - 1) ? EB_TRUE : EB_FALSE;
+        for (uint32_t y_sb_index = 0; y_sb_index < picture_height_in_sb; ++y_sb_index) {
+            for (uint32_t x_sb_index = 0; x_sb_index < pic_width_in_sb; ++x_sb_index) {
+                uint32_t sb_origin_x     = x_sb_index << sb_size_log2;
+                uint32_t sb_origin_y     = y_sb_index << sb_size_log2;
+                EbBool end_of_row_flag = x_sb_index == pic_width_in_sb - 1;
 
                 MasterFrameBuf *master_frame_buf = &dec_handle_ptr->master_frame_buf;
                 CurFrameBuf *   frame_buf        = &master_frame_buf->cur_frame_bufs[0];

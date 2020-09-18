@@ -1,7 +1,13 @@
 /*
-* Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
+ * Copyright(c) 2019 Netflix, Inc.
+ *
+ * This source code is subject to the terms of the BSD 2 Clause License and
+ * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+ * was not distributed with this source code in the LICENSE file, you can
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+ * Media Patent License 1.0 was not distributed with this source code in the
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+ */
 
 #ifndef EbAV1Structs_h
 #define EbAV1Structs_h
@@ -166,10 +172,16 @@ typedef struct SeqHeader {
     /*!< 1: Specifies that the use_filter_intra syntax element may be present.
      *   0: Specifies that the use_filter_intra syntax element will not be
      *       present*/
-    uint8_t enable_filter_intra;
+    uint8_t filter_intra_level;
 
     /*!< Specifies whether the intra edge filtering process should be enabled */
     uint8_t enable_intra_edge_filter;
+
+    /*!< Specifies whether the picture based rate estimation should be enabled */
+    uint8_t pic_based_rate_est;
+
+    /*!< Specifies whether the intra angle delta filtering process should be enabled */
+    uint8_t enable_intra_angle_delta_filter;
 
     /*!<1: Specifies that the mode info for inter blocks may contain the syntax
      *     element interintra.
@@ -214,7 +226,7 @@ typedef struct SeqHeader {
 
     /*!< 1: Specifies that cdef filtering may be enabled.
          0: specifies that cdef filtering is disabled */
-    uint8_t enable_cdef;
+    uint8_t cdef_level;
 
     /*!< 1: Specifies that loop restoration filtering may be enabled.
          0: Specifies that loop restoration filtering is disabled*/
@@ -310,6 +322,8 @@ typedef struct QuantizationParams {
     /*!< Specifies the level in the quantizer matrix that should be used for
      * each plane decoding */
     uint8_t qm[MAX_MB_PLANE];
+    /*!< qindex for every segment ID */
+    uint8_t qindex[MAX_SEGMENTS];
 } QuantizationParams;
 typedef struct DeltaQParams {
     /*!< Specifies whether quantizer index delta values are present */
@@ -373,6 +387,18 @@ typedef struct SkipModeInfo {
     int ref_frame_idx_1;
 
 } SkipModeInfo;
+
+typedef struct {
+  /*FRAME_TYPE*/FrameType frame_type;
+  //REFERENCE_MODE reference_mode;
+
+  unsigned int order_hint;
+  unsigned int display_order_hint;
+  unsigned int frame_number;
+  SkipModeInfo skip_mode_info;
+  int refresh_frame_flags;  // Which ref frames are overwritten by this frame
+  int frame_refs_short_signaling;
+} CurrentFrame;
 
 //typedef struct GlobalMotionParams {
 //
@@ -459,9 +485,6 @@ typedef struct FrameHeader {
     /*!< Specifies the expected output order hint for each reference frame */
     uint32_t ref_order_hint[REF_FRAMES];
 
-    /*!< Specifies the expected output order for each reference frame */
-    uint32_t order_hints[REF_FRAMES];
-
     /*!< 1: Indicates that intra block copy may be used in this frame.
      *   0: Indicates that intra block copy is not allowed in this frame */
     uint8_t allow_intrabc;
@@ -475,6 +498,9 @@ typedef struct FrameHeader {
      *  0: Signifies that the corresponding reference picture slot is not valid
      *     for use as a reference picture*/
     uint32_t ref_valid[REF_FRAMES];
+
+    /*!< Specifies the frame id for each reference frame */
+    uint32_t ref_frame_id[REF_FRAMES];
 
     /*!< Frame Size structure */
     FrameSize frame_size;

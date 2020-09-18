@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 /*
@@ -43,14 +49,11 @@
 #define MD5STEP(f, w, x, y, z, in, s) (w += f(x, y, z) + in, w = (w << s | w >> (32 - s)) + x)
 
 static void byte_swap(unsigned int *buf, unsigned words) {
-    unsigned char *p;
-
     /* Only swap bytes for big endian machines */
-    int i = 1;
+    if ((!*(unsigned char *)&(unsigned short){1}))
+        return;
 
-    if (*(char *)&i == 1) return;
-
-    p = (unsigned char *)buf;
+    unsigned char *p = (unsigned char *)buf;
 
     do {
         *buf++ = (unsigned int)((unsigned)p[3] << 8 | p[2]) << 16 | ((unsigned)p[1] << 8 | p[0]);

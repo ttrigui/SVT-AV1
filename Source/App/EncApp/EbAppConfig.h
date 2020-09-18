@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbAppConfig_h
@@ -15,7 +21,6 @@
 #define ftello _ftelli64
 #endif
 // Define Cross-Platform 64-bit fseek() and ftell()
-
 /** The AppExitConditionType type is used to define the App main loop exit
 conditions.
 */
@@ -30,14 +35,19 @@ the App.
 */
 typedef enum AppPortActiveType { APP_PortActive = 0, APP_PortInactive } AppPortActiveType;
 
+typedef enum EncodePass {
+    ENCODE_SINGLE_PASS, //single pass mode
+    ENCODE_FIRST_PASS,  // first pass of multi pass mode
+    ENCODE_LAST_PASS,   // last pass of multi pass mode
+    MAX_ENCODE_PASS = 2,
+} EncodePass;
+
 /** The EbPtr type is intended to be used to pass pointers to and from the svt
 API.  This is a 32 bit pointer and is aligned on a 32 bit word boundary.
 */
 typedef void *EbPtr;
 
-/** The EB_NULL type is used to define the C style NULL pointer.
-*/
-#define EB_NULL ((void *)0)
+#define WARNING_LENGTH 100
 
 // memory map to be removed and replaced by malloc / free
 typedef enum EbPtrType {
@@ -61,7 +71,7 @@ extern uint32_t          app_malloc_count;
 
 #define EB_APP_MALLOC(type, pointer, n_elements, pointer_class, return_type) \
     pointer = (type)malloc(n_elements);                                      \
-    if (pointer == (type)EB_NULL) {                                          \
+    if (pointer == (type)NULL) {                                             \
         return return_type;                                                  \
     } else {                                                                 \
         app_memory_map[*(app_memory_map_index)].ptr_type = pointer_class;    \
@@ -78,7 +88,7 @@ extern uint32_t          app_malloc_count;
 #define EB_APP_MALLOC_NR(type, pointer, n_elements, pointer_class, return_type) \
     (void)return_type;                                                          \
     pointer = (type)malloc(n_elements);                                         \
-    if (pointer == (type)EB_NULL) {                                             \
+    if (pointer == (type)NULL) {                                                \
         return_type = EB_ErrorInsufficientResources;                            \
         fprintf(stderr, "Malloc has failed due to insuffucient resources");     \
         return;                                                                 \
@@ -99,11 +109,11 @@ extern uint32_t          app_malloc_count;
     app_malloc_count++;
 
 #define EB_APP_MEMORY()                                                        \
-    fprintf(stderr, "Total Number of Mallocs in App: %d\n", app_malloc_count); \
+    fprintf(stderr, "Total Number of Mallocs in App: %u\n", app_malloc_count); \
     fprintf(stderr, "Total App Memory: %.2lf KB\n\n", *total_app_memory / (double)1024);
 
-#define MAX_CHANNEL_NUMBER 6
-#define MAX_NUM_TOKENS 200
+#define MAX_CHANNEL_NUMBER 6U
+#define MAX_NUM_TOKENS 210
 
 #ifdef _WIN32
 #define FOPEN(f, s, m) fopen_s(&f, s, m)
@@ -140,6 +150,10 @@ typedef struct EbPerformanceContext {
     double sum_cr_sse;
     double sum_cb_sse;
 
+    double sum_luma_ssim;
+    double sum_cr_ssim;
+    double sum_cb_ssim;
+
     uint64_t sum_qp;
 
 } EbPerformanceContext;
@@ -157,14 +171,20 @@ typedef struct EbConfig {
     FILE *        stat_file;
     FILE *        buffer_file;
     FILE *        qp_file;
+    /* two pass */
+    int           pass;
+    const char*   stats;
     FILE *        input_stat_file;
     FILE *        output_stat_file;
+    EbBool        rc_firstpass_stats_out;
+    SvtAv1FixedBuf rc_twopass_stats_in;
+
     FILE *        input_pred_struct_file;
-    EbBool        use_input_stat_file;
-    EbBool        use_output_stat_file;
+    char *        input_pred_struct_filename;
     EbBool        y4m_input;
     unsigned char y4m_buf[9];
     EbBool        use_qp_file;
+    uint8_t       progress; // 0 = no progress output, 1 = normal, 2 = aomenc style verbose progress
     uint8_t       stat_report;
     uint32_t      frame_rate;
     uint32_t      frame_rate_numerator;
@@ -173,7 +193,7 @@ typedef struct EbConfig {
     uint32_t      injector;
     uint32_t      speed_control_flag;
     uint32_t      encoder_bit_depth;
-    EbBool        encoder_16bit_pipeline;
+    EbBool        is_16bit_pipeline;
     uint32_t      encoder_color_format;
     uint32_t      compressed_ten_bit_format;
     uint32_t      source_width;
@@ -182,18 +202,17 @@ typedef struct EbConfig {
     uint32_t input_padded_width;
     uint32_t input_padded_height;
 
+    // -1 indicates unknown (auto-detect at earliest opportunity)
+    // auto-detect is performed on load for files and at end of stream for pipes
     int64_t   frames_to_be_encoded;
     int32_t   frames_encoded;
     int32_t   buffered_input;
     uint8_t **sequence_buffer;
 
-    uint8_t latency_mode;
-
     /*****************************************
      * Coding Structure
      *****************************************/
-    uint8_t  enc_mode;
-    uint8_t  snd_pass_enc_mode;
+    int8_t enc_mode;
     int32_t  intra_period;
     uint32_t intra_refresh_type;
     uint32_t hierarchical_levels;
@@ -216,7 +235,7 @@ typedef struct EbConfig {
     /****************************************
      * Local Warped Motion
      ****************************************/
-    EbBool enable_warped_motion;
+    int enable_warped_motion;
 
     /****************************************
      * Global Motion
@@ -224,22 +243,38 @@ typedef struct EbConfig {
     EbBool enable_global_motion;
 
     /****************************************
+     * CDEF Level
+     * 0         OFF
+     * 1         64 step refinement
+     * 2         16 step refinement
+     * 3         8 step refinement
+     * 4         4 step refinement
+     * 5         1 step refinement
+    ****************************************/
+    int cdef_level;
+
+    /****************************************
      * Restoration filtering
     ****************************************/
     int enable_restoration_filtering;
-
+    int sg_filter_mode;
+    int wn_filter_mode;
     /****************************************
-     * class12
+     * intra angle delta
     ****************************************/
-    int combine_class_12;
-    /****************************************
-     * edge based skip angle intra
-    ****************************************/
-    int edge_skp_angle_intra;
+    int intra_angle_delta;
     /****************************************
      * intra inter compoound
     ****************************************/
     int inter_intra_compound;
+    /****************************************
+     * paeth
+    ****************************************/
+    int enable_paeth;
+    /****************************************
+     * smooth
+    ****************************************/
+    int enable_smooth;
     /****************************************
      * motion field motion vector
     ****************************************/
@@ -249,17 +284,9 @@ typedef struct EbConfig {
     ****************************************/
     int enable_redundant_blk;
     /****************************************
-      * trellis quant coeff optimization
-     ****************************************/
-    int enable_trellis;
-    /****************************************
       * spatial sse in full loop
      ****************************************/
-    int spatial_sse_fl;
-    /****************************************
-      * subpel
-     ****************************************/
-    int enable_subpel;
+    int spatial_sse_full_loop_level;
     /****************************************
       * over boundry block
      ****************************************/
@@ -268,18 +295,6 @@ typedef struct EbConfig {
       * new nearest comb injection
      ****************************************/
     int new_nearest_comb_inject;
-    /****************************************
-      * nx4 4xn parent motion vector injection
-     ****************************************/
-    int nx4_4xn_parent_mv_inject;
-    /****************************************
-      * prune unipred at me
-     ****************************************/
-    int prune_unipred_me;
-    /****************************************
-      * prune ref frame for rec partitions
-     ****************************************/
-    int prune_ref_rec_part;
     /****************************************
       * nsq table
      ****************************************/
@@ -313,20 +328,31 @@ typedef struct EbConfig {
      * Default is -1 (AUTO)  */
     int set_chroma_mode;
 
+    /* Disable chroma from luma (CFL)
+     *
+     * Default is -1 (auto) */
+    int disable_cfl_flag;
+
     /****************************************
      * OBMC
      ****************************************/
-    EbBool enable_obmc;
-
+    int8_t obmc_level;
     /****************************************
      * RDOQ
      * ****************************************/
-    int enable_rdoq;
-
+    int rdoq_level;
     /****************************************
      * Filter intra prediction
      ****************************************/
-    EbBool enable_filter_intra;
+    int8_t filter_intra_level;
+    /****************************************
+     * Intra Edge Filter
+     ****************************************/
+    int enable_intra_edge_filter;
+    /****************************************
+     * Picture based rate estimation
+     ****************************************/
+    int pic_based_rate_est;
     /****************************************
      * ME Tools
      ****************************************/
@@ -367,10 +393,9 @@ typedef struct EbConfig {
      * MD Parameters
      ****************************************/
     int8_t  enable_hbd_mode_decision;
-    int32_t enable_palette;
+    int32_t palette_level;
     int32_t tile_columns;
     int32_t tile_rows;
-    int32_t olpd_refinement; // Open Loop Partitioning Decision Refinement
 
     /****************************************
      * Rate Control
@@ -378,10 +403,16 @@ typedef struct EbConfig {
     uint32_t scene_change_detection;
     uint32_t rate_control_mode;
     uint32_t look_ahead_distance;
+    uint32_t enable_tpl_la;
     uint32_t target_bit_rate;
     uint32_t max_qp_allowed;
     uint32_t min_qp_allowed;
     uint32_t vbv_bufsize;
+    uint32_t vbr_bias_pct;
+    uint32_t vbr_min_section_pct;
+    uint32_t vbr_max_section_pct;
+    uint32_t under_shoot_pct;
+    uint32_t over_shoot_pct;
 
     EbBool enable_adaptive_quantization;
 
@@ -390,6 +421,7 @@ typedef struct EbConfig {
      ****************************************/
 
     uint32_t screen_content_mode;
+    int      intrabc_mode;
     uint32_t high_dynamic_range_input;
     EbBool   unrestricted_motion_vector;
 
@@ -421,7 +453,7 @@ typedef struct EbConfig {
     uint32_t channel_id;
     uint32_t active_channel_count;
     uint32_t logical_processors;
-    uint32_t unpin_lp1;
+    uint32_t unpin;
     int32_t  target_socket;
     EbBool   stop_encoder; // to signal CTRL+C Event, need to stop encoding.
 
@@ -435,7 +467,7 @@ typedef struct EbConfig {
     /****************************************
      * ALT-REF related Parameters
      ****************************************/
-    EbBool  enable_altrefs;
+    int8_t tf_level;
     uint8_t altref_strength;
     uint8_t altref_nframes;
     EbBool  enable_overlays;
@@ -444,32 +476,32 @@ typedef struct EbConfig {
     /****************************************
      * Super-resolution related Parameters
      ****************************************/
-    SUPERRES_MODE           superres_mode;
-    uint8_t                 superres_denom;
-    uint8_t                 superres_kf_denom;
-    uint8_t                 superres_qthres;
-
-    // square cost weighting for deciding if a/b shapes could be skipped
-    uint32_t sq_weight;
-
-    // inter/intra class pruning costs before MD stage 1/2
-    uint64_t md_fast_cost_class_prune_th;
-    uint64_t md_fast_cost_cand_prune_th;
-    uint64_t md_full_cost_class_prune_th;
-    uint64_t md_full_cost_cand_prune_th;
+    SUPERRES_MODE superres_mode;
+    uint8_t       superres_denom;
+    uint8_t       superres_kf_denom;
+    uint8_t       superres_qthres;
 
     // prediction structure
     PredictionStructureConfigEntry pred_struct[1 << (MAX_HIERARCHICAL_LEVEL - 1)];
-    EbBool enable_manual_pred_struct;
-    int32_t manual_pred_struct_entry_num;
+    EbBool                         enable_manual_pred_struct;
+    int32_t                        manual_pred_struct_entry_num;
+    int                 mrp_level;
 } EbConfig;
 
+typedef struct EncApp {
+    SvtAv1FixedBuf rc_twopasses_stats;
+} EncApp;
+
+extern void eb_2pass_config_update(EbConfig *config_ptr);
 extern void eb_config_ctor(EbConfig *config_ptr);
 extern void eb_config_dtor(EbConfig *config_ptr);
 
 extern EbErrorType read_command_line(int32_t argc, char *const argv[], EbConfig **config,
-                                     uint32_t num_channels, EbErrorType *return_errors);
+                                     uint32_t num_channels, EbErrorType *return_errors,
+                                     char *warning_str[WARNING_LENGTH]);
 extern uint32_t    get_help(int32_t argc, char *const argv[]);
 extern uint32_t    get_number_of_channels(int32_t argc, char *const argv[]);
-
+uint32_t get_passes(int32_t argc, char *const argv[], EncodePass pass[]);
+EbErrorType set_two_passes_stats(EbConfig *config, EncodePass pass,
+    const SvtAv1FixedBuf* rc_twopass_stats_in, uint32_t channel_number);
 #endif //EbAppConfig_h

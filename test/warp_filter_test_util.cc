@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 // workaround to eliminate the compiling warning on linux
 // The macro will conflict with definition in gtest.h
@@ -168,7 +168,6 @@ void AV1WarpFilterTest::RunSpeedTest(warp_affine_func test_impl) {
     uint8_t *output = new uint8_t[output_n];
     int32_t mat[8];
     int16_t alpha, beta, gamma, delta;
-    ConvolveParams conv_params = get_conv_params(ref, 0, 0, bd);
     ConvBufType *dsta = new ConvBufType[output_n];
     generate_warped_model(rnd_,
                           mat,
@@ -193,7 +192,7 @@ void AV1WarpFilterTest::RunSpeedTest(warp_affine_func test_impl) {
     sub_y = 0;
     int do_average = 0;
 
-    conv_params =
+    ConvolveParams conv_params =
         get_conv_params_no_round(ref, do_average, 0, dsta, out_w, 1, bd);
     conv_params.use_jnt_comp_avg = 0;
 
@@ -269,7 +268,10 @@ void AV1WarpFilterTest::RunCheckOutput(warp_affine_func test_impl) {
     ConvBufType *dsta = new ConvBufType[output_n];
     ConvBufType *dstb = new ConvBufType[output_n];
     for (i = 0; i < output_n; ++i)
+    {
         output[i] = output2[i] = rnd_->Rand8();
+        dsta[i] = dstb[i] = 0;
+    }
 
     for (i = 0; i < num_iters; ++i) {
         // Generate an input block and extend its borders horizontally
@@ -598,7 +600,10 @@ void AV1HighbdWarpFilterTest::RunCheckOutput(
     ConvBufType *dsta = new ConvBufType[output_n];
     ConvBufType *dstb = new ConvBufType[output_n];
     for (i = 0; i < output_n; ++i)
+    {
         output[i] = output2[i] = rnd_->Rand16();
+        dsta[i] = dstb[i] = 0;
+    }
 
     for (i = 0; i < num_iters; ++i) {
         // Generate an input block and extend its borders horizontally

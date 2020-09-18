@@ -1,6 +1,88 @@
 # Changelog
 
-## [0.8.1] - 2019-01-28
+## [0.8.5] - 2020-09-04
+Relicensing notice
+- Change the outbound license from BSD+Patent to the AOM license / patent
+
+Encoder
+- Added tpl support to adaptively change lambda and quantization parameters within the frame
+- Added multi staged hme support
+- Quality speed trade-offs tuned to VOD use cases
+- Added first level non-optimized support for 2pass VBR and CRF
+- Added combined cli two pass support with options for stats being written to a memory buffer and a specified file
+- Added non square partitioning optimizations
+- Improved lambda generation
+
+Build and Testing
+- Bug fixes
+- Improve CI
+- Improve Unit Test Coverage
+- Address C vs asm mismatches
+- Fix static analysis warnings / errors
+- Add address sanitizer
+- Fix symbol conflicts with libaom and libvpx when staticly lined to ffmpeg
+
+
+## [0.8.4] - 2020-06-26
+
+Build and Testing
+- Bug fixes
+- Improve CI
+- Improve Unit Test Coverage
+- Address C vs asm mismatches
+- Fix static analysis warnings / errors
+- Add address sanitizer
+- Various ffmpeg patch fixes
+
+## [0.8.3] - 2020-04-24
+
+Encoder
+- Presets optimization
+
+Build and Testing
+- Bug fixes
+- Xcode build support
+
+
+## [0.8.2] - 2020-04-18
+
+Encoder
+- Initial Super resolution support
+- Mode decision rate estimation enhancements
+- Altref improvements
+- Manual prediction structure support
+- Enhanced RDOQ support
+- Improved warp motion
+- Improved documentation and help menu
+- New command line parameters
+- Fix non-multiple of 8 resolution video corruption for 8bit
+- Improved multi-stage mode decision support
+- Added multi-stage motion estimation support
+- Chroma mode decision optimizations
+- Added 16bit pipeline support
+- Added Mode decision non-square partition weights
+- Enhanced qp-scaling assignment
+- Memory optimizations
+- Added AVX512 Optimizations
+- Added AVX2 Optimizations
+
+Decoder
+- Improved multi-threading support
+- Memory optimizations
+- Updated documentation
+- Loop filter flow optimization
+
+Encoder and Decoder
+- Encoder-Decoder-Common folder structure improvements
+
+Build and Testing
+- Bug fixes
+- Improve CI
+- Improve Unit Test Coverage
+- Address C vs asm mismatches
+- Support C only builds (for platforms other than x86)
+
+## [0.8.1] - 2020-01-28
 
 Encoder
 - Palette support for 10-bit

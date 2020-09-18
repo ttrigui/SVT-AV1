@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 /*********************************
@@ -35,12 +31,12 @@ void *eb_aom_memset16(void *dest, int32_t val, size_t length);
 void pic_copy_kernel_8bit(EbByte src, uint32_t src_stride, EbByte dst, uint32_t dst_stride,
                           uint32_t area_width, uint32_t area_height) {
     for (uint32_t j = 0; j < area_height; j++)
-        memcpy(dst + j * dst_stride, src + j * src_stride, area_width);
+        eb_memcpy(dst + j * dst_stride, src + j * src_stride, area_width);
 }
 void pic_copy_kernel_16bit(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride,
                            uint32_t width, uint32_t height) {
     for (uint32_t j = 0; j < height; j++)
-        memcpy(dst + j * dst_stride, src + j * src_stride, sizeof(uint16_t) * width);
+        eb_memcpy(dst + j * dst_stride, src + j * src_stride, sizeof(uint16_t) * width);
 }
 
 EbErrorType picture_copy(EbPictureBufferDesc *src, uint32_t src_luma_origin_index,
@@ -110,11 +106,10 @@ Computes the residual data
 void residual_kernel16bit_c(uint16_t *input, uint32_t input_stride, uint16_t *pred,
                             uint32_t pred_stride, int16_t *residual, uint32_t residual_stride,
                             uint32_t area_width, uint32_t area_height) {
-    uint32_t column_index;
     uint32_t row_index = 0;
 
     while (row_index < area_height) {
-        column_index = 0;
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             residual[column_index] = ((int16_t)input[column_index]) - ((int16_t)pred[column_index]);
             ++column_index;
@@ -135,11 +130,10 @@ Computes the residual data
 void residual_kernel8bit_c(uint8_t *input, uint32_t input_stride, uint8_t *pred,
                            uint32_t pred_stride, int16_t *residual, uint32_t residual_stride,
                            uint32_t area_width, uint32_t area_height) {
-    uint32_t column_index;
     uint32_t row_index = 0;
 
     while (row_index < area_height) {
-        column_index = 0;
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             residual[column_index] = ((int16_t)input[column_index]) - ((int16_t)pred[column_index]);
             ++column_index;
@@ -163,13 +157,12 @@ void full_distortion_kernel32_bits_c(int32_t *coeff, uint32_t coeff_stride, int3
                                      uint32_t recon_coeff_stride,
                                      uint64_t distortion_result[DIST_CALC_TOTAL],
                                      uint32_t area_width, uint32_t area_height) {
-    uint32_t column_index;
     uint32_t row_index             = 0;
     uint64_t residual_distortion   = 0;
     uint64_t prediction_distortion = 0;
 
     while (row_index < area_height) {
-        column_index = 0;
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             residual_distortion +=
                 (int64_t)SQR((int64_t)(coeff[column_index]) - (recon_coeff[column_index]));
@@ -187,10 +180,9 @@ void full_distortion_kernel32_bits_c(int32_t *coeff, uint32_t coeff_stride, int3
 }
 
 uint64_t full_distortion_kernel16_bits_c(uint8_t *input, uint32_t input_offset,
-                                         uint32_t input_stride, uint8_t *pred, uint32_t pred_offset,
+                                         uint32_t input_stride, uint8_t *pred, int32_t pred_offset,
                                          uint32_t pred_stride, uint32_t area_width,
                                          uint32_t area_height) {
-    uint32_t column_index;
     uint32_t row_index      = 0;
     uint64_t sse_distortion = 0;
 
@@ -200,7 +192,7 @@ uint64_t full_distortion_kernel16_bits_c(uint8_t *input, uint32_t input_offset,
     pred_16bit += pred_offset;
 
     while (row_index < area_height) {
-        column_index = 0;
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             sse_distortion +=
                 (int64_t)SQR((int64_t)(input_16bit[column_index]) - (pred_16bit[column_index]));
@@ -218,17 +210,13 @@ uint64_t full_distortion_kernel16_bits_c(uint8_t *input, uint32_t input_offset,
 * Picture Distortion Full Kernel CbfZero
 *******************************************/
 void full_distortion_kernel_cbf_zero32_bits_c(int32_t *coeff, uint32_t coeff_stride,
-                                              int32_t *recon_coeff, uint32_t recon_coeff_stride,
                                               uint64_t distortion_result[DIST_CALC_TOTAL],
                                               uint32_t area_width, uint32_t area_height) {
-    uint32_t column_index;
     uint32_t row_index             = 0;
     uint64_t prediction_distortion = 0;
-    (void)recon_coeff;
-    (void)recon_coeff_stride;
 
     while (row_index < area_height) {
-        column_index = 0;
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             prediction_distortion += (int64_t)SQR((int64_t)(coeff[column_index]));
             ++column_index;
@@ -275,8 +263,6 @@ EbErrorType picture_full_distortion32_bits(
             full_distortion_kernel_cbf_zero32_bits(
                 &(((int32_t *)coeff->buffer_y)[coeff_luma_origin_index]),
                 bwidth,
-                &(((int32_t *)recon_coeff->buffer_y)[recon_coeff_luma_origin_index]),
-                bwidth,
                 y_distortion,
                 bwidth,
                 bheight);
@@ -302,8 +288,6 @@ EbErrorType picture_full_distortion32_bits(
             full_distortion_kernel_cbf_zero32_bits(
                 &(((int32_t *)coeff->buffer_cb)[coeff_chroma_origin_index]),
                 bwidth_uv,
-                &(((int32_t *)recon_coeff->buffer_cb)[recon_coeff_chroma_origin_index]),
-                bwidth_uv,
                 cb_distortion,
                 bwidth_uv,
                 bheight_uv);
@@ -326,8 +310,6 @@ EbErrorType picture_full_distortion32_bits(
         } else {
             full_distortion_kernel_cbf_zero32_bits(
                 &(((int32_t *)coeff->buffer_cr)[coeff_chroma_origin_index]),
-                bwidth_uv,
-                &(((int32_t *)recon_coeff->buffer_cr)[recon_coeff_chroma_origin_index]),
                 bwidth_uv,
                 cr_distortion,
                 bwidth_uv,
@@ -420,7 +402,7 @@ void eb_aom_yv12_copy_y_c(const Yv12BufferConfig *src_ybc, Yv12BufferConfig *dst
         const uint16_t *src16 = CONVERT_TO_SHORTPTR(src);
         uint16_t *      dst16 = CONVERT_TO_SHORTPTR(dst);
         for (row = 0; row < src_ybc->y_height; ++row) {
-            memcpy(dst16, src16, src_ybc->y_width * sizeof(uint16_t));
+            eb_memcpy(dst16, src16, src_ybc->y_width * sizeof(uint16_t));
             src16 += src_ybc->y_stride;
             dst16 += dst_ybc->y_stride;
         }
@@ -428,7 +410,7 @@ void eb_aom_yv12_copy_y_c(const Yv12BufferConfig *src_ybc, Yv12BufferConfig *dst
     }
 
     for (row = 0; row < src_ybc->y_height; ++row) {
-        memcpy(dst, src, src_ybc->y_width);
+        eb_memcpy(dst, src, src_ybc->y_width);
         src += src_ybc->y_stride;
         dst += dst_ybc->y_stride;
     }
@@ -443,7 +425,7 @@ void eb_aom_yv12_copy_u_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_
         const uint16_t *src16 = CONVERT_TO_SHORTPTR(src);
         uint16_t *      dst16 = CONVERT_TO_SHORTPTR(dst);
         for (row = 0; row < src_bc->uv_height; ++row) {
-            memcpy(dst16, src16, src_bc->uv_width * sizeof(uint16_t));
+            eb_memcpy(dst16, src16, src_bc->uv_width * sizeof(uint16_t));
             src16 += src_bc->uv_stride;
             dst16 += dst_bc->uv_stride;
         }
@@ -451,7 +433,7 @@ void eb_aom_yv12_copy_u_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_
     }
 
     for (row = 0; row < src_bc->uv_height; ++row) {
-        memcpy(dst, src, src_bc->uv_width);
+        eb_memcpy(dst, src, src_bc->uv_width);
         src += src_bc->uv_stride;
         dst += dst_bc->uv_stride;
     }
@@ -466,7 +448,7 @@ void eb_aom_yv12_copy_v_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_
         const uint16_t *src16 = CONVERT_TO_SHORTPTR(src);
         uint16_t *      dst16 = CONVERT_TO_SHORTPTR(dst);
         for (row = 0; row < src_bc->uv_height; ++row) {
-            memcpy(dst16, src16, src_bc->uv_width * sizeof(uint16_t));
+            eb_memcpy(dst16, src16, src_bc->uv_width * sizeof(uint16_t));
             src16 += src_bc->uv_stride;
             dst16 += dst_bc->uv_stride;
         }
@@ -474,7 +456,7 @@ void eb_aom_yv12_copy_v_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_
     }
 
     for (row = 0; row < src_bc->uv_height; ++row) {
-        memcpy(dst, src, src_bc->uv_width);
+        eb_memcpy(dst, src, src_bc->uv_width);
         src += src_bc->uv_stride;
         dst += dst_bc->uv_stride;
     }

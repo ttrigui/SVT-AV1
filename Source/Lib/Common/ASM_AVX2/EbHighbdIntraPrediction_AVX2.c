@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <immintrin.h>
@@ -80,7 +86,7 @@ static INLINE __m128i dc_sum_4_16(const uint16_t *const src_4, const uint16_t *c
 }
 
 static INLINE __m128i dc_sum_8_16(const uint16_t *const src_8, const uint16_t *const src_16) {
-    const __m128i s_8      = _mm_load_si128((const __m128i *)src_8);
+    const __m128i s_8      = _mm_loadu_si128((const __m128i *)src_8);
     const __m256i s_16     = _mm256_loadu_si256((const __m256i *)src_16);
     const __m128i s_lo     = _mm256_extracti128_si256(s_16, 0);
     const __m128i s_hi     = _mm256_extracti128_si256(s_16, 1);
@@ -817,7 +823,7 @@ static INLINE void h_pred_16(uint16_t **const dst, const ptrdiff_t stride, const
 
 // Process 8 rows.
 static INLINE void h_pred_16x8(uint16_t **dst, const ptrdiff_t stride, const uint16_t *const left) {
-    const __m128i left_u16 = _mm_load_si128((const __m128i *)left);
+    const __m128i left_u16 = _mm_loadu_si128((const __m128i *)left);
 
     h_pred_16(dst, stride, _mm_srli_si128(left_u16, 0));
     h_pred_16(dst, stride, _mm_srli_si128(left_u16, 2));
@@ -1365,9 +1371,9 @@ static INLINE void load_right_weights_8(const uint16_t *const above, __m256i *co
     *r = _mm256_set1_epi16((uint16_t)above[7]);
 
     // 0 1 2 3  0 1 2 3
-    weights[0] = _mm256_load_si256((const __m256i *)(sm_weights_d_8 + 0x00));
+    weights[0] = _mm256_loadu_si256((const __m256i *)(sm_weights_d_8 + 0x00));
     // 4 5 6 7  4 5 6 7
-    weights[1] = _mm256_load_si256((const __m256i *)(sm_weights_d_8 + 0x10));
+    weights[1] = _mm256_loadu_si256((const __m256i *)(sm_weights_d_8 + 0x10));
 }
 
 static INLINE __m256i load_left_4(const uint16_t *const left, const __m256i r) {
@@ -1438,9 +1444,9 @@ static INLINE void smooth_pred_8x2(const __m256i *const weights_w, const __m256i
                                    uint16_t **const dst, const ptrdiff_t stride) {
     // 00 01 02 03 04 05 06 07  10 11 12 13 14 15 16 17
     const __m256i d = smooth_pred_kernel(weights_w, weights_h, rep, ab, lr);
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
     *dst += stride;
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
     *dst += stride;
 }
 
@@ -1448,7 +1454,7 @@ static INLINE void smooth_pred_8x4(const __m256i *const  weights_w,
                                    const uint16_t *const sm_weights_h, const __m256i *const rep,
                                    const __m256i *const ab, const __m256i lr, uint16_t **const dst,
                                    const ptrdiff_t stride) {
-    const __m256i weights_h = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights_h = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_pred_8x2(weights_w, weights_h, rep[0], ab, lr, dst, stride);
     smooth_pred_8x2(weights_w, weights_h, rep[1], ab, lr, dst, stride);
 }
@@ -1528,9 +1534,9 @@ static INLINE void load_right_weights_16(const uint16_t *const above, __m256i *c
     *r = _mm256_set1_epi16((uint16_t)above[15]);
 
     //  0  1  2  3   8  9 10 11
-    weights[0] = _mm256_load_si256((const __m256i *)(sm_weights_16 + 0x00));
+    weights[0] = _mm256_loadu_si256((const __m256i *)(sm_weights_16 + 0x00));
     //  4  5  6  7  12 13 14 15
-    weights[1] = _mm256_load_si256((const __m256i *)(sm_weights_16 + 0x10));
+    weights[1] = _mm256_loadu_si256((const __m256i *)(sm_weights_16 + 0x10));
 }
 
 static INLINE void prepare_ab(const uint16_t *const above, const __m256i b, __m256i *const ab) {
@@ -1564,7 +1570,7 @@ static INLINE void smooth_pred_16x4(const __m256i *const  weights_w,
                                     const uint16_t *const sm_weights_h, const __m256i *const rep,
                                     const __m256i *const ab, const __m256i lr, uint16_t **const dst,
                                     const ptrdiff_t stride) {
-    const __m256i weights_h = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights_h = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_pred_16(weights_w, weights_h, rep[0], ab, lr, dst, stride);
     smooth_pred_16(weights_w, weights_h, rep[1], ab, lr, dst, stride);
     smooth_pred_16(weights_w, weights_h, rep[2], ab, lr, dst, stride);
@@ -1793,21 +1799,21 @@ static INLINE void load_right_weights_64(const uint16_t *const above, __m256i *c
     *r = _mm256_set1_epi16((uint16_t)above[63]);
 
     //  0  1  2  3   8  9 10 11
-    weights[0] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x00));
+    weights[0] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x00));
     //  4  5  6  7  12 13 14 15
-    weights[1] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x10));
+    weights[1] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x10));
     // 16 17 18 19  24 25 26 27
-    weights[2] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x20));
+    weights[2] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x20));
     // 20 21 22 23  28 29 30 31
-    weights[3] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x30));
+    weights[3] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x30));
     // 32 33 34 35  40 41 42 43
-    weights[4] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x40));
+    weights[4] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x40));
     // 36 37 38 39  44 45 46 47
-    weights[5] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x50));
+    weights[5] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x50));
     // 48 49 50 51  56 57 58 59
-    weights[6] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x60));
+    weights[6] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x60));
     // 52 53 54 55  60 61 62 63
-    weights[7] = _mm256_load_si256((const __m256i *)(sm_weights_64 + 0x70));
+    weights[7] = _mm256_loadu_si256((const __m256i *)(sm_weights_64 + 0x70));
 }
 
 static INLINE void init_64(const uint16_t *const above, const uint16_t *const left, const int32_t h,
@@ -1950,9 +1956,9 @@ static INLINE void smooth_h_pred_8x2(const __m256i *const weights, __m256i *cons
     const __m256i t = _mm256_shuffle_epi8(*lr, rep); // 0 0 0 0  1 1 1 1
     // 00 01 02 03 04 05 06 07  10 11 12 13 14 15 16 17
     const __m256i d = smooth_h_pred_kernel(weights, t);
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
     *dst += stride;
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
     *dst += stride;
     *lr = _mm256_srli_si256(*lr, 8); // 2 3 x x  3 4 x x
 }
@@ -1966,7 +1972,7 @@ static INLINE void smooth_h_pred_8x4(const __m256i *const weights, __m256i *cons
 static INLINE void smooth_h_pred_8x8(const uint16_t *const left, const __m256i r,
                                      const __m256i *const weights, uint16_t **const dst,
                                      const ptrdiff_t stride) {
-    const __m128i l0 = _mm_load_si128((const __m128i *)left);
+    const __m128i l0 = _mm_loadu_si128((const __m128i *)left);
     const __m128i l1 = _mm_srli_si128(l0, 2);
     // 0 1 2 3 4 5 6 7  1 2 3 4 5 6 7 x
     const __m256i l = _mm256_inserti128_si256(_mm256_castsi128_si256(l0), l1, 1);
@@ -2340,16 +2346,16 @@ static INLINE void smooth_v_pred_8x2(const __m256i weights, const __m256i rep,
                                      const ptrdiff_t stride) {
     // 00 01 02 03 04 05 06 07  10 11 12 13 14 15 16 17
     const __m256i d = smooth_v_pred_kernel(weights, rep, ab);
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 0));
     *dst += stride;
-    _mm_store_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
+    _mm_storeu_si128((__m128i *)*dst, _mm256_extracti128_si256(d, 1));
     *dst += stride;
 }
 
 static INLINE void smooth_v_pred_8x4(const uint16_t *const sm_weights_h, const __m256i *const rep,
                                      const __m256i *const ab, uint16_t **const dst,
                                      const ptrdiff_t stride) {
-    const __m256i weights = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_v_pred_8x2(weights, rep[0], ab, dst, stride);
     smooth_v_pred_8x2(weights, rep[1], ab, dst, stride);
 }
@@ -2446,7 +2452,7 @@ static INLINE void smooth_v_pred_16(const __m256i weights, const __m256i rep,
 static INLINE void smooth_v_pred_16x4(const uint16_t *const sm_weights_h, const __m256i *const rep,
                                       const __m256i *const ab, uint16_t **const dst,
                                       const ptrdiff_t stride) {
-    const __m256i weights = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_v_pred_16(weights, rep[0], ab, dst, stride);
     smooth_v_pred_16(weights, rep[1], ab, dst, stride);
     smooth_v_pred_16(weights, rep[2], ab, dst, stride);
@@ -2560,7 +2566,7 @@ static INLINE void smooth_v_pred_32(const __m256i weights, const __m256i rep,
 static INLINE void smooth_v_pred_32x4(const uint16_t *const sm_weights_h, const __m256i *const rep,
                                       const __m256i *const ab, uint16_t **const dst,
                                       const ptrdiff_t stride) {
-    const __m256i weights = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_v_pred_32(weights, rep[0], ab, dst, stride);
     smooth_v_pred_32(weights, rep[1], ab, dst, stride);
     smooth_v_pred_32(weights, rep[2], ab, dst, stride);
@@ -2672,7 +2678,7 @@ static INLINE void smooth_v_pred_64(const __m256i weights, const __m256i rep,
 static INLINE void smooth_v_pred_64x4(const uint16_t *const sm_weights_h, const __m256i *const rep,
                                       const __m256i *const ab, uint16_t **const dst,
                                       const ptrdiff_t stride) {
-    const __m256i weights = _mm256_load_si256((const __m256i *)sm_weights_h);
+    const __m256i weights = _mm256_loadu_si256((const __m256i *)sm_weights_h);
     smooth_v_pred_64(weights, rep[0], ab, dst, stride);
     smooth_v_pred_64(weights, rep[1], ab, dst, stride);
     smooth_v_pred_64(weights, rep[2], ab, dst, stride);

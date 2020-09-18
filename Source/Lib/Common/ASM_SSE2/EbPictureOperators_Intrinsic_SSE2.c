@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbPictureOperators_SSE2.h"
@@ -209,167 +215,72 @@ void residual_kernel16bit_sse2_intrin(uint16_t *input, uint32_t input_stride, ui
     }
     return;
 }
+/********************************************************************************************
+* faster memcopy for <= 64B blocks, great w/ inlining and size known at compile time (or w/ PGO)
+* THIS NEEDS TO STAY IN A HEADER FOR BEST PERFORMANCE
+********************************************************************************************/
+#ifdef ARCH_X86
+#include <immintrin.h>
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__ICC__)
+__attribute__((optimize("unroll-loops")))
+#endif
+static void eb_memcpy_small(void *dst_ptr, const void *src_ptr, size_t size) {
+    const unsigned char *src = src_ptr;
+    unsigned char *      dst = dst_ptr;
+    size_t               i   = 0;
 
-static INLINE __m128i distortion_sse2_intrin(const __m128i input, const __m128i recon,
-                                             const __m128i sum) {
-    const __m128i in   = _mm_unpacklo_epi8(input, _mm_setzero_si128());
-    const __m128i re   = _mm_unpacklo_epi8(recon, _mm_setzero_si128());
-    const __m128i diff = _mm_sub_epi16(in, re);
-    const __m128i dist = _mm_madd_epi16(diff, diff);
-    return _mm_add_epi32(sum, dist);
+#ifdef _INTEL_COMPILER
+#pragma unroll
+#endif
+    while ((i + 16) <= size) {
+        _mm_storeu_ps((float *)(void *)(dst + i), _mm_loadu_ps((const float *)(const void *)(src + i)));
+        i += 16;
+    }
+
+    if ((i + 8) <= size) {
+        _mm_store_sd((double *)(void *)(dst + i), _mm_load_sd((const double *)(const void *)(src + i)));
+        i += 8;
+    }
+
+    for (; i < size; ++i) dst[i] = src[i];
 }
+#define EB_MIN(a, b) (((a) < (b)) ? (a) : (b))
+static void eb_memcpy_sse(void* dst_ptr, void const* src_ptr, size_t size) {
+    const unsigned char *src       = src_ptr;
+    unsigned char *      dst       = dst_ptr;
+    size_t               i         = 0;
+    size_t               align_cnt = EB_MIN((64 - ((size_t)dst & 63)), size);
 
-uint64_t spatial_full_distortion_kernel4x_n_sse2_intrin(uint8_t *input, uint32_t input_offset,
-                                                        uint32_t input_stride, uint8_t *recon,
-                                                        uint32_t recon_offset,
-                                                        uint32_t recon_stride, uint32_t area_width,
-                                                        uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
+    // align dest to a $line
+    if (align_cnt != 64) {
+        eb_memcpy_small(dst, src, align_cnt);
+        dst += align_cnt;
+        src += align_cnt;
+        size -= align_cnt;
+    }
 
-    do {
-        const __m128i in = _mm_cvtsi32_si128(*(uint32_t *)input);
-        const __m128i re = _mm_cvtsi32_si128(*(uint32_t *)recon);
-        sum              = distortion_sse2_intrin(in, re, sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
+    // copy a $line at a time
+    // dst aligned to a $line
+    size_t cline_cnt = (size & ~(size_t)63);
+    for (i = 0; i < cline_cnt; i += 64) {
+        __m128 c0 = _mm_loadu_ps((const float *)(const void *)(src + i));
+        __m128 c1 = _mm_loadu_ps((const float *)(const void *)(src + i + sizeof(c0)));
+        __m128 c2 = _mm_loadu_ps((const float *)(const void *)(src + i + sizeof(c0) * 2));
+        __m128 c3 = _mm_loadu_ps((const float *)(const void *)(src + i + sizeof(c0) * 3));
 
-    sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
+        _mm_storeu_ps((float *)(void *)(dst + i), c0);
+        _mm_storeu_ps((float *)(void *)(dst + i + sizeof(c0)), c1);
+        _mm_storeu_ps((float *)(void *)(dst + i + sizeof(c0) * 2), c2);
+        _mm_storeu_ps((float *)(void *)(dst + i + sizeof(c0) * 3), c3);
+    }
 
-    return _mm_cvtsi128_si32(sum);
+    // copy the remainder
+    if (i < size) eb_memcpy_small(dst + i, src + i, size - i);
 }
-
-uint64_t spatial_full_distortion_kernel8x_n_sse2_intrin(uint8_t *input, uint32_t input_offset,
-                                                        uint32_t input_stride, uint8_t *recon,
-                                                        uint32_t recon_offset,
-                                                        uint32_t recon_stride, uint32_t area_width,
-                                                        uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
-
-    do {
-        const __m128i in = _mm_loadl_epi64((__m128i *)input);
-        const __m128i re = _mm_loadl_epi64((__m128i *)recon);
-        sum              = distortion_sse2_intrin(in, re, sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
-
-    return hadd32_sse2_intrin(sum);
+extern void eb_memcpy_intrin_sse(void* dst_ptr, void const* src_ptr, size_t size) {
+    if (size > 64)
+        eb_memcpy_sse(dst_ptr, src_ptr, size);
+    else
+        eb_memcpy_small(dst_ptr, src_ptr, size);
 }
-
-static INLINE void spatial_full_distortion_kernel_16_sse2_intrin(const uint8_t *const input,
-                                                                 const uint8_t *const recon,
-                                                                 __m128i *const       sum) {
-    const __m128i in     = _mm_loadu_si128((__m128i *)input);
-    const __m128i re     = _mm_loadu_si128((__m128i *)recon);
-    const __m128i max    = _mm_max_epu8(in, re);
-    const __m128i min    = _mm_min_epu8(in, re);
-    const __m128i diff   = _mm_sub_epi8(max, min);
-    const __m128i diff_l = _mm_unpacklo_epi8(diff, _mm_setzero_si128());
-    const __m128i diff_h = _mm_unpackhi_epi8(diff, _mm_setzero_si128());
-    const __m128i dist_l = _mm_madd_epi16(diff_l, diff_l);
-    const __m128i dist_h = _mm_madd_epi16(diff_h, diff_h);
-    const __m128i dist   = _mm_add_epi32(dist_l, dist_h);
-    *sum                 = _mm_add_epi32(*sum, dist);
-}
-
-static INLINE void spatial_full_distortion_kernel_32_sse2_intrin(const uint8_t *const input,
-                                                                 const uint8_t *const recon,
-                                                                 __m128i *const       sum) {
-    spatial_full_distortion_kernel_16_sse2_intrin(input + 0 * 16, recon + 0 * 16, sum);
-    spatial_full_distortion_kernel_16_sse2_intrin(input + 1 * 16, recon + 1 * 16, sum);
-}
-
-static INLINE void spatial_full_distortion_kernel_64_sse2_intrin(const uint8_t *const input,
-                                                                 const uint8_t *const recon,
-                                                                 __m128i *const       sum) {
-    spatial_full_distortion_kernel_32_sse2_intrin(input + 0 * 32, recon + 0 * 32, sum);
-    spatial_full_distortion_kernel_32_sse2_intrin(input + 1 * 32, recon + 1 * 32, sum);
-}
-
-uint64_t spatial_full_distortion_kernel16x_n_sse2_intrin(uint8_t *input, uint32_t input_offset,
-                                                         uint32_t input_stride, uint8_t *recon,
-                                                         uint32_t recon_offset,
-                                                         uint32_t recon_stride, uint32_t area_width,
-                                                         uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
-
-    do {
-        spatial_full_distortion_kernel_16_sse2_intrin(input, recon, &sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
-
-    return hadd32_sse2_intrin(sum);
-}
-
-uint64_t spatial_full_distortion_kernel32x_n_sse2_intrin(uint8_t *input, uint32_t input_offset,
-                                                         uint32_t input_stride, uint8_t *recon,
-                                                         uint32_t recon_offset,
-                                                         uint32_t recon_stride, uint32_t area_width,
-                                                         uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
-
-    do {
-        spatial_full_distortion_kernel_32_sse2_intrin(input, recon, &sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
-
-    return hadd32_sse2_intrin(sum);
-}
-
-uint64_t spatial_full_distortion_kernel64x_n_sse2_intrin(uint8_t *input, uint32_t input_offset,
-                                                         uint32_t input_stride, uint8_t *recon,
-                                                         uint32_t recon_offset,
-                                                         uint32_t recon_stride, uint32_t area_width,
-                                                         uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
-
-    do {
-        spatial_full_distortion_kernel_64_sse2_intrin(input, recon, &sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
-
-    return hadd32_sse2_intrin(sum);
-}
-
-uint64_t spatial_full_distortion_kernel128x_n_sse2_intrin(
-    uint8_t *input, uint32_t input_offset, uint32_t input_stride, uint8_t *recon,
-    uint32_t recon_offset, uint32_t recon_stride, uint32_t area_width, uint32_t area_height) {
-    int32_t row_count = area_height;
-    __m128i sum       = _mm_setzero_si128();
-    input += input_offset;
-    recon += recon_offset;
-    (void)area_width;
-
-    do {
-        spatial_full_distortion_kernel_64_sse2_intrin(input + 0 * 64, recon + 0 * 64, &sum);
-        spatial_full_distortion_kernel_64_sse2_intrin(input + 1 * 64, recon + 1 * 64, &sum);
-        input += input_stride;
-        recon += recon_stride;
-    } while (--row_count);
-
-    return hadd32_sse2_intrin(sum);
-}
+#endif

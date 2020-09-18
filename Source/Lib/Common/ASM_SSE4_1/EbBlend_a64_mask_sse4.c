@@ -1,21 +1,17 @@
 /*
-* Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
+ * Copyright(c) 2019 Intel Corporation
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <assert.h>
-#include "smmintrin.h"
+#include <smmintrin.h>
 #include "EbDefinitions.h"
 #include "EbBlend_sse4.h"
 #include "common_dsp_rtcd.h"
@@ -370,10 +366,10 @@ static void blend_a64_mask_sx_sy_w16n_sse4_1(uint8_t *dst, uint32_t dst_stride, 
 // Dispatch
 //////////////////////////////////////////////////////////////////////////////
 
-void aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
-                               uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
-                               const uint8_t *mask, uint32_t mask_stride, int w, int h, int subx,
-                               int suby) {
+void eb_aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+                                  uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
+                                  const uint8_t *mask, uint32_t mask_stride, int w, int h, int subx,
+                                  int suby) {
     typedef void (*BlendFn)(uint8_t * dst,
                              uint32_t       dst_stride,
                              const uint8_t *src0,
@@ -384,19 +380,6 @@ void aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t 
                              uint32_t       mask_stride,
                              int            w,
                              int            h);
-
-    // Dimensions are: width_index X subx X suby
-    static const BlendFn blend[3][2][2] = {
-        {// w % 16 == 0
-         {blend_a64_mask_w16n_sse4_1, blend_a64_mask_sy_w16n_sse4_1},
-         {blend_a64_mask_sx_w16n_sse4_1, blend_a64_mask_sx_sy_w16n_sse4_1}},
-        {// w == 4
-         {blend_a64_mask_w4_sse4_1, blend_a64_mask_sy_w4_sse4_1},
-         {blend_a64_mask_sx_w4_sse4_1, blend_a64_mask_sx_sy_w4_sse4_1}},
-        {// w == 8
-         {blend_a64_mask_w8_sse4_1, blend_a64_mask_sy_w8_sse4_1},
-         {blend_a64_mask_sx_w8_sse4_1, blend_a64_mask_sx_sy_w8_sse4_1}}};
-
     assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
     assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
 
@@ -406,7 +389,7 @@ void aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t 
     assert(IS_POWER_OF_TWO(w));
 
     if (UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        aom_blend_a64_mask_c(dst,
+        eb_aom_blend_a64_mask_c(dst,
                              dst_stride,
                              src0,
                              src0_stride,
@@ -419,6 +402,18 @@ void aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t 
                              subx,
                              suby);
     } else {
+        // Dimensions are: width_index X subx X suby
+        static const BlendFn blend[3][2][2] = {
+            {// w % 16 == 0
+             {blend_a64_mask_w16n_sse4_1, blend_a64_mask_sy_w16n_sse4_1},
+             {blend_a64_mask_sx_w16n_sse4_1, blend_a64_mask_sx_sy_w16n_sse4_1}},
+            {// w == 4
+             {blend_a64_mask_w4_sse4_1, blend_a64_mask_sy_w4_sse4_1},
+             {blend_a64_mask_sx_w4_sse4_1, blend_a64_mask_sx_sy_w4_sse4_1}},
+            {// w == 8
+             {blend_a64_mask_w8_sse4_1, blend_a64_mask_sy_w8_sse4_1},
+             {blend_a64_mask_sx_w8_sse4_1, blend_a64_mask_sx_sy_w8_sse4_1}}};
+        assert(((w >> 2) & 3) < 3);
         blend[(w >> 2) & 3][subx != 0][suby != 0](
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, mask_stride, w, h);
     }
@@ -886,11 +881,11 @@ static void blend_a64_mask_b12_sx_sy_w8n_sse4_1(uint16_t *dst, uint32_t dst_stri
 // Dispatch
 //////////////////////////////////////////////////////////////////////////////
 
-void aom_highbd_blend_a64_mask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                      uint32_t src0_stride, const uint8_t *src1_8,
-                                      uint32_t src1_stride, const uint8_t *mask,
-                                      uint32_t mask_stride, int w, int h, int subx, int suby,
-                                      int bd) {
+void eb_aom_highbd_blend_a64_mask_sse4_1_8bit(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
+                                              uint32_t src0_stride, const uint8_t *src1_8,
+                                              uint32_t src1_stride, const uint8_t *mask,
+                                              uint32_t mask_stride, int w, int h, int subx, int suby,
+                                              int bd) {
     typedef void (*BlendFn)(uint16_t * dst,
                              uint32_t        dst_stride,
                              const uint16_t *src0,
@@ -902,23 +897,6 @@ void aom_highbd_blend_a64_mask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const
                              int             w,
                              int             h);
 
-    // Dimensions are: bd_index X width_index X subx X suby
-    static const BlendFn blend[2][2][2][2] = {
-        {// bd == 8 or 10
-         {// w % 8 == 0
-          {blend_a64_mask_b10_w8n_sse4_1, blend_a64_mask_b10_sy_w8n_sse4_1},
-          {blend_a64_mask_b10_sx_w8n_sse4_1, blend_a64_mask_b10_sx_sy_w8n_sse4_1}},
-         {// w == 4
-          {blend_a64_mask_b10_w4_sse4_1, blend_a64_mask_b10_sy_w4_sse4_1},
-          {blend_a64_mask_b10_sx_w4_sse4_1, blend_a64_mask_b10_sx_sy_w4_sse4_1}}},
-        {// bd == 12
-         {// w % 8 == 0
-          {blend_a64_mask_b12_w8n_sse4_1, blend_a64_mask_b12_sy_w8n_sse4_1},
-          {blend_a64_mask_b12_sx_w8n_sse4_1, blend_a64_mask_b12_sx_sy_w8n_sse4_1}},
-         {// w == 4
-          {blend_a64_mask_b12_w4_sse4_1, blend_a64_mask_b12_sy_w4_sse4_1},
-          {blend_a64_mask_b12_sx_w4_sse4_1, blend_a64_mask_b12_sx_sy_w4_sse4_1}}}};
-
     assert(IMPLIES(src0_8 == dst_8, src0_stride == dst_stride));
     assert(IMPLIES(src1_8 == dst_8, src1_stride == dst_stride));
 
@@ -929,7 +907,7 @@ void aom_highbd_blend_a64_mask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const
 
     assert(bd == 8 || bd == 10 || bd == 12);
     if (UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        aom_highbd_blend_a64_mask_c(dst_8,
+        eb_aom_highbd_blend_a64_mask_c(dst_8,
                                     dst_stride,
                                     src0_8,
                                     src0_stride,
@@ -946,7 +924,22 @@ void aom_highbd_blend_a64_mask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const
         uint16_t *const       dst  = (uint16_t *)dst_8;
         const uint16_t *const src0 = (uint16_t *)src0_8;
         const uint16_t *const src1 = (uint16_t *)src1_8;
-
+        // Dimensions are: bd_index X width_index X subx X suby
+        static const BlendFn blend[2][2][2][2] = {
+            {// bd == 8 or 10
+             {// w % 8 == 0
+              {blend_a64_mask_b10_w8n_sse4_1, blend_a64_mask_b10_sy_w8n_sse4_1},
+              {blend_a64_mask_b10_sx_w8n_sse4_1, blend_a64_mask_b10_sx_sy_w8n_sse4_1}},
+             {// w == 4
+              {blend_a64_mask_b10_w4_sse4_1, blend_a64_mask_b10_sy_w4_sse4_1},
+              {blend_a64_mask_b10_sx_w4_sse4_1, blend_a64_mask_b10_sx_sy_w4_sse4_1}}},
+            {// bd == 12
+             {// w % 8 == 0
+              {blend_a64_mask_b12_w8n_sse4_1, blend_a64_mask_b12_sy_w8n_sse4_1},
+              {blend_a64_mask_b12_sx_w8n_sse4_1, blend_a64_mask_b12_sx_sy_w8n_sse4_1}},
+             {// w == 4
+              {blend_a64_mask_b12_w4_sse4_1, blend_a64_mask_b12_sy_w4_sse4_1},
+              {blend_a64_mask_b12_sx_w4_sse4_1, blend_a64_mask_b12_sx_sy_w4_sse4_1}}}};
         blend[bd == 12][(w >> 2) & 1][subx != 0][suby != 0](
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, mask_stride, w, h);
     }
@@ -1029,9 +1022,9 @@ static void blend_a64_vmask_w16n_sse4_1(uint8_t *dst, uint32_t dst_stride, const
 // Dispatch
 //////////////////////////////////////////////////////////////////////////////
 
-void aom_blend_a64_vmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
-                                uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
-                                const uint8_t *mask, int w, int h) {
+void eb_aom_blend_a64_vmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+                                   uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
+                                   const uint8_t *mask, int w, int h) {
     typedef void (*BlendFn)(uint8_t * dst,
                              uint32_t       dst_stride,
                              const uint8_t *src0,
@@ -1045,8 +1038,8 @@ void aom_blend_a64_vmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t
     // Dimension: width_index
     static const BlendFn blend[9] = {
         blend_a64_vmask_w16n_sse4_1, // w % 16 == 0
-        aom_blend_a64_vmask_c, // w == 1
-        aom_blend_a64_vmask_c, // w == 2
+        eb_aom_blend_a64_vmask_c, // w == 1
+        eb_aom_blend_a64_vmask_c, // w == 2
         NULL, // INVALID
         blend_a64_vmask_w4_sse4_1, // w == 4
         NULL, // INVALID
@@ -1150,10 +1143,10 @@ static void blend_a64_vmask_b12_w8n_sse4_1(uint16_t *dst, uint32_t dst_stride, c
 // Dispatch
 //////////////////////////////////////////////////////////////////////////////
 
-void aom_highbd_blend_a64_vmask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                       uint32_t src0_stride, const uint8_t *src1_8,
-                                       uint32_t src1_stride, const uint8_t *mask, int w, int h,
-                                       int bd) {
+void eb_aom_highbd_blend_a64_vmask_sse4_1_8bit(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
+                                               uint32_t src0_stride, const uint8_t *src1_8,
+                                               uint32_t src1_stride, const uint8_t *mask, int w, int h,
+                                               int bd) {
     typedef void (*BlendFn)(uint16_t * dst,
                              uint32_t        dst_stride,
                              const uint16_t *src0,
@@ -1163,18 +1156,6 @@ void aom_highbd_blend_a64_vmask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, cons
                              const uint8_t * mask,
                              int             w,
                              int             h);
-
-    // Dimensions are: bd_index X width_index
-    static const BlendFn blend[2][2] = {{
-                                             // bd == 8 or 10
-                                             blend_a64_vmask_b10_w8n_sse4_1, // w % 8 == 0
-                                             blend_a64_vmask_b10_w4_sse4_1, // w == 4
-                                         },
-                                         {
-                                             // bd == 12
-                                             blend_a64_vmask_b12_w8n_sse4_1, // w % 8 == 0
-                                             blend_a64_vmask_b12_w4_sse4_1, // w == 4
-                                         }};
 
     assert(IMPLIES(src0_8 == dst_8, src0_stride == dst_stride));
     assert(IMPLIES(src1_8 == dst_8, src1_stride == dst_stride));
@@ -1187,13 +1168,23 @@ void aom_highbd_blend_a64_vmask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, cons
     assert(bd == 8 || bd == 10 || bd == 12);
 
     if (UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        aom_highbd_blend_a64_vmask_c(
+        eb_aom_highbd_blend_a64_vmask_c_8bit(
             dst_8, dst_stride, src0_8, src0_stride, src1_8, src1_stride, mask, w, h, bd);
     } else {
         uint16_t *const       dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
         const uint16_t *const src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);
         const uint16_t *const src1 = (uint16_t *)(src1_8); //CONVERT_TO_SHORTPTR(src1_8);
-
+        // Dimensions are: bd_index X width_index
+        static const BlendFn blend[2][2] = {{
+                                                // bd == 8 or 10
+                                                blend_a64_vmask_b10_w8n_sse4_1, // w % 8 == 0
+                                                blend_a64_vmask_b10_w4_sse4_1, // w == 4
+                                            },
+                                            {
+                                                // bd == 12
+                                                blend_a64_vmask_b12_w8n_sse4_1, // w % 8 == 0
+                                                blend_a64_vmask_b12_w4_sse4_1, // w == 4
+                                            }};
         blend[bd == 12][(w >> 2) & 1](
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, w, h);
     }
@@ -1204,26 +1195,26 @@ void aom_highbd_blend_a64_vmask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, cons
 // To start out, just dispatch to the function using the 2D mask and
 // pass mask stride as 0. This can be improved upon if necessary.
 
-void aom_blend_a64_hmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
-                                uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
-                                const uint8_t *mask, int w, int h) {
-    aom_blend_a64_mask_sse4_1(
+void eb_aom_blend_a64_hmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+                                   uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
+                                   const uint8_t *mask, int w, int h) {
+    eb_aom_blend_a64_mask_sse4_1(
         dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, 0, w, h, 0, 0);
 }
 
-void aom_highbd_blend_a64_hmask_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                       uint32_t src0_stride, const uint8_t *src1_8,
-                                       uint32_t src1_stride, const uint8_t *mask, int w, int h,
-                                       int bd) {
-    aom_highbd_blend_a64_mask_sse4_1(
+void eb_aom_highbd_blend_a64_hmask_sse4_1_8bit(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
+                                               uint32_t src0_stride, const uint8_t *src1_8,
+                                               uint32_t src1_stride, const uint8_t *mask, int w, int h,
+                                               int bd) {
+    eb_aom_highbd_blend_a64_mask_sse4_1_8bit(
         dst_8, dst_stride, src0_8, src0_stride, src1_8, src1_stride, mask, 0, w, h, 0, 0, bd);
 }
 
-void eb_aom_highbd_blend_a64_mask_sse4_1(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
-                                         uint32_t src0_stride, const uint16_t *src1,
-                                         uint32_t src1_stride, const uint8_t *mask,
-                                         uint32_t mask_stride, int w, int h, int subw, int subh,
-                                         int bd) {
+void eb_aom_highbd_blend_a64_mask_sse4_1_16bit(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+                                               uint32_t src0_stride, const uint16_t *src1,
+                                               uint32_t src1_stride, const uint8_t *mask,
+                                               uint32_t mask_stride, int w, int h, int subw, int subh,
+                                               int bd) {
     typedef void (*BlendFn)(uint16_t * dst,
                              uint32_t        dst_stride,
                              const uint16_t *src0,
@@ -1235,23 +1226,6 @@ void eb_aom_highbd_blend_a64_mask_sse4_1(uint16_t *dst, uint32_t dst_stride, con
                              int             w,
                              int             h);
 
-    // Dimensions are: bd_index X width_index X subw X subh
-    static const BlendFn blend[2][2][2][2] = {
-        {// bd == 8 or 10
-         {// w % 8 == 0
-          {blend_a64_mask_b10_w8n_sse4_1, blend_a64_mask_b10_sy_w8n_sse4_1},
-          {blend_a64_mask_b10_sx_w8n_sse4_1, blend_a64_mask_b10_sx_sy_w8n_sse4_1}},
-         {// w == 4
-          {blend_a64_mask_b10_w4_sse4_1, blend_a64_mask_b10_sy_w4_sse4_1},
-          {blend_a64_mask_b10_sx_w4_sse4_1, blend_a64_mask_b10_sx_sy_w4_sse4_1}}},
-        {// bd == 12
-         {// w % 8 == 0
-          {blend_a64_mask_b12_w8n_sse4_1, blend_a64_mask_b12_sy_w8n_sse4_1},
-          {blend_a64_mask_b12_sx_w8n_sse4_1, blend_a64_mask_b12_sx_sy_w8n_sse4_1}},
-         {// w == 4
-          {blend_a64_mask_b12_w4_sse4_1, blend_a64_mask_b12_sy_w4_sse4_1},
-          {blend_a64_mask_b12_sx_w4_sse4_1, blend_a64_mask_b12_sx_sy_w4_sse4_1}}}};
-
     assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
     assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
 
@@ -1262,7 +1236,7 @@ void eb_aom_highbd_blend_a64_mask_sse4_1(uint16_t *dst, uint32_t dst_stride, con
 
     assert(bd == 8 || bd == 10 || bd == 12);
     if (UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        aom_highbd_blend_a64_mask_c((uint8_t *)dst,
+        eb_aom_highbd_blend_a64_mask_c((uint8_t *)dst,
                                     dst_stride,
                                     (uint8_t *)src0,
                                     src0_stride,
@@ -1279,23 +1253,38 @@ void eb_aom_highbd_blend_a64_mask_sse4_1(uint16_t *dst, uint32_t dst_stride, con
         //uint16_t *const dst = CONVERT_TO_SHORTPTR(dst_8);
         //const uint16_t *const src0 = CONVERT_TO_SHORTPTR(src0_8);
         //const uint16_t *const src1 = CONVERT_TO_SHORTPTR(src1_8);
-
+        // Dimensions are: bd_index X width_index X subw X subh
+        static const BlendFn blend[2][2][2][2] = {
+            {// bd == 8 or 10
+             {// w % 8 == 0
+              {blend_a64_mask_b10_w8n_sse4_1, blend_a64_mask_b10_sy_w8n_sse4_1},
+              {blend_a64_mask_b10_sx_w8n_sse4_1, blend_a64_mask_b10_sx_sy_w8n_sse4_1}},
+             {// w == 4
+              {blend_a64_mask_b10_w4_sse4_1, blend_a64_mask_b10_sy_w4_sse4_1},
+              {blend_a64_mask_b10_sx_w4_sse4_1, blend_a64_mask_b10_sx_sy_w4_sse4_1}}},
+            {// bd == 12
+             {// w % 8 == 0
+              {blend_a64_mask_b12_w8n_sse4_1, blend_a64_mask_b12_sy_w8n_sse4_1},
+              {blend_a64_mask_b12_sx_w8n_sse4_1, blend_a64_mask_b12_sx_sy_w8n_sse4_1}},
+             {// w == 4
+              {blend_a64_mask_b12_w4_sse4_1, blend_a64_mask_b12_sy_w4_sse4_1},
+              {blend_a64_mask_b12_sx_w4_sse4_1, blend_a64_mask_b12_sx_sy_w4_sse4_1}}}};
         blend[bd == 12][(w >> 2) & 1][subw != 0][subh != 0](
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, mask_stride, w, h);
     }
 }
-void eb_aom_highbd_blend_a64_hmask_sse4_1(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
-                                          uint32_t src0_stride, const uint16_t *src1,
-                                          uint32_t src1_stride, const uint8_t *mask, int w, int h,
-                                          int bd) {
-    eb_aom_highbd_blend_a64_mask_sse4_1(
+void eb_aom_highbd_blend_a64_hmask_sse4_1_16bit(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+                                                uint32_t src0_stride, const uint16_t *src1,
+                                                uint32_t src1_stride, const uint8_t *mask, int w, int h,
+                                                int bd) {
+    eb_aom_highbd_blend_a64_mask_sse4_1_16bit(
         dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, 0, w, h, 0, 0, bd);
 }
 
-void eb_aom_highbd_blend_a64_vmask_sse4_1(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
-                                          uint32_t src0_stride, const uint16_t *src1,
-                                          uint32_t src1_stride, const uint8_t *mask, int w, int h,
-                                          int bd) {
+void eb_aom_highbd_blend_a64_vmask_sse4_1_16bit(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+                                                uint32_t src0_stride, const uint16_t *src1,
+                                                uint32_t src1_stride, const uint8_t *mask, int w, int h,
+                                                int bd) {
     typedef void (*BlendFn)(uint16_t * dst,
                              uint32_t        dst_stride,
                              const uint16_t *src0,
@@ -1305,18 +1294,6 @@ void eb_aom_highbd_blend_a64_vmask_sse4_1(uint16_t *dst, uint32_t dst_stride, co
                              const uint8_t * mask,
                              int             w,
                              int             h);
-
-    // Dimensions are: bd_index X width_index
-    static const BlendFn blend[2][2] = {{
-                                             // bd == 8 or 10
-                                             blend_a64_vmask_b10_w8n_sse4_1, // w % 8 == 0
-                                             blend_a64_vmask_b10_w4_sse4_1, // w == 4
-                                         },
-                                         {
-                                             // bd == 12
-                                             blend_a64_vmask_b12_w8n_sse4_1, // w % 8 == 0
-                                             blend_a64_vmask_b12_w4_sse4_1, // w == 4
-                                         }};
 
     assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
     assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
@@ -1329,13 +1306,23 @@ void eb_aom_highbd_blend_a64_vmask_sse4_1(uint16_t *dst, uint32_t dst_stride, co
     assert(bd == 8 || bd == 10 || bd == 12);
 
     if (UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        eb_aom_highbd_blend_a64_vmask_c(
+        eb_aom_highbd_blend_a64_vmask_c_16bit(
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, w, h, bd);
     } else {
         //uint16_t *const dst = CONVERT_TO_SHORTPTR(dst_8);
         //const uint16_t *const src0 = CONVERT_TO_SHORTPTR(src0_8);
         //const uint16_t *const src1 = CONVERT_TO_SHORTPTR(src1_8);
-
+        // Dimensions are: bd_index X width_index
+        static const BlendFn blend[2][2] = {{
+                                                // bd == 8 or 10
+                                                blend_a64_vmask_b10_w8n_sse4_1, // w % 8 == 0
+                                                blend_a64_vmask_b10_w4_sse4_1, // w == 4
+                                            },
+                                            {
+                                                // bd == 12
+                                                blend_a64_vmask_b12_w8n_sse4_1, // w % 8 == 0
+                                                blend_a64_vmask_b12_w4_sse4_1, // w == 4
+                                            }};
         blend[bd == 12][(w >> 2) & 1](
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, w, h);
     }

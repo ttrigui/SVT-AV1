@@ -1,6 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+* Copyright (c) 2019, Alliance for Open Media. All rights reserved
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbIntraPrediction_h
@@ -148,7 +155,7 @@ extern int32_t intra_has_bottom_left(BlockSize sb_size, BlockSize bsize, int32_t
                                      int32_t left_available, PartitionType partition, TxSize txsz,
                                      int32_t row_off, int32_t col_off, int32_t ss_x, int32_t ss_y);
 
-extern IntraPredFn pred[INTRA_MODES][TX_SIZES_ALL];
+extern IntraPredFn eb_pred[INTRA_MODES][TX_SIZES_ALL];
 extern IntraPredFn dc_pred[2][2][TX_SIZES_ALL];
 
 extern IntraHighPredFn pred_high[INTRA_MODES][TX_SIZES_ALL];
@@ -235,6 +242,18 @@ static INLINE int32_t cfl_idx_to_alpha(int32_t alpha_idx, int32_t joint_sign,
     return (alpha_sign == CFL_SIGN_POS) ? abs_alpha_q3 + 1 : -abs_alpha_q3 - 1;
 }
 
+    extern void filter_intra_edge(OisMbResults *ois_mb_results_ptr, uint8_t mode, uint16_t max_frame_width, uint16_t max_frame_height,
+                              int32_t p_angle, int32_t cu_origin_x, int32_t cu_origin_y, uint8_t *above_row, uint8_t *left_col);
+    extern EbErrorType intra_prediction_open_loop_mb(
+         int32_t  p_angle ,
+        uint8_t                          ois_intra_mode,
+        uint32_t                         srcOriginX,
+        uint32_t                         srcOriginY,
+        TxSize                          tx_size,
+        uint8_t                         *above_row,
+        uint8_t                         *left_col,
+        uint8_t                         *dst,
+        uint32_t                        dst_stride);
 /* Function pointers return by CfL functions */
 typedef void (*CflSubtractAverageFn)(int16_t *dst);
 
@@ -301,7 +320,7 @@ static INLINE int get_palette_bsize_ctx(BlockSize bsize) {
     return num_pels_log2_lookup[bsize] - num_pels_log2_lookup[BLOCK_8X8];
 }
 
-static INLINE EbBool av1_use_angle_delta(BlockSize bsize) { return bsize >= BLOCK_8X8; }
+static INLINE EbBool av1_use_angle_delta(BlockSize bsize, uint8_t enable_angle_delta) { return (enable_angle_delta ? bsize >= BLOCK_8X8 : (EbBool)enable_angle_delta); }
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -9,7 +15,7 @@
 #include "EbNeighborArrays.h"
 #include "EbUtility.h"
 #include "EbPictureOperators.h"
-
+#include "common_dsp_rtcd.h"
 #define UNUSED(x) (void)(x)
 
 static void neighbor_array_unit_dctor32(EbPtr p) {
@@ -28,9 +34,9 @@ EbErrorType neighbor_array_unit_ctor32(NeighborArrayUnit32 *na_unit_ptr, uint32_
     na_unit_ptr->dctor                     = neighbor_array_unit_dctor32;
     na_unit_ptr->unit_size                 = (uint8_t)(unit_size);
     na_unit_ptr->granularity_normal        = (uint8_t)(granularity_normal);
-    na_unit_ptr->granularity_normal_log2   = (uint8_t)(Log2f(na_unit_ptr->granularity_normal));
+    na_unit_ptr->granularity_normal_log2   = (uint8_t)(eb_log2f(na_unit_ptr->granularity_normal));
     na_unit_ptr->granularity_top_left      = (uint8_t)(granularity_top_left);
-    na_unit_ptr->granularity_top_left_log2 = (uint8_t)(Log2f(na_unit_ptr->granularity_top_left));
+    na_unit_ptr->granularity_top_left_log2 = (uint8_t)(eb_log2f(na_unit_ptr->granularity_top_left));
     na_unit_ptr->left_array_size =
         (uint16_t)((type_mask & NEIGHBOR_ARRAY_UNIT_LEFT_MASK)
                        ? max_picture_height >> na_unit_ptr->granularity_normal_log2
@@ -73,9 +79,9 @@ EbErrorType neighbor_array_unit_ctor(NeighborArrayUnit *na_unit_ptr, uint32_t ma
     na_unit_ptr->dctor                     = neighbor_array_unit_dctor;
     na_unit_ptr->unit_size                 = (uint8_t)(unit_size);
     na_unit_ptr->granularity_normal        = (uint8_t)(granularity_normal);
-    na_unit_ptr->granularity_normal_log2   = (uint8_t)(Log2f(na_unit_ptr->granularity_normal));
+    na_unit_ptr->granularity_normal_log2   = (uint8_t)(eb_log2f(na_unit_ptr->granularity_normal));
     na_unit_ptr->granularity_top_left      = (uint8_t)(granularity_top_left);
-    na_unit_ptr->granularity_top_left_log2 = (uint8_t)(Log2f(na_unit_ptr->granularity_top_left));
+    na_unit_ptr->granularity_top_left_log2 = (uint8_t)(eb_log2f(na_unit_ptr->granularity_top_left));
     na_unit_ptr->left_array_size =
         (uint16_t)((type_mask & NEIGHBOR_ARRAY_UNIT_LEFT_MASK)
                        ? max_picture_height >> na_unit_ptr->granularity_normal_log2
@@ -166,12 +172,12 @@ void update_recon_neighbor_array(NeighborArrayUnit *na_unit_ptr, uint8_t *src_pt
 
     dst_ptr = na_unit_ptr->top_array +
               get_neighbor_array_unit_top_index(na_unit_ptr, pic_origin_x) * na_unit_ptr->unit_size;
-    EB_MEMCPY(dst_ptr, src_ptr_top, block_width);
+    eb_memcpy(dst_ptr, src_ptr_top, block_width);
 
     dst_ptr =
         na_unit_ptr->left_array +
         get_neighbor_array_unit_left_index(na_unit_ptr, pic_origin_y) * na_unit_ptr->unit_size;
-    EB_MEMCPY(dst_ptr, src_ptr_left, block_height);
+    eb_memcpy(dst_ptr, src_ptr_left, block_height);
 
     //na_unit_ptr->top_left_array[ (MAX_PICTURE_HEIGHT_SIZE>>is_chroma) + pic_origin_x - pic_origin_y] = srcPtr2[block_height-1];
 
@@ -212,7 +218,7 @@ void update_recon_neighbor_array(NeighborArrayUnit *na_unit_ptr, uint8_t *src_pt
             na_unit_ptr, pic_origin_x, pic_origin_y + (block_height - 1)) *
             na_unit_ptr->unit_size;
 
-    EB_MEMCPY(dst_ptr, read_ptr, block_width);
+    eb_memcpy(dst_ptr, read_ptr, block_width);
 
     // Reset read_ptr to the right-column
     read_ptr = src_ptr_left; // + (block_width - 1);
@@ -247,12 +253,12 @@ void update_recon_neighbor_array16bit(NeighborArrayUnit *na_unit_ptr, uint16_t *
     dst_ptr = (uint16_t *)(na_unit_ptr->top_array +
                            get_neighbor_array_unit_top_index(na_unit_ptr, pic_origin_x) *
                                na_unit_ptr->unit_size);
-    EB_MEMCPY(dst_ptr, src_ptr_top, block_width * sizeof(uint16_t));
+    eb_memcpy(dst_ptr, src_ptr_top, block_width * sizeof(uint16_t));
 
     dst_ptr = (uint16_t *)(na_unit_ptr->left_array +
                            get_neighbor_array_unit_left_index(na_unit_ptr, pic_origin_y) *
                                na_unit_ptr->unit_size);
-    EB_MEMCPY(dst_ptr, src_ptr_left, block_height * sizeof(uint16_t));
+    eb_memcpy(dst_ptr, src_ptr_left, block_height * sizeof(uint16_t));
 
     //   Top-left Neighbor Array
     uint32_t  idx;
@@ -266,7 +272,7 @@ void update_recon_neighbor_array16bit(NeighborArrayUnit *na_unit_ptr, uint16_t *
                            get_neighbor_array_unit_top_left_index(
                                na_unit_ptr, pic_origin_x, pic_origin_y + (block_height - 1)) *
                                na_unit_ptr->unit_size);
-    EB_MEMCPY(dst_ptr, read_ptr, block_width * sizeof(uint16_t));
+    eb_memcpy(dst_ptr, read_ptr, block_width * sizeof(uint16_t));
 
     // Reset read_ptr to the right-column
     read_ptr = src_ptr_left;
@@ -408,7 +414,7 @@ void neighbor_array_unit_sample_write(NeighborArrayUnit *na_unit_ptr, uint8_t *s
                       na_unit_ptr, pic_origin_x, pic_origin_y + (block_height - 1)) *
                       na_unit_ptr->unit_size;
 
-        EB_MEMCPY(dst_ptr, read_ptr, block_width);
+        eb_memcpy(dst_ptr, read_ptr, block_width);
 
         // Reset read_ptr to the right-column
         read_ptr = src_ptr + (block_width - 1);
@@ -477,8 +483,6 @@ void neighbor_array_unit16bit_sample_write(NeighborArrayUnit *na_unit_ptr, uint1
                   get_neighbor_array_unit_top_index(na_unit_ptr,
                                                     pic_origin_x); //CHKN * na_unit_ptr->unit_size;
 
-        dst_step  = na_unit_ptr->unit_size;
-        read_step = na_unit_ptr->unit_size;
         count     = block_width;
 
         for (idx = 0; idx < count; ++idx) {
@@ -736,7 +740,7 @@ void neighbor_array_unit_mode_write(NeighborArrayUnit *na_unit_ptr, uint8_t *val
         count = block_width >> na_unit_ptr->granularity_normal_log2;
 
         for (idx = 0; idx < count; ++idx) {
-            /* memcpy less that 10 bytes*/
+            /* eb_memcpy less that 10 bytes*/
             for (j = 0; j < na_unit_size; ++j) dst_ptr[j] = value[j];
 
             dst_ptr += na_unit_size;
@@ -767,7 +771,7 @@ void neighbor_array_unit_mode_write(NeighborArrayUnit *na_unit_ptr, uint8_t *val
         count = block_height >> na_unit_ptr->granularity_normal_log2;
 
         for (idx = 0; idx < count; ++idx) {
-            /* memcpy less that 10 bytes*/
+            /* eb_memcpy less that 10 bytes*/
             for (j = 0; j < na_unit_size; ++j) dst_ptr[j] = value[j];
 
             dst_ptr += na_unit_size;
@@ -804,7 +808,7 @@ void neighbor_array_unit_mode_write(NeighborArrayUnit *na_unit_ptr, uint8_t *val
         count = ((block_width + block_height) >> na_unit_ptr->granularity_top_left_log2) - 1;
 
         for (idx = 0; idx < count; ++idx) {
-            /* memcpy less that 10 bytes*/
+            /* eb_memcpy less that 10 bytes*/
             for (j = 0; j < na_unit_size; ++j) dst_ptr[j] = value[j];
 
             dst_ptr += na_unit_size;
@@ -833,7 +837,7 @@ void copy_neigh_arr(NeighborArrayUnit *na_src, NeighborArrayUnit *na_dst, uint32
         dst_ptr   = na_dst->top_array + na_offset * na_unit_size;
         count     = bw >> na_src->granularity_normal_log2;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
 
     if (neighbor_array_type_mask & NEIGHBOR_ARRAY_UNIT_LEFT_MASK) {
@@ -842,7 +846,7 @@ void copy_neigh_arr(NeighborArrayUnit *na_src, NeighborArrayUnit *na_dst, uint32
         dst_ptr   = na_dst->left_array + na_offset * na_unit_size;
         count     = bh >> na_src->granularity_normal_log2;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
 
     if (neighbor_array_type_mask & NEIGHBOR_ARRAY_UNIT_TOPLEFT_MASK) {
@@ -874,7 +878,7 @@ void copy_neigh_arr(NeighborArrayUnit *na_src, NeighborArrayUnit *na_dst, uint32
 
         count = ((bw + bh) >> na_src->granularity_top_left_log2) - 1;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
 
     return;
@@ -900,7 +904,7 @@ void copy_neigh_arr_32(NeighborArrayUnit32 *na_src, NeighborArrayUnit32 *na_dst,
         dst_ptr   = na_dst->top_array + na_offset;
         count     = bw >> na_src->granularity_normal_log2;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
 
     if (neighbor_array_type_mask & NEIGHBOR_ARRAY_UNIT_LEFT_MASK) {
@@ -909,7 +913,7 @@ void copy_neigh_arr_32(NeighborArrayUnit32 *na_src, NeighborArrayUnit32 *na_dst,
         dst_ptr   = na_dst->left_array + na_offset;
         count     = bh >> na_src->granularity_normal_log2;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
     if (neighbor_array_type_mask & NEIGHBOR_ARRAY_UNIT_TOPLEFT_MASK) {
         /*
@@ -941,7 +945,7 @@ void copy_neigh_arr_32(NeighborArrayUnit32 *na_src, NeighborArrayUnit32 *na_dst,
 
         count = ((bw + bh) >> na_src->granularity_top_left_log2) - 1;
 
-        EB_MEMCPY(dst_ptr, src_ptr, na_unit_size * count);
+        eb_memcpy(dst_ptr, src_ptr, na_unit_size * count);
     }
     return;
 }

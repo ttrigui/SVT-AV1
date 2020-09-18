@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "EbDefinitions.h"
@@ -44,7 +44,7 @@ static INLINE void unpack_2d_output(const float *col_fft, float *output, int32_t
                 output[2 * ((n - y) * n + x)] =
                     col_fft[y * n + x] + (x_extra && y_extra ? col_fft[y2 * n + x2] : 0);
                 output[2 * ((n - y) * n + x) + 1] =
-                    -(y_extra ? col_fft[y2 * n + x] : 0) + (x_extra ? col_fft[y * n + x2] : 0);
+                    -col_fft[y2 * n + x] + (x_extra ? col_fft[y * n + x2] : 0);
             }
         }
     }

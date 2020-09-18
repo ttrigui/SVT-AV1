@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -67,7 +63,6 @@ static INLINE MV dec_clamp_mv_to_umv_border_sb(int32_t mb_to_left_edge, int32_t 
     return clamped_mv;
 }
 
-#if MC_DYNAMIC_PAD
 #define OPT_DYN_PAD        0
 void *aom_memset16(void *dest, int val, size_t length) {
     size_t i;
@@ -127,7 +122,7 @@ static void highbd_build_mc_border(const uint8_t *src8, int32_t src_stride,
         y0 = y0 + top;
         for (int32_t i = 0; i < blk_fill_itt; i++) {
             aom_memset16((void *)dst_temp, ref_temp[0], left);
-            if (right) memcpy(dst_temp + left, ref_temp, right * sizeof(uint16_t));
+            if (right) eb_memcpy(dst_temp + left, ref_temp, right * sizeof(uint16_t));
             dst_temp += dst_stride;
             ++y0;
             if (y0 > 0 && y0 < h) ref_temp += src_stride;
@@ -146,7 +141,7 @@ static void highbd_build_mc_border(const uint8_t *src8, int32_t src_stride,
             ptr_ext = copy;
         }
         for (int32_t i = 0; i < blk_fill_itt; i++) {
-            if (copy) memcpy(dst_temp, ref_temp + x0, copy * sizeof(uint16_t));
+            if (copy) eb_memcpy(dst_temp, ref_temp + x0, copy * sizeof(uint16_t));
             if (set) aom_memset16((void *)(dst_temp + ptr_ext), ref_temp[w - 1], set);
             dst_temp += dst_stride;
             ++y0;
@@ -157,7 +152,7 @@ static void highbd_build_mc_border(const uint8_t *src8, int32_t src_stride,
     if (top) {
         dst_temp = dst + (top * dst_stride);
         for (int32_t i = 0; i < top; i++) {
-            memcpy(dst, dst_temp, b_w * sizeof(uint16_t));
+            eb_memcpy(dst, dst_temp, b_w * sizeof(uint16_t));
             dst += dst_stride;
         }
     }
@@ -167,7 +162,7 @@ static void highbd_build_mc_border(const uint8_t *src8, int32_t src_stride,
         dst = dst_temp;
         dst_temp -= dst_stride;
         for (int32_t i = 0; i < itt; i++) {
-            memcpy(dst, dst_temp, b_w * sizeof(uint16_t));
+            eb_memcpy(dst, dst_temp, b_w * sizeof(uint16_t));
             dst += dst_stride;
         }
     }
@@ -192,7 +187,7 @@ static void highbd_build_mc_border(const uint8_t *src8, int32_t src_stride,
 
         if (left) aom_memset16((void*)dst, ref_row[0], left);
 
-        if (copy) memcpy((void*)(dst + left), ref_row + x + left, copy * sizeof(uint16_t));
+        if (copy) eb_memcpy(dst + left, ref_row + x + left, copy * sizeof(uint16_t));
 
         if (right) aom_memset16((void*)(dst + left + copy), ref_row[w - 1], right);
 
@@ -256,7 +251,7 @@ static void build_mc_border(const uint8_t *ref_row, int32_t src_stride,
         y0 = y0 + top;
         for (int32_t i = 0; i < blk_fill_itt; i++) {
             memset(dst_temp, ref_temp[0], left);
-            if (right) memcpy(dst_temp + left, ref_temp, right);
+            if (right) eb_memcpy(dst_temp + left, ref_temp, right);
             dst_temp += dst_stride;
             ++y0;
             if (y0 > 0 && y0 < h) ref_temp += src_stride;
@@ -275,7 +270,7 @@ static void build_mc_border(const uint8_t *ref_row, int32_t src_stride,
             ptr_ext = copy;
         }
         for (int32_t i = 0; i < blk_fill_itt; i++) {
-            if (copy) memcpy(dst_temp, ref_temp + x0, copy);
+            if (copy) eb_memcpy(dst_temp, ref_temp + x0, copy);
             if (set) memset(dst_temp + ptr_ext, ref_temp[w - 1], set);
             dst_temp += dst_stride;
             ++y0;
@@ -286,7 +281,7 @@ static void build_mc_border(const uint8_t *ref_row, int32_t src_stride,
     if (top) {
         dst_temp = dst + (top * dst_stride);
         for (int32_t i = 0; i < top; i++) {
-            memcpy(dst, dst_temp, b_w);
+            eb_memcpy(dst, dst_temp, b_w);
             dst += dst_stride;
         }
     }
@@ -296,7 +291,7 @@ static void build_mc_border(const uint8_t *ref_row, int32_t src_stride,
         dst = dst_temp;
         dst_temp -= dst_stride;
         for (int32_t i = 0; i < itt; i++) {
-            memcpy(dst, dst_temp, b_w);
+            eb_memcpy(dst, dst_temp, b_w);
             dst += dst_stride;
         }
     }
@@ -321,7 +316,7 @@ static void build_mc_border(const uint8_t *ref_row, int32_t src_stride,
 
         if (left) memset(dst, ref_row[0], left);
 
-        if (copy) memcpy(dst + left, ref_row + x + left, copy);
+        if (copy) eb_memcpy(dst + left, ref_row + x + left, copy);
 
         if (right) memset(dst + left + copy, ref_row[w - 1], right);
 
@@ -399,19 +394,18 @@ static INLINE void extend_mc_border(void *src, int32_t *src_stride,
         *src_stride = b_w;
     }
 }
-#endif //MC_DYNAMIC_PAD
 
 void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, int32_t src_stride,
                               void *dst_mod, int32_t dst_stride, EbDecPicBuf *ref_buf,
                               int32_t pre_x, int32_t pre_y, int32_t bw, int32_t bh,
-                              ConvolveParams *conv_params, int32_t plane, int32_t do_warp) {
+                              ConvolveParams *conv_params, int32_t plane, int32_t do_warp, EbBool is_16bit) {
     const BlockModeInfo *mi         = part_info->mi;
     const int32_t        is_intrabc = is_intrabc_block(mi);
 
     const int32_t ss_x      = plane ? part_info->subsampling_x : 0;
     const int32_t ss_y      = plane ? part_info->subsampling_y : 0;
     int32_t       bit_depth = ref_buf->ps_pic_buf->bit_depth;
-    int32_t       highbd    = bit_depth > EB_8BIT;
+    int32_t       highbd = bit_depth > EB_8BIT || is_16bit;
 
     /*ScaleFactor*/
     const struct ScaleFactors *const sf =
@@ -422,10 +416,8 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
     void *       src_mod;
     SubpelParams subpel_params;
     do_warp = do_warp && !av1_is_scaled(sf);
-#if MC_DYNAMIC_PAD
     PadBlock block;
     MV32 scaled_mv;
-#endif
 
     const int32_t is_scaled = av1_is_scaled(sf);
     if (is_scaled) {
@@ -453,12 +445,6 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
         subpel_params.xs       = sf->x_step_q4;
         subpel_params.ys       = sf->y_step_q4;
 
-#if !MC_DYNAMIC_PAD
-        pos_y = pos_y >> SCALE_SUBPEL_BITS;
-        pos_x = pos_x >> SCALE_SUBPEL_BITS;
-#endif
-
-#if MC_DYNAMIC_PAD
         // Get reference block top left coordinate.
         block.x0 = pos_x >> SCALE_SUBPEL_BITS;;
         block.y0 = pos_y >> SCALE_SUBPEL_BITS;;
@@ -468,7 +454,6 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
             ((pos_x + (bw - 1) * subpel_params.xs) >> SCALE_SUBPEL_BITS) + 1;
         block.y1 =
             ((pos_y + (bh - 1) * subpel_params.ys) >> SCALE_SUBPEL_BITS) + 1;
-#endif //MC_DYNAMIC_PAD
 
         MV temp_mv;
         temp_mv = dec_clamp_mv_to_umv_border_sb(part_info->mb_to_left_edge,
@@ -480,17 +465,10 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
                                                 bh,
                                                 ss_x,
                                                 ss_y);
-#if !MC_DYNAMIC_PAD
-        MV32 scaled_mv;
-#endif
-        scaled_mv = av1_scale_mv(&temp_mv, (pre_x + 0), (pre_y + 0), sf);
+        scaled_mv = eb_av1_scale_mv(&temp_mv, (pre_x + 0), (pre_y + 0), sf);
         scaled_mv.row += SCALE_EXTRA_OFF;
         scaled_mv.col += SCALE_EXTRA_OFF;
-#if MC_DYNAMIC_PAD
         int32_t src_offset = (block.y0 * src_stride ) + block.x0;
-#else
-        int32_t src_offset = (pos_y * src_stride) + pos_x;
-#endif
         src_mod            = (void *)((uint8_t *)src + (src_offset << highbd));
     } else {
         mv_q4 = dec_clamp_mv_to_umv_border_sb(part_info->mb_to_left_edge,
@@ -504,7 +482,6 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
                                               ss_y);
 
 
-#if MC_DYNAMIC_PAD
         // Get block position in current frame.
         int pos_x = (pre_x + 0) << SUBPEL_BITS;
         int pos_y = (pre_y + 0) << SUBPEL_BITS;
@@ -519,7 +496,6 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
         block.y1 = (pos_y >> SUBPEL_BITS) + (bh - 1) + 1;
         scaled_mv.row =(int32_t) mv_q4.row;
         scaled_mv.col = (int32_t)mv_q4.col;
-#endif //MC_DYNAMIC_PAD
         int32_t src_offset = (((pre_y) + (mv_q4.row >> SUBPEL_BITS)) * src_stride) + (pre_x) +
                              (mv_q4.col >> SUBPEL_BITS);
         src_mod = (void *)((uint8_t *)src + (src_offset << highbd));
@@ -530,22 +506,19 @@ void svt_make_inter_predictor(PartitionInfo *part_info, int32_t ref, void *src, 
         subpel_params.subpel_y = (mv_q4.row & SUBPEL_MASK) << SCALE_EXTRA_BITS;
     }
 
-#if MC_DYNAMIC_PAD
     if ((!do_warp && !is_intrabc) || (is_scaled && !do_warp && !is_intrabc)) {
         extend_mc_border(src, &src_stride, &block, scaled_mv, sf, highbd,
             part_info->mc_buf[ref], ref_buf, &src_mod, ss_x, ss_y);
     }
-#endif
     assert(IMPLIES(is_intrabc, !do_warp));
 
     if (do_warp) {
-        const EbWarpedMotionParams *wm_params = &default_warp_params;
-
         const EbWarpedMotionParams *const wm_global =
             &part_info->ps_global_motion[mi->ref_frame[ref]];
         const EbWarpedMotionParams *const wm_local = &part_info->local_warp_params;
 
-        wm_params = (mi->motion_mode == WARPED_CAUSAL) ? wm_local : wm_global;
+        const EbWarpedMotionParams *wm_params = mi->motion_mode == WARPED_CAUSAL ? wm_local
+                                                                                 : wm_global;
 
         eb_av1_warp_plane((EbWarpedMotionParams *)wm_params,
                           highbd,
@@ -597,7 +570,7 @@ void svt_make_masked_inter_predictor(PartitionInfo *part_info, int32_t ref, void
                                      int32_t src_stride, void *dst_ptr, int32_t dst_stride,
                                      EbDecPicBuf *ref_buf, int32_t pre_x, int32_t pre_y, int32_t bw,
                                      int32_t bh, ConvolveParams *conv_params, int32_t plane,
-                                     uint8_t *seg_mask, int32_t do_warp) {
+                                     uint8_t *seg_mask, int32_t do_warp, EbBool is_16bit) {
     InterInterCompoundData *comp_data = &part_info->mi->inter_inter_compound;
     const BlockSize         bsize     = part_info->mi->sb_type;
     int32_t                 bit_depth = ref_buf->ps_pic_buf->bit_depth;
@@ -632,22 +605,23 @@ void svt_make_masked_inter_predictor(PartitionInfo *part_info, int32_t ref, void
                              bh,
                              conv_params,
                              plane,
-                             do_warp);
+                             do_warp,
+                             is_16bit);
 
     if (!plane && comp_data->type == COMPOUND_DIFFWTD) {
         //CHKN  for DIFF: need to compute the mask  comp_data->seg_mask is
         //the output computed from the two preds org_dst and tmp_buf16
         //for WEDGE the mask is fixed from the table based on wedge_sign/index
-        av1_build_compound_diffwtd_mask_d16(seg_mask,
-                                            comp_data->mask_type,
-                                            org_dst,
-                                            org_dst_stride,
-                                            tmp_buf16,
-                                            tmp_buf_stride,
-                                            bh,
-                                            bw,
-                                            conv_params,
-                                            bit_depth);
+        eb_av1_build_compound_diffwtd_mask_d16(seg_mask,
+                                               comp_data->mask_type,
+                                               org_dst,
+                                               org_dst_stride,
+                                               tmp_buf16,
+                                               tmp_buf_stride,
+                                               bh,
+                                               bw,
+                                               conv_params,
+                                               bit_depth);
     }
 
     build_masked_compound_no_round((uint8_t *)dst_ptr,
@@ -662,18 +636,19 @@ void svt_make_masked_inter_predictor(PartitionInfo *part_info, int32_t ref, void
                                    bh,
                                    bw,
                                    conv_params,
-                                   (uint8_t)bit_depth);
+                                   (uint8_t)bit_depth,
+                                   is_16bit);
 }
 
 void av1_combine_interintra(PartitionInfo *part_info, BlockSize bsize, int plane,
                             uint8_t *inter_pred, int inter_stride, uint8_t *intra_pred,
-                            int intra_stride, EbBitDepthEnum bit_depth) {
+                            int intra_stride, EbBitDepthEnum bit_depth, EbBool is_16bit) {
     BlockModeInfo * mi          = part_info->mi;
     int32_t         sub_x       = (plane > 0) ? part_info->subsampling_x : 0;
     int32_t         sub_y       = (plane > 0) ? part_info->subsampling_y : 0;
     const BlockSize plane_bsize = get_plane_block_size(bsize, sub_x, sub_y);
 
-    if (bit_depth > EB_8BIT) {
+    if (bit_depth > EB_8BIT || is_16bit) {
         /*As per spec we r considering interitra_wedge_sign is always "zero"*/
         /*Check buffers, Aom  2nd time inter_pred buffer plane is plane independent */
         combine_interintra_highbd(mi->interintra_mode_params.interintra_mode,
@@ -711,6 +686,8 @@ void av1_build_intra_predictors_for_interintra(DecModCtxt *dec_mod_ctxt, Partiti
                                                void *pv_blk_recon_buf, int32_t recon_stride,
                                                BlockSize bsize, int32_t plane, uint8_t *dst,
                                                int dst_stride, EbBitDepthEnum bit_depth) {
+    EbDecHandle *dec_handle = (EbDecHandle *)dec_mod_ctxt->dec_handle_ptr;
+    EbBool is16b = dec_handle->is_16bit_pipeline;
     BlockModeInfo *mi          = part_info->mi;
     int32_t        sub_x       = (plane > 0) ? part_info->subsampling_x : 0;
     int32_t        sub_y       = (plane > 0) ? part_info->subsampling_y : 0;
@@ -724,7 +701,7 @@ void av1_build_intra_predictors_for_interintra(DecModCtxt *dec_mod_ctxt, Partiti
 
     void *pv_top_neighbor_array, *pv_left_neighbor_array;
 
-    if (bit_depth == EB_8BIT) {
+    if (bit_depth == EB_8BIT && !is16b) {
         EbByte buf = (EbByte)pv_blk_recon_buf;
 
         pv_top_neighbor_array  = (void *)(buf - recon_stride);
@@ -749,14 +726,15 @@ void av1_build_intra_predictors_for_interintra(DecModCtxt *dec_mod_ctxt, Partiti
                                mode,
                                0,
                                0,
-                               bit_depth);
+                               bit_depth,
+                               is16b);
 }
 
 /* Build interintra_predictors */
 void av1_build_interintra_predictors(DecModCtxt *dec_mod_ctxt, PartitionInfo *part_info, void *pred,
                                      int32_t stride, int plane, BlockSize bsize,
-                                     EbBitDepthEnum bit_depth) {
-    if (bit_depth > EB_8BIT) {
+                                     EbBitDepthEnum bit_depth, EbBool is_16bit) {
+    if (bit_depth > EB_8BIT || is_16bit) {
         DECLARE_ALIGNED(16, uint16_t, intrapredictor[MAX_SB_SQUARE]);
         av1_build_intra_predictors_for_interintra(dec_mod_ctxt,
                                                   part_info,
@@ -774,7 +752,8 @@ void av1_build_interintra_predictors(DecModCtxt *dec_mod_ctxt, PartitionInfo *pa
                                stride,
                                (uint8_t *)intrapredictor,
                                MAX_SB_SIZE,
-                               bit_depth);
+                               bit_depth,
+                               is_16bit);
     } else {
         DECLARE_ALIGNED(16, uint8_t, intrapredictor[MAX_SB_SQUARE]);
         av1_build_intra_predictors_for_interintra(dec_mod_ctxt,
@@ -787,7 +766,7 @@ void av1_build_interintra_predictors(DecModCtxt *dec_mod_ctxt, PartitionInfo *pa
                                                   MAX_SB_SIZE,
                                                   bit_depth);
         av1_combine_interintra(
-            part_info, bsize, plane, pred, stride, intrapredictor, MAX_SB_SIZE, bit_depth);
+            part_info, bsize, plane, pred, stride, intrapredictor, MAX_SB_SIZE, bit_depth, is_16bit);
     }
 }
 
@@ -800,15 +779,15 @@ void svtav1_predict_inter_block_plane(DecModCtxt *dec_mod_ctx, EbDecHandle *dec_
     const FrameHeader *  cur_frm_hdr = dec_mod_ctx->frame_header;
     SeqHeader *          seq_header  = dec_mod_ctx->seq_header;
     int32_t              is_compound = has_second_ref(mi);
-    int32_t              ref;
     const int32_t        is_intrabc = is_intrabc_block(mi);
 
     //temporary buffer for joint compound, move this to context if stack does not hold.
     DECLARE_ALIGNED(32, uint16_t, tmp_dst[128 * 128]);
 
-    int32_t highbd = bit_depth > EB_8BIT;
+    EbBool is16b = (bit_depth > EB_8BIT) || dec_hdl->is_16bit_pipeline;
 
     const BlockSize bsize     = mi->sb_type;
+    assert(bsize < BlockSizeS_ALL);
     const int32_t   ss_x      = plane ? part_info->subsampling_x : 0;
     const int32_t   ss_y      = plane ? part_info->subsampling_y : 0;
     int32_t         bw        = part_info->wpx[0] >> ss_x;
@@ -842,96 +821,98 @@ void svtav1_predict_inter_block_plane(DecModCtxt *dec_mod_ctx, EbDecHandle *dec_
     const int32_t pre_x = (mi_x + MI_SIZE * col_start) >> ss_x;
     const int32_t pre_y = (mi_y + MI_SIZE * row_start) >> ss_y;
 
-    int32_t dst_offset =
-        ((MI_SIZE * col_start) >> ss_x) + ((MI_SIZE * row_start * dst_stride) >> ss_y);
-    void *dst_mod = (void *)((uint8_t *)dst + (dst_offset << highbd));
+    const int32_t dst_offset = gcc_right_shift(MI_SIZE * col_start, ss_x) +
+        gcc_right_shift(MI_SIZE * row_start * dst_stride, ss_y);
+    void *dst_mod = (void *)((uint8_t *)dst + (dst_offset << is16b));
 
     assert(IMPLIES(is_intrabc, !is_compound));
-    {
-        ConvolveParams conv_params =
-            get_conv_params_no_round(0, 0, plane, tmp_dst, MAX_SB_SIZE, is_compound, bit_depth);
+    ConvolveParams conv_params = get_conv_params_no_round(
+        0, 0, plane, tmp_dst, MAX_SB_SIZE, is_compound, bit_depth);
 
-        int bck_frame_index = 0, fwd_frame_index = 0;
-        int cur_frame_index = cur_frm_hdr->order_hint;
+    int bck_frame_index = 0, fwd_frame_index = 0;
+    int cur_frame_index = cur_frm_hdr->order_hint;
 
-        EbDecPicBuf *bck_buf = get_ref_frame_buf(dec_hdl, mi->ref_frame[0]);
-        EbDecPicBuf *fwd_buf = get_ref_frame_buf(dec_hdl, mi->ref_frame[1]);
+    EbDecPicBuf *bck_buf = get_ref_frame_buf(dec_hdl, mi->ref_frame[0]);
+    EbDecPicBuf *fwd_buf = get_ref_frame_buf(dec_hdl, mi->ref_frame[1]);
 
-        if (bck_buf != NULL) bck_frame_index = bck_buf->order_hint;
-        if (fwd_buf != NULL) fwd_frame_index = fwd_buf->order_hint;
+    if (bck_buf != NULL)
+        bck_frame_index = bck_buf->order_hint;
+    if (fwd_buf != NULL)
+        fwd_frame_index = fwd_buf->order_hint;
 
-        /*Distantance WTD compound inter prediction */
-        av1_dist_wtd_comp_weight_assign(seq_header,
-                                        cur_frame_index,
-                                        bck_frame_index,
-                                        fwd_frame_index,
-                                        (int)mi->compound_idx,
-                                        0,
-                                        &conv_params.fwd_offset,
-                                        &conv_params.bck_offset,
-                                        &conv_params.use_dist_wtd_comp_avg,
-                                        is_compound);
-        conv_params.use_jnt_comp_avg = conv_params.use_dist_wtd_comp_avg;
+    /*Distantance WTD compound inter prediction */
+    eb_av1_dist_wtd_comp_weight_assign(seq_header,
+                                       cur_frame_index,
+                                       bck_frame_index,
+                                       fwd_frame_index,
+                                       (int)mi->compound_idx,
+                                       0,
+                                       &conv_params.fwd_offset,
+                                       &conv_params.bck_offset,
+                                       &conv_params.use_dist_wtd_comp_avg,
+                                       is_compound);
+    conv_params.use_jnt_comp_avg = conv_params.use_dist_wtd_comp_avg;
 
-        for (ref = 0; ref < 1 + is_compound; ++ref) {
-            const int32_t                     mode = mi->mode;
-            const EbWarpedMotionParams *const wm_global =
-                &part_info->ps_global_motion[mi->ref_frame[ref]];
+    for (int32_t ref = 0; ref < 1 + is_compound; ++ref) {
+        const int32_t                     mode = mi->mode;
+        const EbWarpedMotionParams *const wm_global =
+            &part_info->ps_global_motion[mi->ref_frame[ref]];
 
-            EbDecPicBuf *ref_buf = is_intrabc ? dec_hdl->cur_pic_buf[0]
-                                              : get_ref_frame_buf(dec_hdl, mi->ref_frame[ref]);
-            EbPictureBufferDesc *ps_ref_pic_buf = ref_buf->ps_pic_buf;
+        EbDecPicBuf *ref_buf = is_intrabc ? dec_hdl->cur_pic_buf[0]
+                                          : get_ref_frame_buf(dec_hdl, mi->ref_frame[ref]);
+        EbPictureBufferDesc *ps_ref_pic_buf = ref_buf->ps_pic_buf;
 
-            int32_t do_warp =
-                (bw >= 8 && bh >= 8 && !build_for_obmc && (cur_frm_hdr->force_integer_mv == 0) &&
-                 (((mode == GLOBALMV || mode == GLOBAL_GLOBALMV) &&
-                   (wm_global->wmtype > TRANSLATION)) ||
-                  (mi->motion_mode == WARPED_CAUSAL)));
+        int32_t do_warp = (bw >= 8 && bh >= 8 && !build_for_obmc &&
+                           (cur_frm_hdr->force_integer_mv == 0) &&
+                           (((mode == GLOBALMV || mode == GLOBAL_GLOBALMV) &&
+                             (wm_global->wmtype > TRANSLATION)) ||
+                            (mi->motion_mode == WARPED_CAUSAL)));
 
-            void *  src;
-            int32_t src_stride;
+        void *  src;
+        int32_t src_stride;
 
-            derive_blk_pointers(ps_ref_pic_buf, plane, 0, 0, &src, &src_stride, ss_x, ss_y);
+        derive_blk_pointers(ps_ref_pic_buf, plane, 0, 0, &src, &src_stride, ss_x, ss_y);
 
-            conv_params.do_average = ref;
-            /*support masked inter prediction based on WEDGE / DIFFWTD compound type */
-            if (is_masked_compound_type(mi->inter_inter_compound.type)) {
-                // masked compound type has its own average mechanism
-                conv_params.do_average = 0;
-            }
+        conv_params.do_average = ref;
+        /*support masked inter prediction based on WEDGE / DIFFWTD compound type */
+        if (is_masked_compound_type(mi->inter_inter_compound.type)) {
+            // masked compound type has its own average mechanism
+            conv_params.do_average = 0;
+        }
 
-            if (ref && is_masked_compound_type(mi->inter_inter_compound.type)) {
-                svt_make_masked_inter_predictor(part_info,
-                                                ref,
-                                                src,
-                                                src_stride,
-                                                dst_mod,
-                                                dst_stride,
-                                                ref_buf,
-                                                pre_x,
-                                                pre_y,
-                                                bw,
-                                                bh,
-                                                &conv_params,
-                                                plane,
-                                                dec_mod_ctx->seg_mask,
-                                                do_warp);
-            } else {
-                svt_make_inter_predictor(part_info,
-                                         ref,
-                                         src,
-                                         src_stride,
-                                         dst_mod,
-                                         dst_stride,
-                                         ref_buf,
-                                         pre_x,
-                                         pre_y,
-                                         bw,
-                                         bh,
-                                         &conv_params,
-                                         plane,
-                                         do_warp);
-            }
+        if (ref && is_masked_compound_type(mi->inter_inter_compound.type)) {
+            svt_make_masked_inter_predictor(part_info,
+                                            ref,
+                                            src,
+                                            src_stride,
+                                            dst_mod,
+                                            dst_stride,
+                                            ref_buf,
+                                            pre_x,
+                                            pre_y,
+                                            bw,
+                                            bh,
+                                            &conv_params,
+                                            plane,
+                                            dec_mod_ctx->seg_mask,
+                                            do_warp,
+                                            is16b);
+        } else {
+            svt_make_inter_predictor(part_info,
+                                     ref,
+                                     src,
+                                     src_stride,
+                                     dst_mod,
+                                     dst_stride,
+                                     ref_buf,
+                                     pre_x,
+                                     pre_y,
+                                     bw,
+                                     bh,
+                                     &conv_params,
+                                     plane,
+                                     do_warp,
+                                     is16b);
         }
     }
 }
@@ -1002,7 +983,8 @@ void svtav1_predict_inter_block(DecModCtxt *dec_mod_ctxt, EbDecHandle *dec_hdl,
                                             recon_stride,
                                             plane,
                                             bsize,
-                                            recon_picture_buf->bit_depth);
+                                            recon_picture_buf->bit_depth,
+                                            dec_hdl->is_16bit_pipeline);
         }
     }
     if (part_info->mi->motion_mode == OBMC_CAUSAL) {

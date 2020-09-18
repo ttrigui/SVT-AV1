@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbTransQuantBuffers.h"
@@ -14,12 +20,12 @@ static void eb_trans_quant_buffers_dctor(EbPtr p) {
     EB_DELETE(obj->txb_quant_coeff_n2x_n2_ptr);
 }
 
-EbErrorType eb_trans_quant_buffers_ctor(EbTransQuantBuffers* trans_quant_buffers_ptr) {
+EbErrorType eb_trans_quant_buffers_ctor(EbTransQuantBuffers* trans_quant_buffers_ptr, uint8_t sb_size) {
     EbPictureBufferDescInitData trans_coeff_init_array;
 
     trans_quant_buffers_ptr->dctor            = eb_trans_quant_buffers_dctor;
-    trans_coeff_init_array.max_width          = SB_STRIDE_Y;
-    trans_coeff_init_array.max_height         = SB_STRIDE_Y;
+    trans_coeff_init_array.max_width          = sb_size;
+    trans_coeff_init_array.max_height         = sb_size;
     trans_coeff_init_array.bit_depth          = EB_16BIT;
     trans_coeff_init_array.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
     trans_coeff_init_array.color_format       = EB_YUV420;
@@ -30,8 +36,8 @@ EbErrorType eb_trans_quant_buffers_ctor(EbTransQuantBuffers* trans_quant_buffers
     trans_coeff_init_array.split_mode         = EB_FALSE;
 
     EbPictureBufferDescInitData trans_coeff_32bit_init_array;
-    trans_coeff_32bit_init_array.max_width          = SB_STRIDE_Y;
-    trans_coeff_32bit_init_array.max_height         = SB_STRIDE_Y;
+    trans_coeff_32bit_init_array.max_width          = sb_size;
+    trans_coeff_32bit_init_array.max_height         = sb_size;
     trans_coeff_32bit_init_array.bit_depth          = EB_32BIT;
     trans_coeff_32bit_init_array.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
     trans_coeff_32bit_init_array.color_format       = EB_YUV420;

@@ -5,7 +5,7 @@
 typedef struct { int x, y; } xy;
 typedef unsigned char byte;
 
-int aom_fast9_corner_score(const byte* p, const int pixel[], int bstart)
+static int aom_fast9_corner_score(const byte* p, const int pixel[], int bstart)
 {
   int bmin = bstart;
   int bmax = 255;
@@ -2958,7 +2958,7 @@ static void make_offsets(int pixel[], int row_stride)
 
 
 
-int* aom_fast9_score(const byte* i, int stride, xy* corners, int num_corners, int b)
+int* svt_aom_fast9_score(const byte* i, int stride, xy* corners, int num_corners, int b)
 {
   int* scores = (int*)malloc(sizeof(int)* num_corners);
   int n;
@@ -2973,7 +2973,7 @@ int* aom_fast9_score(const byte* i, int stride, xy* corners, int num_corners, in
 }
 
 
-xy* aom_fast9_detect(const byte* im, int xsize, int ysize, int stride, int b, int* ret_num_corners)
+xy* svt_aom_fast9_detect(const byte* im, int xsize, int ysize, int stride, int b, int* ret_num_corners)
 {
   int num_corners=0;
   xy* ret_corners;
@@ -5895,7 +5895,13 @@ xy* aom_fast9_detect(const byte* im, int xsize, int ysize, int stride, int b, in
       if(num_corners == rsize)
       {
         rsize*=2;
-        ret_corners = (xy*)realloc(ret_corners, sizeof(xy)*rsize);
+        xy* temp = (xy*)realloc(ret_corners, sizeof(*temp)*rsize);
+        if (temp)
+          ret_corners = temp;
+        else {
+          free(ret_corners);
+          return NULL;
+        }
       }
       ret_corners[num_corners].x = x;
       ret_corners[num_corners].y = y;

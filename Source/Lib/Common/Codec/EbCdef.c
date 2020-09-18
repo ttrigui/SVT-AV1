@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "EbCdef.h"
@@ -105,7 +105,7 @@ edge), so we can apply more deringing. A low variance means that we
 either have a low contrast edge, or a non-directional texture, so
 we want to be careful not to blur. */
 static INLINE int32_t adjust_strength(int32_t strength, int32_t var) {
-    const int32_t i = var >> 6 ? AOMMIN(get_msb(var >> 6), 12) : 0;
+    const int32_t i = (var >> 6) ? AOMMIN(get_msb(var >> 6), 12) : 0;
     /* We use the variance of 8x8 blocks to adjust the strength. */
     return var ? (strength * (4 + i) + 8) >> 4 : 0;
 }
@@ -256,7 +256,7 @@ void copy_sb16_16(uint16_t *dst, int32_t dstride, const uint16_t *src, int32_t s
     int32_t         r, c;
     const uint16_t *base = &src[src_voffset * sstride + src_hoffset];
     for (r = 0; r < vsize; r++) {
-        EB_MEMCPY(dst, (void *)base, 2 * hsize);
+        eb_memcpy(dst, base, 2 * hsize);
         dst += dstride;
         base += sstride;
     }
@@ -305,7 +305,6 @@ void eb_cdef_filter_fb(uint8_t *dst8, uint16_t *dst16, int32_t dstride, uint16_t
             by = dlist[bi].by << bsizey;
             bx = dlist[bi].bx << bsizex;
             int32_t iy, ix;
-            // TODO(stemidts/jmvalin): SIMD optimisations
             if (dst8) {
                 for (iy = 0; iy < 1 << bsizey; iy++)
                     for (ix = 0; ix < 1 << bsizex; ix++)

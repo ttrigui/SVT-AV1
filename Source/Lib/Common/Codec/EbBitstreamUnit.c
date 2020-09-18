@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -19,6 +15,7 @@
 #include "EbBitstreamUnit.h"
 #include "EbDefinitions.h"
 #include "EbUtility.h"
+#include "EbLog.h"
 
 #if OD_MEASURE_EC_OVERHEAD
 #include <stdio.h>
@@ -35,7 +32,7 @@ static void output_bitstream_unit_dctor(EbPtr p) {
 EbErrorType output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr, uint32_t buffer_size) {
     bitstream_ptr->dctor = output_bitstream_unit_dctor;
     if (buffer_size) {
-        bitstream_ptr->size = buffer_size / sizeof(uint32_t);
+        bitstream_ptr->size = buffer_size;
         EB_MALLOC_ARRAY(bitstream_ptr->buffer_begin_av1, bitstream_ptr->size);
         bitstream_ptr->buffer_av1 = bitstream_ptr->buffer_begin_av1;
     } else {
@@ -43,7 +40,6 @@ EbErrorType output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr, uint3
         bitstream_ptr->buffer_begin_av1 = 0;
         bitstream_ptr->buffer_av1       = 0;
     }
-    bitstream_ptr->written_bits_count = 0;
 
     return EB_ErrorNone;
 }
@@ -54,43 +50,12 @@ EbErrorType output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr, uint3
 EbErrorType output_bitstream_reset(OutputBitstreamUnit *bitstream_ptr) {
     EbErrorType return_error = EB_ErrorNone;
 
-    bitstream_ptr->written_bits_count = 0;
     // Reset the write ptr to the beginning of the buffer
     bitstream_ptr->buffer_av1 = bitstream_ptr->buffer_begin_av1;
 
     return return_error;
 }
 
-/**********************************
- * Output RBSP to payload
- *   Intended to be used in CABAC
- **********************************/
-EbErrorType output_bitstream_rbsp_to_payload(OutputBitstreamUnit *bitstream_ptr,
-                                             EbByte output_buffer, uint32_t *output_buffer_index,
-                                             uint32_t *output_buffer_size,
-                                             uint32_t  start_location) {
-    EbErrorType return_error = EB_ErrorNone;
-    uint32_t    buffer_written_bytes_count =
-        (uint32_t)(bitstream_ptr->buffer_av1 - bitstream_ptr->buffer_begin_av1);
-    uint32_t write_location = start_location;
-    uint32_t read_location  = start_location;
-    EbByte   read_byte_ptr;
-    EbByte   write_byte_ptr;
-
-    // IVF data
-    read_byte_ptr  = (EbByte)bitstream_ptr->buffer_begin_av1;
-    write_byte_ptr = &output_buffer[*output_buffer_index];
-    //frame_count++;
-    while ((read_location < buffer_written_bytes_count)) {
-        if ((*output_buffer_index) < (*output_buffer_size)) {
-            write_byte_ptr[write_location++] = read_byte_ptr[read_location];
-            *output_buffer_index += 1;
-        }
-        read_location++;
-    }
-
-    return return_error;
-}
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/
@@ -104,11 +69,15 @@ void eb_aom_daala_start_encode(DaalaWriter *br, uint8_t *source) {
 
 int32_t eb_aom_daala_stop_encode(DaalaWriter *br) {
     int32_t  nb_bits;
-    uint32_t daala_bytes;
+    uint32_t daala_bytes = 0;
     uint8_t *daala_data;
     daala_data = eb_od_ec_enc_done(&br->ec, &daala_bytes);
     nb_bits    = eb_od_ec_enc_tell(&br->ec);
-    memcpy(br->buffer, daala_data, daala_bytes);
+    if (eb_memcpy != NULL)
+        eb_memcpy(br->buffer, daala_data, daala_bytes);
+    else
+        eb_memcpy_c(br->buffer, daala_data, daala_bytes);
+
     br->pos = daala_bytes;
     eb_od_ec_enc_clear(&br->ec);
     return nb_bits;
@@ -167,8 +136,8 @@ static void od_ec_enc_normalize(OdEcEnc *enc, OdEcWindow low, unsigned rng) {
         offs    = enc->offs;
         if (offs + 2 > storage) {
             storage = 2 * storage + 2;
-            buf     = (uint16_t *)realloc(buf, sizeof(*buf) * storage);
-            if (buf == NULL) {
+            buf = realloc(enc->precarry_buf, sizeof(*buf) * storage);
+            if (!buf) {
                 enc->error = -1;
                 enc->offs  = 0;
                 return;
@@ -245,8 +214,6 @@ the one to be encoded.*/
 static void od_ec_encode_q15(OdEcEnc *enc, unsigned fl, unsigned fh, int32_t s, int32_t nsyms) {
     OdEcWindow l;
     unsigned   r;
-    unsigned   u;
-    unsigned   v;
     l = enc->low;
     r = enc->rng;
     assert(32768U <= r);
@@ -255,6 +222,8 @@ static void od_ec_encode_q15(OdEcEnc *enc, unsigned fl, unsigned fh, int32_t s, 
     assert(7 - EC_PROB_SHIFT - CDF_SHIFT >= 0);
     const int32_t N = nsyms - 1;
     if (fl < CDF_PROB_TOP) {
+        unsigned u;
+        unsigned v;
         u = ((r >> 8) * (uint32_t)(fl >> EC_PROB_SHIFT) >> (7 - EC_PROB_SHIFT - CDF_SHIFT)) +
             EC_MIN_PROB * (N - (s - 1));
         v = ((r >> 8) * (uint32_t)(fh >> EC_PROB_SHIFT) >> (7 - EC_PROB_SHIFT - CDF_SHIFT)) +
@@ -346,8 +315,8 @@ uint8_t *eb_od_ec_enc_done(OdEcEnc *enc, uint32_t *nbytes) {
         storage = enc->precarry_storage;
         if (offs + ((s + 7) >> 3) > storage) {
             storage = storage * 2 + ((s + 7) >> 3);
-            buf     = (uint16_t *)realloc(buf, sizeof(*buf) * storage);
-            if (buf == NULL) {
+            buf = realloc(enc->precarry_buf, sizeof(*buf) * storage);
+            if (!buf) {
                 enc->error = -1;
                 return NULL;
             }
@@ -370,8 +339,8 @@ uint8_t *eb_od_ec_enc_done(OdEcEnc *enc, uint32_t *nbytes) {
     c       = OD_MAXI((s + 7) >> 3, 0);
     if (offs + c > storage) {
         storage = offs + c;
-        out     = (uint8_t *)realloc(out, sizeof(*out) * storage);
-        if (out == NULL) {
+        out = realloc(enc->buf, sizeof(*buf) * storage);
+        if (!out) {
             enc->error = -1;
             return NULL;
         }

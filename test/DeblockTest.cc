@@ -1,14 +1,20 @@
 /*
  * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file DeblockTest.cc
  *
  * @brief Unit test for cdef tools:
- * * aom_lpf_{horizontal, vertical}_{4, 6, 8, 14}_sse2
- * * aom_highbd_lpf_{horizontal, vertical}_{4, 6, 8, 14}_sse2
+ * * svt_aom_lpf_{horizontal, vertical}_{4, 6, 8, 14}_sse2
+ * * svt_aom_highbd_lpf_{horizontal, vertical}_{4, 6, 8, 14}_sse2
  *
  * @author Cidana-Wenyao
  *
@@ -33,7 +39,6 @@
 #include "EbDeblockingFilter.h"
 #include "acm_random.h"
 #include "EbDeblockingFilter_SSE2.h"
-#include "loopfilter_ref.h"
 #include "EbDeblockingCommon.h"
 
 using libaom_test::ACMRandom;
@@ -230,69 +235,69 @@ TEST_P(HbdLoopFilterTest, MatchTestRandomData) {
 // target and reference functions in different cases
 /* clang-format off */
 const HbdLpfTestParam kHbdLoop8Test6[] = {
-    make_tuple(&aom_highbd_lpf_horizontal_4_sse2,
-               &aom_highbd_lpf_horizontal_4_c, 8),
-    make_tuple(&aom_highbd_lpf_horizontal_6_sse2,
-               &aom_highbd_lpf_horizontal_6_c, 8),
-    make_tuple(&aom_highbd_lpf_horizontal_8_sse2,
-               &aom_highbd_lpf_horizontal_8_c, 8),
-    make_tuple(&aom_highbd_lpf_horizontal_14_sse2,
-               &aom_highbd_lpf_horizontal_14_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_4_sse2,
+               &svt_aom_highbd_lpf_horizontal_4_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_6_sse2,
+               &svt_aom_highbd_lpf_horizontal_6_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_8_sse2,
+               &svt_aom_highbd_lpf_horizontal_8_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_14_sse2,
+               &svt_aom_highbd_lpf_horizontal_14_c, 8),
 
-    make_tuple(&aom_highbd_lpf_vertical_4_sse2,
-               &aom_highbd_lpf_vertical_4_c, 8),
-    make_tuple(&aom_highbd_lpf_vertical_6_sse2,
-               &aom_highbd_lpf_vertical_6_c, 8),
-    make_tuple(&aom_highbd_lpf_vertical_8_sse2,
-               &aom_highbd_lpf_vertical_8_c, 8),
-    make_tuple(&aom_highbd_lpf_vertical_14_sse2,
-               &aom_highbd_lpf_vertical_14_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_vertical_4_sse2,
+               &svt_aom_highbd_lpf_vertical_4_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_vertical_6_sse2,
+               &svt_aom_highbd_lpf_vertical_6_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_vertical_8_sse2,
+               &svt_aom_highbd_lpf_vertical_8_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_vertical_14_sse2,
+               &svt_aom_highbd_lpf_vertical_14_c, 8),
 
-    make_tuple(&aom_highbd_lpf_horizontal_4_sse2,
-               &aom_highbd_lpf_horizontal_4_c, 10),
-    make_tuple(&aom_highbd_lpf_horizontal_6_sse2,
-               &aom_highbd_lpf_horizontal_6_c, 10),
-    make_tuple(&aom_highbd_lpf_horizontal_8_sse2,
-               &aom_highbd_lpf_horizontal_8_c, 10),
-    make_tuple(&aom_highbd_lpf_horizontal_14_sse2,
-               &aom_highbd_lpf_horizontal_14_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_4_sse2,
+               &svt_aom_highbd_lpf_horizontal_4_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_6_sse2,
+               &svt_aom_highbd_lpf_horizontal_6_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_8_sse2,
+               &svt_aom_highbd_lpf_horizontal_8_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_14_sse2,
+               &svt_aom_highbd_lpf_horizontal_14_c, 10),
 
-    make_tuple(&aom_highbd_lpf_vertical_4_sse2,
-               &aom_highbd_lpf_vertical_4_c, 10),
-    make_tuple(&aom_highbd_lpf_vertical_6_sse2,
-               &aom_highbd_lpf_vertical_6_c, 10),
-    make_tuple(&aom_highbd_lpf_vertical_8_sse2,
-               &aom_highbd_lpf_vertical_8_c, 10),
-    make_tuple(&aom_highbd_lpf_vertical_14_sse2,
-               &aom_highbd_lpf_vertical_14_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_vertical_4_sse2,
+               &svt_aom_highbd_lpf_vertical_4_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_vertical_6_sse2,
+               &svt_aom_highbd_lpf_vertical_6_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_vertical_8_sse2,
+               &svt_aom_highbd_lpf_vertical_8_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_vertical_14_sse2,
+               &svt_aom_highbd_lpf_vertical_14_c, 10),
 
-    make_tuple(&aom_highbd_lpf_horizontal_4_sse2,
-               &aom_highbd_lpf_horizontal_4_c, 12),
-    make_tuple(&aom_highbd_lpf_horizontal_6_sse2,
-               &aom_highbd_lpf_horizontal_6_c, 12),
-    make_tuple(&aom_highbd_lpf_horizontal_8_sse2,
-               &aom_highbd_lpf_horizontal_8_c, 12),
-    make_tuple(&aom_highbd_lpf_horizontal_14_sse2,
-               &aom_highbd_lpf_horizontal_14_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_4_sse2,
+               &svt_aom_highbd_lpf_horizontal_4_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_6_sse2,
+               &svt_aom_highbd_lpf_horizontal_6_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_8_sse2,
+               &svt_aom_highbd_lpf_horizontal_8_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_horizontal_14_sse2,
+               &svt_aom_highbd_lpf_horizontal_14_c, 12),
 
-    make_tuple(&aom_highbd_lpf_vertical_4_sse2,
-               &aom_highbd_lpf_vertical_4_c, 12),
-    make_tuple(&aom_highbd_lpf_vertical_6_sse2,
-               &aom_highbd_lpf_vertical_6_c, 12),
-    make_tuple(&aom_highbd_lpf_vertical_8_sse2,
-               &aom_highbd_lpf_vertical_8_c, 12),
-    make_tuple(&aom_highbd_lpf_vertical_14_sse2,
-               &aom_highbd_lpf_vertical_14_c, 12)};
+    make_tuple(&svt_aom_highbd_lpf_vertical_4_sse2,
+               &svt_aom_highbd_lpf_vertical_4_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_vertical_6_sse2,
+               &svt_aom_highbd_lpf_vertical_6_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_vertical_8_sse2,
+               &svt_aom_highbd_lpf_vertical_8_c, 12),
+    make_tuple(&svt_aom_highbd_lpf_vertical_14_sse2,
+               &svt_aom_highbd_lpf_vertical_14_c, 12)};
 
 const LdbLpfTestParam kLoop8Test6[] = {
-    make_tuple(&aom_lpf_horizontal_4_sse2, &aom_lpf_horizontal_4_c, 8),
-    make_tuple(&aom_lpf_vertical_4_sse2, &aom_lpf_vertical_4_c, 8),
-    make_tuple(&aom_lpf_horizontal_6_sse2, &aom_lpf_horizontal_6_c, 8),
-    make_tuple(&aom_lpf_vertical_6_sse2, &aom_lpf_vertical_6_c, 8),
-    make_tuple(&aom_lpf_horizontal_8_sse2, &aom_lpf_horizontal_8_c, 8),
-    make_tuple(&aom_lpf_vertical_8_sse2, &aom_lpf_vertical_8_c, 8),
-    make_tuple(&aom_lpf_horizontal_14_sse2, &aom_lpf_horizontal_14_c, 8),
-    make_tuple(&aom_lpf_vertical_14_sse2, &aom_lpf_vertical_14_c, 8),
+    make_tuple(&svt_aom_lpf_horizontal_4_sse2, &svt_aom_lpf_horizontal_4_c, 8),
+    make_tuple(&svt_aom_lpf_vertical_4_sse2, &svt_aom_lpf_vertical_4_c, 8),
+    make_tuple(&svt_aom_lpf_horizontal_6_sse2, &svt_aom_lpf_horizontal_6_c, 8),
+    make_tuple(&svt_aom_lpf_vertical_6_sse2, &svt_aom_lpf_vertical_6_c, 8),
+    make_tuple(&svt_aom_lpf_horizontal_8_sse2, &svt_aom_lpf_horizontal_8_c, 8),
+    make_tuple(&svt_aom_lpf_vertical_8_sse2, &svt_aom_lpf_vertical_8_c, 8),
+    make_tuple(&svt_aom_lpf_horizontal_14_sse2, &svt_aom_lpf_horizontal_14_c, 8),
+    make_tuple(&svt_aom_lpf_vertical_14_sse2, &svt_aom_lpf_vertical_14_c, 8),
 };
 /* clang-format on */
 

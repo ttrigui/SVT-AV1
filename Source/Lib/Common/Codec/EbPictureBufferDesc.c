@@ -1,15 +1,11 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
 * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
 */
@@ -41,8 +37,8 @@ static void eb_picture_buffer_desc_dctor(EbPtr p) {
  *  the descriptor.
  *****************************************/
 EbErrorType eb_picture_buffer_desc_ctor(EbPictureBufferDesc *pictureBufferDescPtr,
-                                        EbPtr                object_init_data_ptr) {
-    EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr =
+                                        const EbPtr          object_init_data_ptr) {
+    const EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr =
         (EbPictureBufferDescInitData *)object_init_data_ptr;
 
     uint32_t bytes_per_pixel =
@@ -65,6 +61,7 @@ EbErrorType eb_picture_buffer_desc_ctor(EbPictureBufferDesc *pictureBufferDescPt
     pictureBufferDescPtr->width        = picture_buffer_desc_init_data_ptr->max_width;
     pictureBufferDescPtr->height       = picture_buffer_desc_init_data_ptr->max_height;
     pictureBufferDescPtr->bit_depth    = picture_buffer_desc_init_data_ptr->bit_depth;
+    pictureBufferDescPtr->is_16bit_pipeline = picture_buffer_desc_init_data_ptr->is_16bit_pipeline;
     pictureBufferDescPtr->color_format = picture_buffer_desc_init_data_ptr->color_format;
     pictureBufferDescPtr->stride_y     = picture_buffer_desc_init_data_ptr->max_width +
                                      picture_buffer_desc_init_data_ptr->left_padding +
@@ -229,9 +226,12 @@ void link_eb_to_aom_buffer_desc_8bit(EbPictureBufferDesc *picBuffDsc,
     }
 }
 
-void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfig *aomBuffDsc) {
+void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfig *aomBuffDsc, uint16_t pad_right, uint16_t pad_bottom, EbBool is_16bit)
+{
+    (void) is_16bit;
+
     //NOTe:  Not all fileds are connected. add more connections as needed.
-    if (picBuffDsc->bit_depth == EB_8BIT) {
+    if ((picBuffDsc->bit_depth == EB_8BIT) && (picBuffDsc->is_16bit_pipeline != 1)) {
         aomBuffDsc->y_buffer = picBuffDsc->buffer_y + picBuffDsc->origin_x +
                                (picBuffDsc->origin_y * picBuffDsc->stride_y);
         aomBuffDsc->u_buffer = picBuffDsc->buffer_cb + picBuffDsc->origin_x / 2 +
@@ -253,10 +253,10 @@ void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfi
         aomBuffDsc->subsampling_x = 1;
         aomBuffDsc->subsampling_y = 1;
 
-        aomBuffDsc->y_crop_width   = aomBuffDsc->y_width;
-        aomBuffDsc->uv_crop_width  = aomBuffDsc->uv_width;
-        aomBuffDsc->y_crop_height  = aomBuffDsc->y_height;
-        aomBuffDsc->uv_crop_height = aomBuffDsc->uv_height;
+        aomBuffDsc->y_crop_width   = aomBuffDsc->y_width - pad_right;
+        aomBuffDsc->uv_crop_width  = aomBuffDsc->y_crop_width / 2;
+        aomBuffDsc->y_crop_height  = aomBuffDsc->y_height - pad_bottom;
+        aomBuffDsc->uv_crop_height = aomBuffDsc->y_crop_height / 2;
 
         aomBuffDsc->flags = 0;
     } else {
@@ -311,10 +311,10 @@ void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfi
         aomBuffDsc->subsampling_x = 1;
         aomBuffDsc->subsampling_y = 1;
 
-        aomBuffDsc->y_crop_width   = aomBuffDsc->y_width;
-        aomBuffDsc->uv_crop_width  = aomBuffDsc->uv_width;
-        aomBuffDsc->y_crop_height  = aomBuffDsc->y_height;
-        aomBuffDsc->uv_crop_height = aomBuffDsc->uv_height;
+        aomBuffDsc->y_crop_width   = aomBuffDsc->y_width - pad_right;
+        aomBuffDsc->uv_crop_width  = aomBuffDsc->y_crop_width / 2;
+        aomBuffDsc->y_crop_height  = aomBuffDsc->y_height - pad_bottom;
+        aomBuffDsc->uv_crop_height = aomBuffDsc->y_crop_height / 2;
         aomBuffDsc->flags          = YV12_FLAG_HIGHBITDEPTH;
     }
 }

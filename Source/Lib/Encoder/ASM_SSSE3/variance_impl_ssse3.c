@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <tmmintrin.h>
@@ -16,7 +16,7 @@
 
 #include "synonyms.h"
 
-void aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
+void svt_aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
                                                  unsigned int src_pixels_per_line,
                                                  unsigned int pixel_step,
                                                  unsigned int output_height,
@@ -30,12 +30,11 @@ void aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
     const uint8_t f1    = filter[1] >> 1;
     const __m128i filters =
         _mm_setr_epi8(f0, f1, f0, f1, f0, f1, f0, f1, f0, f1, f0, f1, f0, f1, f0, f1);
-    unsigned int i, j;
     (void)pixel_step;
 
     if (output_width >= 8) {
-        for (i = 0; i < output_height; ++i) {
-            for (j = 0; j < output_width; j += 8) {
+        for (unsigned i = 0; i < output_height; ++i) {
+            for (unsigned j = 0; j < output_width; j += 8) {
                 // load source
                 __m128i source_low = xx_loadl_64(a);
                 __m128i source_hi  = xx_loadl_64(a + 1);
@@ -61,7 +60,7 @@ void aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
         }
     } else {
         const __m128i shuffle_mask = _mm_setr_epi8(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8);
-        for (i = 0; i < output_height; ++i) {
+        for (unsigned i = 0; i < output_height; ++i) {
             // load source, only first 5 values are meaningful:
             // { a[0], a[1], a[2], a[3], a[4], xxxx }
             __m128i source = xx_loadl_64(a);
@@ -82,7 +81,7 @@ void aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
     }
 }
 
-void aom_var_filter_block2d_bil_second_pass_ssse3(
+void svt_aom_var_filter_block2d_bil_second_pass_ssse3(
     const uint16_t *a, uint8_t *b, unsigned int src_pixels_per_line, unsigned int pixel_step,
     unsigned int output_height, unsigned int output_width, const uint8_t *filter) {
     const int16_t round   = (1 << FILTER_BITS) >> 1;

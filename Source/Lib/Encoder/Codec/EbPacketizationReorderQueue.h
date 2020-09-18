@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbPacketizationReorderQueue_h
@@ -10,6 +16,7 @@
 #include "EbSystemResourceManager.h"
 #include "EbPredictionStructure.h"
 #include "EbObject.h"
+#include "EbEntropyCodingObject.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,6 +44,10 @@ typedef struct PacketizationReorderEntry {
     EbBool     show_frame;
     EbBool     has_show_existing;
     uint8_t    show_existing_frame;
+    //small size bitstream for show existing frame
+    Bitstream *bitstream_ptr;
+    //valid when has_show_existing is true
+    int64_t    next_pts;
     uint8_t    is_alt_ref;
 } PacketizationReorderEntry;
 

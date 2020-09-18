@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbInvTransforms_h
@@ -292,14 +288,29 @@ static INLINE int32_t round_shift(int64_t value, int32_t bit) {
     assert(bit >= 1);
     return (int32_t)((value + (1ll << (bit - 1))) >> bit);
 }
-static INLINE int32_t half_btf(int32_t w0, int32_t in0, int32_t w1, int32_t in1, int32_t bit) {
+static INLINE int32_t half_btf(int32_t w0, int32_t in0, int32_t w1, int32_t in1,
+    int bit) {
     int64_t result_64 = (int64_t)(w0 * in0) + (int64_t)(w1 * in1);
+    int64_t intermediate = result_64 + (1LL << (bit - 1));
+    // NOTE(david.barker): The value 'result_64' may not necessarily fit
+    // into 32 bits. However, the result of this function is nominally
+    // ROUND_POWER_OF_TWO_64(result_64, bit)
+    // and that is required to fit into stage_range[stage] many bits
+    // (checked by range_check_buf()).
+    //
+    // Here we've unpacked that rounding operation, and it can be shown
+    // that the value of 'intermediate' here *does* fit into 32 bits
+    // for any conformant bitstream.
+    // The upshot is that, if you do all this calculation using
+    // wrapping 32-bit arithmetic instead of (non-wrapping) 64-bit arithmetic,
+    // then you'll still get the correct result.
+    // To provide a check on this logic, we assert that 'intermediate'
+    // would fit into an int32 if range checking is enabled.
 #if CONFIG_COEFFICIENT_RANGE_CHECKING
-    assert(result_64 >= INT32_MIN && result_64 <= INT32_MAX);
+    assert(intermediate >= INT32_MIN && intermediate <= INT32_MAX);
 #endif
-    return round_shift(result_64, bit);
+    return (int32_t)(intermediate >> bit);
 }
-
 static INLINE int32_t get_rect_tx_log_ratio(int32_t col, int32_t row) {
     if (col == row) return 0;
     if (col > row) {

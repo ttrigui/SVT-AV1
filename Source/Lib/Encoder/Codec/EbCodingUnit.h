@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbCodingUnit_h
@@ -227,11 +233,32 @@ typedef struct MacroBlockPlane {
 typedef struct macroblockd_plane {
     int          subsampling_x;
     int          subsampling_y;
-    struct Buf2D dst;
-    struct Buf2D pre[2];
-    uint8_t      width, height;
 } MACROBLOCKD_PLANE;
 
+typedef enum InterPredMode {
+    UNIFORM_PRED,
+    WARP_PRED,
+    MASK_PRED,
+} InterPredMode;
+
+typedef struct InterPredParams {
+    InterPredMode mode;
+    EbWarpedMotionParams warp_params;
+    ConvolveParams conv_params;
+    //const InterpFilterParams *interp_filter_params[2];
+    InterpFilterParams interp_filter_params[2];
+    int block_width;
+    int block_height;
+    int pix_row;
+    int pix_col;
+    struct Buf2D ref_frame_buf;
+    int subsampling_x;
+    int subsampling_y;
+    const struct ScaleFactors *scale_factors;
+    int bit_depth;
+    int use_hbd_buf;
+    int is_intrabc;
+} InterPredParams;
 typedef struct MacroBlockD {
     // block dimension in the unit of mode_info.
     uint8_t     n8_w, n8_h;
@@ -250,9 +277,9 @@ typedef struct MacroBlockD {
     int32_t mb_to_right_edge;
     int32_t mb_to_top_edge;
     int32_t mb_to_bottom_edge;
+    int mi_row; // Row position in mi units
+    int mi_col; // Column position in mi units
     uint8_t neighbors_ref_counts[TOTAL_REFS_PER_FRAME];
-
-    uint8_t                  use_intrabc;
     MbModeInfo *             above_mbmi;
     MbModeInfo *             left_mbmi;
     MbModeInfo *             chroma_above_mbmi;
@@ -290,7 +317,7 @@ typedef struct IntraBcContext {
     int *        nmv_vec_cost;
     int **       mv_cost_stack;
     // buffer for hash value calculation of a block
-    // used only in av1_get_block_hash_value()
+    // used only in svt_av1_get_block_hash_value()
     // [first hash/second hash]
     // [two buffers used ping-pong]
     uint32_t *     hash_value_buffer[2][2];
@@ -300,19 +327,40 @@ typedef struct IntraBcContext {
 } IntraBcContext;
 
 typedef struct BlkStruct {
-    TransformUnit          txb_array[TRANSFORM_UNIT_MAX_COUNT]; // 2-bytes * 21 = 42-bytes
-    PredictionUnit         prediction_unit_array[MAX_NUM_OF_PU_PER_CU]; // 35-bytes * 4 = 140 bytes
-    InterInterCompoundData interinter_comp;
-    uint8_t                compound_idx;
-    uint8_t                comp_group_idx;
-    unsigned               skip_flag_context : 2;
-    unsigned               prediction_mode_flag : 2;
-    unsigned               block_has_coeff : 1;
-    unsigned               split_flag_context : 2;
-    uint16_t               qp;
+    TransformUnit          txb_array[TRANSFORM_UNIT_MAX_COUNT]; // ec
+    PredictionUnit         prediction_unit_array[MAX_NUM_OF_PU_PER_CU]; // ec
+    PaletteInfo    palette_info; // ec
+    IntMv          predmv[2]; // ec
+    MacroBlockD *av1xd;
+    InterInterCompoundData interinter_comp; // ec
+    uint32_t       interp_filters;// ec
+    int32_t        interintra_wedge_index;// ec
+    // uint8_t ref_mv_count[MODE_CTX_REF_FRAMES];
+    int16_t inter_mode_ctx[MODE_CTX_REF_FRAMES];// ec
+    uint16_t  mds_idx; //equivalent of leaf_index in the nscu context. we will keep both for now and use the right one on a case by case basis.
+    // txb
+    uint8_t tx_depth; // ec
+    uint8_t                compound_idx; // ec
+    uint8_t                comp_group_idx; // ec
+#if CLEAN_UP_SB_DATA_4
+    uint8_t                prediction_mode_flag; // ec
+    uint8_t                block_has_coeff; // ec
+#else
+    unsigned               skip_flag_context : 2; // to do
+    unsigned               prediction_mode_flag : 2; // ec
+    unsigned               block_has_coeff : 1; // ec
+    unsigned               split_flag_context : 2; // to do
+#endif
+    uint8_t                qindex; // ec
+#if !CLEAN_UP_SB_DATA_2
     uint16_t               ref_qp;
     int16_t                delta_qp; // can be signed 8bits
-
+#endif
+#if CLEAN_UP_SB_DATA_9
+    uint8_t                split_flag;
+    uint8_t                skip_flag; // ec
+    uint8_t                mdc_split_flag; // ?
+#else
     // Coded Tree
     struct {
         unsigned leaf_index : 8;
@@ -320,65 +368,65 @@ typedef struct BlkStruct {
         unsigned skip_flag : 1;
         unsigned mdc_split_flag : 1;
     };
+#endif
 #if NO_ENCDEC
     EbPictureBufferDesc *quant_tmp;
     EbPictureBufferDesc *coeff_tmp;
     EbPictureBufferDesc *recon_tmp;
     uint32_t             cand_buff_index;
 #endif
-    MacroBlockD *av1xd;
-    // uint8_t ref_mv_count[MODE_CTX_REF_FRAMES];
-    int16_t inter_mode_ctx[MODE_CTX_REF_FRAMES];
+#if !CLEAN_UP_SB_DATA_0
     IntMv   ref_mvs[MODE_CTX_REF_FRAMES][MAX_MV_REF_CANDIDATES]; //used only for nonCompound modes.
-    uint8_t drl_index;
-    PredictionMode pred_mode;
-    IntMv          predmv[2];
+#endif
+    uint8_t drl_index; // ec
+    int8_t drl_ctx[2]; // Store the drl ctx in coding loop to avoid storing
+                       // final_ref_mv_stack and ref_mv_count for EC
+    int8_t drl_ctx_near[2];// Store the drl ctx in coding loop to avoid storing
+                       // final_ref_mv_stack and ref_mv_count for EC
+    PredictionMode pred_mode; // ec
+#if !CLEAN_UP_SB_DATA_4
     uint8_t        skip_coeff_context;
     uint8_t        reference_mode_context;
     uint8_t        compoud_reference_type_context;
     int32_t        quantized_dc[3][MAX_TXB_COUNT];
     uint32_t       is_inter_ctx;
-    uint32_t       interp_filters;
-    uint8_t        segment_id;
+#endif
+    uint8_t        segment_id;// ec
     uint8_t        seg_id_predicted; // valid only when temporal_update is enabled
     PartitionType  part;
+#if !CLEAN_UP_SB_DATA_2
     Part           shape;
-    uint16_t
-                   mds_idx; //equivalent of leaf_index in the nscu context. we will keep both for now and use the right one on a case by case basis.
+#endif
+#if !CLEAN_UP_SB_DATA_3
     uint8_t *      neigh_left_recon[3]; //only for MD
     uint8_t *      neigh_top_recon[3];
     uint16_t *     neigh_left_recon_16bit[3];
     uint16_t *     neigh_top_recon_16bit[3];
+#endif
+#if !CLEAN_UP_SB_DATA_1
     uint32_t       best_d1_blk;
-    uint8_t        tx_depth;
-    InterIntraMode interintra_mode;
-    uint8_t        is_interintra_used;
-    uint8_t        use_wedge_interintra;
-    int32_t        interintra_wedge_index;
+#endif
+    InterIntraMode interintra_mode;// ec
+    uint8_t        is_interintra_used;// ec
+    uint8_t        use_wedge_interintra;// ec
+#if !CLEAN_UP_SB_DATA_5
     int32_t        ii_wedge_sign;
-    uint8_t        filter_intra_mode;
-    PaletteInfo    palette_info;
+#endif
+    uint8_t        filter_intra_mode;// ec
+    uint8_t        do_not_process_block;
+    uint8_t                  use_intrabc;
 } BlkStruct;
 
-typedef struct OisCandidate {
-    union {
-        struct {
-            unsigned distortion : 20;
-            unsigned valid_distortion : 1;
-            unsigned : 3;
-            unsigned intra_mode : 8;
-        };
-        uint32_t ois_results;
-    };
-    int32_t angle_delta;
-} OisCandidate;
-
-typedef struct OisSbResults {
-    uint8_t       total_ois_intra_candidate[CU_MAX_COUNT];
-    OisCandidate *ois_candidate_array[CU_MAX_COUNT];
-    int8_t        best_distortion_index[CU_MAX_COUNT];
-} OisSbResults;
-
+typedef struct TplStats {
+    int64_t srcrf_dist;
+    int64_t recrf_dist;
+    int64_t srcrf_rate;
+    int64_t recrf_rate;
+    int64_t mc_dep_rate;
+    int64_t mc_dep_dist;
+    MV mv;
+    uint64_t ref_frame_poc;
+} TplStats;
 typedef struct SuperBlock {
     EbDctor                   dctor;
     struct PictureControlSet *pcs_ptr;
@@ -393,8 +441,7 @@ typedef struct SuperBlock {
     unsigned       index : 12;
     unsigned       origin_x : 12;
     unsigned       origin_y : 12;
-    uint16_t       qp;
-    int16_t        delta_qp;
+    uint8_t        qindex;
     uint32_t       total_bits;
 
     // Quantized Coefficients

@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -18,7 +24,7 @@
 #include "EbRateControlTasks.h"
 #include "EbSvtAv1ErrorCodes.h"
 #include "EbEntropyCoding.h"
-
+#include "EbLog.h"
 /***************************************
  * Context
  ***************************************/
@@ -29,7 +35,6 @@ typedef struct PictureManagerContext {
     EbFifo *picture_control_set_fifo_ptr;
 } PictureManagerContext;
 
-#if TILES_PARALLEL
 // Token buffer is only used for palette tokens.
 static INLINE unsigned int get_token_alloc(int mb_rows, int mb_cols, int sb_size_log2,
                                            const int num_planes) {
@@ -45,7 +50,7 @@ static INLINE unsigned int get_token_alloc(int mb_rows, int mb_cols, int sb_size
 
     return sb_rows * sb_cols * sb_palette_toks;
 }
-#endif
+void alloc_palette_tokens(SequenceControlSet * scs_ptr, PictureControlSet * child_pcs_ptr);
 extern MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);
 /************************************************
  * Defines
@@ -127,7 +132,96 @@ void copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr
 }
 
 void set_tile_info(PictureParentControlSet *pcs_ptr);
+/*
+  walk the ref queue, and looks for a particular pic
+  return NULL if not found.
+*/
+ReferenceQueueEntry * search_ref_in_ref_queue(
+    EncodeContext *encode_context_ptr,
+    uint64_t ref_poc)
+{
+    ReferenceQueueEntry * ref_entry_ptr = NULL;
+    uint32_t ref_queue_i = encode_context_ptr->reference_picture_queue_head_index;
+    // Find the Reference in the Reference Queue
+    do {
+        ref_entry_ptr =
+            encode_context_ptr->reference_picture_queue[ref_queue_i];
+        if (ref_entry_ptr->picture_number == ref_poc)
+            return ref_entry_ptr;
 
+        // Increment the reference_queue_index Iterator
+        ref_queue_i = (ref_queue_i == REFERENCE_QUEUE_MAX_DEPTH - 1)
+            ? 0
+            : ref_queue_i + 1;
+
+    } while (ref_queue_i != encode_context_ptr->reference_picture_queue_tail_index);
+
+    return NULL;
+}
+/*
+  update dependent count of any existing pic in the ref queue.
+  if the picture is not in the ref queue, subesequent calls
+  will attempt to do the cleaning
+*/
+void clean_pictures_in_ref_queue(EncodeContext *ctx)
+{
+    PicQueueEntry **queue = ctx->dep_cnt_picture_queue;
+    ReferenceQueueEntry * ref_entry_ptr = NULL;
+
+    //all pictures needing the clean-up are stored in dep cnt queue
+    //go through all of elements, search it in the ref queue, and clean
+    //it if found
+    uint32_t  q_idx = ctx->dep_q_head;
+    while (q_idx != ctx->dep_q_tail) {
+        if (queue[q_idx]->is_done == 0){
+            ref_entry_ptr = search_ref_in_ref_queue(ctx, queue[q_idx]->pic_num);
+            if (ref_entry_ptr != NULL) {
+                int new_dep_cnt = (int)ref_entry_ptr->dependent_count + queue[q_idx]->dep_cnt_diff;
+                if (new_dep_cnt < 0)
+                    SVT_ERROR(" PicMgr: Negative dep count\n");
+                //printf(" search %I64i  ====Pic-MGR-Dep-Cnt-reduce found: %I64i  %i --> %i\n",
+                //    queue[q_idx]->pic_num, ref_entry_ptr->picture_number, ref_entry_ptr->dependent_count, new_dep_cnt);
+                ref_entry_ptr->dependent_count += queue[q_idx]->dep_cnt_diff;
+                queue[q_idx]->is_done = 1;
+            }
+        }
+
+        // Increment the head_index if the head is done
+        if (queue[ctx->dep_q_head]->is_done)
+            ctx->dep_q_head = (ctx->dep_q_head == REFERENCE_QUEUE_MAX_DEPTH - 1) ? 0 : ctx->dep_q_head + 1;
+
+        //Increment the queue_index Iterator
+        q_idx = (q_idx == REFERENCE_QUEUE_MAX_DEPTH - 1) ? 0 : q_idx + 1;
+    }
+}
+
+/*
+  Pic Mgr maintains a queue of pic to clear dep cnt
+  if a picture comes from PD, it copies its clean-up list to the queue
+*/
+void copy_dep_cnt_cleaning_list(
+    EncodeContext *ctx,
+    PictureParentControlSet * pcs)
+{
+    //triggering picture hands list to PicMgr, which will do the clearing
+    PicQueueEntry **queue = ctx->dep_cnt_picture_queue;
+
+    for (uint32_t pic_i = 0; pic_i < pcs->other_updated_links_cnt; pic_i++) {
+
+        //place pic to be cleared in queue
+        //the spot should be empty
+        if (queue[ctx->dep_q_tail]->is_done == 0)
+            SVT_ERROR("\n pic %I64i  ERR  DepCount Queue is done\n", queue[ctx->dep_q_tail]->pic_num);
+
+        queue[ctx->dep_q_tail]->pic_num = pcs->updated_links_arr[pic_i].pic_num;
+        queue[ctx->dep_q_tail]->dep_cnt_diff = pcs->updated_links_arr[pic_i].dep_cnt_diff;
+        queue[ctx->dep_q_tail]->is_done = 0;
+
+        //advance the queue
+        ctx->dep_q_tail = (ctx->dep_q_tail == REFERENCE_QUEUE_MAX_DEPTH - 1) ? 0 : ctx->dep_q_tail + 1;
+    }
+
+}
 /* Picture Manager Kernel */
 
 /***************************************************************************************************
@@ -177,23 +271,19 @@ void *picture_manager_kernel(void *input_ptr) {
     uint32_t                  reference_queue_index;
     uint64_t                  ref_poc;
     uint32_t                  dep_idx;
-    uint64_t                  dep_poc;
-    uint32_t                  dep_list_count;
     PictureParentControlSet * entry_pcs_ptr;
     SequenceControlSet *      entry_scs_ptr;
 
     // Initialization
     uint8_t                     pic_width_in_sb;
     uint8_t                     picture_height_in_sb;
-    PictureManagerReorderEntry *queue_entry_ptr;
-    int32_t                     queue_entry_index;
-
+    uint64_t decode_order = 0;
     // Debug
     uint32_t loop_count = 0;
 
     for (;;) {
         // Get Input Full Object
-        eb_get_full_object(context_ptr->picture_input_fifo_ptr, &input_picture_demux_wrapper_ptr);
+        EB_GET_FULL_OBJECT(context_ptr->picture_input_fifo_ptr, &input_picture_demux_wrapper_ptr);
 
         input_picture_demux_ptr =
             (PictureDemuxResults *)input_picture_demux_wrapper_ptr->object_ptr;
@@ -211,264 +301,19 @@ void *picture_manager_kernel(void *input_ptr) {
             encode_context_ptr = scs_ptr->encode_context_ptr;
 
             //SVT_LOG("\nPicture Manager Process @ %d \n ", pcs_ptr->picture_number);
-
-            queue_entry_index = (int32_t)(
-                pcs_ptr->picture_number_alt -
-                encode_context_ptr
-                    ->picture_manager_reorder_queue[encode_context_ptr
-                                                        ->picture_manager_reorder_queue_head_index]
-                    ->picture_number);
-            queue_entry_index += encode_context_ptr->picture_manager_reorder_queue_head_index;
-            queue_entry_index = (queue_entry_index > PICTURE_MANAGER_REORDER_QUEUE_MAX_DEPTH - 1)
-                                    ? queue_entry_index - PICTURE_MANAGER_REORDER_QUEUE_MAX_DEPTH
-                                    : queue_entry_index;
-            queue_entry_ptr = encode_context_ptr->picture_manager_reorder_queue[queue_entry_index];
-            if (queue_entry_ptr->parent_pcs_wrapper_ptr != NULL) {
-                CHECK_REPORT_ERROR_NC(encode_context_ptr->app_callback_ptr, EB_ENC_PD_ERROR8);
-            } else {
-                queue_entry_ptr->parent_pcs_wrapper_ptr = input_picture_demux_ptr->pcs_wrapper_ptr;
-                queue_entry_ptr->picture_number         = pcs_ptr->picture_number_alt;
-            }
-            // Process the head of the Picture Manager Reorder Queue
-            queue_entry_ptr = encode_context_ptr->picture_manager_reorder_queue
-                                  [encode_context_ptr->picture_manager_reorder_queue_head_index];
-
-            while (queue_entry_ptr->parent_pcs_wrapper_ptr != EB_NULL) {
-                pcs_ptr =
-                    (PictureParentControlSet *)queue_entry_ptr->parent_pcs_wrapper_ptr->object_ptr;
-
                 pred_position_ptr = pcs_ptr->pred_struct_ptr
                                         ->pred_struct_entry_ptr_array[pcs_ptr->pred_struct_index];
-                // If there was a change in the number of temporal layers, then cleanup the Reference Queue's Dependent Counts
-                if (pcs_ptr->hierarchical_layers_diff != 0) {
-                    // Dynamic GOP
-                    PredictionStructure *     next_pred_struct_ptr;
-                    PredictionStructureEntry *next_base_layer_pred_position_ptr;
 
-                    uint32_t dependant_list_positive_entries;
-                    uint32_t dependant_list_removed_entries;
+                copy_dep_cnt_cleaning_list(encode_context_ptr, pcs_ptr);
 
-                    reference_queue_index = encode_context_ptr->reference_picture_queue_head_index;
-
-                    while (reference_queue_index !=
-                           encode_context_ptr->reference_picture_queue_tail_index) {
-                        reference_entry_ptr =
-                            encode_context_ptr->reference_picture_queue[reference_queue_index];
-
-                        if (reference_entry_ptr->picture_number ==
-                            (pcs_ptr->picture_number - 1)) { // Picture where the change happened
-
-                            // Get the prediction struct entry of the next GOP structure
-                            next_pred_struct_ptr = get_prediction_structure(
-                                encode_context_ptr->prediction_structure_group_ptr,
-                                pcs_ptr->pred_structure,
-                                scs_ptr->reference_count,
-                                pcs_ptr->hierarchical_levels);
-
-                            // Get the prediction struct of a picture in temporal layer 0 (from the new GOP structure)
-                            next_base_layer_pred_position_ptr =
-                                next_pred_struct_ptr->pred_struct_entry_ptr_array
-                                    [next_pred_struct_ptr->pred_struct_entry_count - 1];
-
-                            // Remove all positive entries from the dependant lists
-                            dependant_list_positive_entries = 0;
-                            for (dep_idx = 0; dep_idx < reference_entry_ptr->list0.list_count;
-                                 ++dep_idx) {
-                                if (reference_entry_ptr->list0.list[dep_idx] >= 0)
-                                    dependant_list_positive_entries++;
-                            }
-                            reference_entry_ptr->list0.list_count =
-                                reference_entry_ptr->list0.list_count -
-                                dependant_list_positive_entries;
-
-                            dependant_list_positive_entries = 0;
-                            for (dep_idx = 0; dep_idx < reference_entry_ptr->list1.list_count;
-                                 ++dep_idx) {
-                                if (reference_entry_ptr->list1.list[dep_idx] >= 0)
-                                    dependant_list_positive_entries++;
-                            }
-                            reference_entry_ptr->list1.list_count =
-                                reference_entry_ptr->list1.list_count -
-                                dependant_list_positive_entries;
-
-                            for (dep_idx = 0;
-                                 dep_idx < next_base_layer_pred_position_ptr->dep_list0.list_count;
-                                 ++dep_idx) {
-                                if (next_base_layer_pred_position_ptr->dep_list0.list[dep_idx] >= 0)
-                                    reference_entry_ptr->list0
-                                        .list[reference_entry_ptr->list0.list_count++] =
-                                        next_base_layer_pred_position_ptr->dep_list0.list[dep_idx];
-                            }
-
-                            for (dep_idx = 0;
-                                 dep_idx < next_base_layer_pred_position_ptr->dep_list1.list_count;
-                                 ++dep_idx) {
-                                if (next_base_layer_pred_position_ptr->dep_list1.list[dep_idx] >= 0)
-                                    reference_entry_ptr->list1
-                                        .list[reference_entry_ptr->list1.list_count++] =
-                                        next_base_layer_pred_position_ptr->dep_list1.list[dep_idx];
-                            }
-
-                            // Update the dependant count update
-                            dependant_list_removed_entries = reference_entry_ptr->dep_list0_count +
-                                                             reference_entry_ptr->dep_list1_count -
-                                                             reference_entry_ptr->dependent_count;
-                            reference_entry_ptr->dep_list0_count =
-                                (reference_entry_ptr->is_alt_ref)
-                                    ? reference_entry_ptr->list0.list_count + 1
-                                    : reference_entry_ptr->list0.list_count;
-                            reference_entry_ptr->dep_list1_count =
-                                reference_entry_ptr->list1.list_count;
-                            reference_entry_ptr->dependent_count =
-                                reference_entry_ptr->dep_list0_count +
-                                reference_entry_ptr->dep_list1_count -
-                                dependant_list_removed_entries;
-                        } else {
-                            // Modify Dependent List0
-                            dep_list_count = reference_entry_ptr->list0.list_count;
-                            for (dep_idx = 0; dep_idx < dep_list_count; ++dep_idx) {
-                                // Adjust the latest currentInputPoc in case we're in a POC rollover scenario
-                                // currentInputPoc += (currentInputPoc < reference_entry_ptr->pocNumber) ? (1 << scs_ptr->bitsForPictureOrderCount) : 0;
-
-                                dep_poc = POC_CIRCULAR_ADD(
-                                    reference_entry_ptr->picture_number, // can't use a value that gets reset
-                                    reference_entry_ptr->list0.list[dep_idx]/*,
-                                    scs_ptr->bitsForPictureOrderCount*/);
-
-                                // If Dependent POC is greater or equal to the IDR POC
-                                if (dep_poc >= pcs_ptr->picture_number &&
-                                    reference_entry_ptr->list0.list[dep_idx]) {
-                                    reference_entry_ptr->list0.list[dep_idx] = 0;
-
-                                    // Decrement the Reference's referenceCount
-                                    --reference_entry_ptr->dependent_count;
-
-                                    CHECK_REPORT_ERROR(
-                                        (reference_entry_ptr->dependent_count != ~0u),
-                                        encode_context_ptr->app_callback_ptr,
-                                        EB_ENC_PD_ERROR3);
-                                }
-                            }
-
-                            // Modify Dependent List1
-                            dep_list_count = reference_entry_ptr->list1.list_count;
-                            for (dep_idx = 0; dep_idx < dep_list_count; ++dep_idx) {
-                                // Adjust the latest currentInputPoc in case we're in a POC rollover scenario
-                                // currentInputPoc += (currentInputPoc < reference_entry_ptr->pocNumber) ? (1 << scs_ptr->bitsForPictureOrderCount) : 0;
-
-                                dep_poc = POC_CIRCULAR_ADD(
-                                    reference_entry_ptr->picture_number,
-                                    reference_entry_ptr->list1.list[dep_idx]/*,
-                                    scs_ptr->bitsForPictureOrderCount*/);
-
-                                // If Dependent POC is greater or equal to the IDR POC
-                                if ((dep_poc >= pcs_ptr->picture_number) &&
-                                    reference_entry_ptr->list1.list[dep_idx]) {
-                                    reference_entry_ptr->list1.list[dep_idx] = 0;
-
-                                    // Decrement the Reference's referenceCount
-                                    --reference_entry_ptr->dependent_count;
-
-                                    CHECK_REPORT_ERROR(
-                                        (reference_entry_ptr->dependent_count != ~0u),
-                                        encode_context_ptr->app_callback_ptr,
-                                        EB_ENC_PD_ERROR3);
-                                }
-                            }
-                        }
-
-                        // Increment the reference_queue_index Iterator
-                        reference_queue_index =
-                            (reference_queue_index == REFERENCE_QUEUE_MAX_DEPTH - 1)
-                                ? 0
-                                : reference_queue_index + 1;
-                    }
-                }
-                // If there was an I-frame or Scene Change, then cleanup the Reference Queue's Dependent Counts
-                if (pcs_ptr->slice_type == I_SLICE) {
-                    reference_queue_index = encode_context_ptr->reference_picture_queue_head_index;
-                    while (reference_queue_index !=
-                           encode_context_ptr->reference_picture_queue_tail_index) {
-                        reference_entry_ptr =
-                            encode_context_ptr->reference_picture_queue[reference_queue_index];
-
-                        // Modify Dependent List0
-                        dep_list_count = reference_entry_ptr->list0.list_count;
-                        for (dep_idx = 0; dep_idx < dep_list_count; ++dep_idx) {
-                            current_input_poc = pcs_ptr->picture_number;
-
-                            // Adjust the latest current_input_poc in case we're in a POC rollover scenario
-                            // current_input_poc += (current_input_poc < reference_entry_ptr->picture_number) ? (1 << scs_ptr->bits_for_picture_order_count) : 0;
-
-                            dep_poc = POC_CIRCULAR_ADD(
-                                reference_entry_ptr->picture_number, // can't use a value that gets reset
-                                reference_entry_ptr->list0.list[dep_idx]/*,
-                                scs_ptr->bits_for_picture_order_count*/);
-
-                            // If Dependent POC is greater or equal to the IDR POC
-                            if (dep_poc >= current_input_poc &&
-                                reference_entry_ptr->list0.list[dep_idx]) {
-                                reference_entry_ptr->list0.list[dep_idx] = 0;
-
-                                // Decrement the Reference's referenceCount
-                                --reference_entry_ptr->dependent_count;
-                                CHECK_REPORT_ERROR((reference_entry_ptr->dependent_count != ~0u),
-                                                   encode_context_ptr->app_callback_ptr,
-                                                   EB_ENC_PM_ERROR3);
-                            }
-                        }
-
-                        // Modify Dependent List1
-                        dep_list_count = reference_entry_ptr->list1.list_count;
-                        for (dep_idx = 0; dep_idx < dep_list_count; ++dep_idx) {
-                            current_input_poc = pcs_ptr->picture_number;
-
-                            // Adjust the latest current_input_poc in case we're in a POC rollover scenario
-                            // current_input_poc += (current_input_poc < reference_entry_ptr->picture_number) ? (1 << scs_ptr->bits_for_picture_order_count) : 0;
-
-                            dep_poc = POC_CIRCULAR_ADD(
-                                reference_entry_ptr->picture_number,
-                                reference_entry_ptr->list1.list[dep_idx]/*,
-                                scs_ptr->bits_for_picture_order_count*/);
-
-                            // If Dependent POC is greater or equal to the IDR POC or if we inserted trailing Ps
-                            if (((dep_poc >= current_input_poc) ||
-                                 (((pcs_ptr->pre_assignment_buffer_count !=
-                                    pcs_ptr->pred_struct_ptr->pred_struct_period) ||
-                                   (pcs_ptr->idr_flag == EB_TRUE)) &&
-                                  (dep_poc >
-                                   (current_input_poc - pcs_ptr->pre_assignment_buffer_count)))) &&
-                                reference_entry_ptr->list1.list[dep_idx]) {
-                                reference_entry_ptr->list1.list[dep_idx] = 0;
-
-                                // Decrement the Reference's referenceCount
-                                --reference_entry_ptr->dependent_count;
-                                CHECK_REPORT_ERROR((reference_entry_ptr->dependent_count != ~0u),
-                                                   encode_context_ptr->app_callback_ptr,
-                                                   EB_ENC_PM_ERROR3);
-                            }
-                        }
-
-                        // Increment the reference_queue_index Iterator
-                        reference_queue_index =
-                            (reference_queue_index == REFERENCE_QUEUE_MAX_DEPTH - 1)
-                                ? 0
-                                : reference_queue_index + 1;
-                    }
-                } else if (pcs_ptr->idr_flag == EB_TRUE) {
-                    // Set Reference Entry pointer
-                    reference_entry_ptr = (ReferenceQueueEntry *)EB_NULL;
-                }
-
-                // Check if the EnhancedPictureQueue is full.
-                // *Note - Having the number of Enhanced Pictures less than the InputQueueSize should ensure this never gets hit
+                clean_pictures_in_ref_queue(encode_context_ptr);
 
                 CHECK_REPORT_ERROR(
                     (((encode_context_ptr->input_picture_queue_head_index !=
                        encode_context_ptr->input_picture_queue_tail_index) ||
                       (encode_context_ptr
                            ->input_picture_queue[encode_context_ptr->input_picture_queue_head_index]
-                           ->input_object_ptr == EB_NULL))),
+                           ->input_object_ptr == NULL))),
                     encode_context_ptr->app_callback_ptr,
                     EB_ENC_PM_ERROR4);
 
@@ -476,14 +321,7 @@ void *picture_manager_kernel(void *input_ptr) {
                 input_entry_ptr =
                     encode_context_ptr
                         ->input_picture_queue[encode_context_ptr->input_picture_queue_tail_index];
-                input_entry_ptr->input_object_ptr = queue_entry_ptr->parent_pcs_wrapper_ptr;
-                // Since the overlay picture is not added to the reference queue, reference_entry_index points to the previous picture which is the alt ref
-                input_entry_ptr->reference_entry_index =
-                    (!pcs_ptr->is_overlay)
-                        ? encode_context_ptr->reference_picture_queue_tail_index
-                        : (encode_context_ptr->reference_picture_queue_tail_index == 0)
-                              ? REFERENCE_QUEUE_MAX_DEPTH - 1
-                              : encode_context_ptr->reference_picture_queue_tail_index - 1;
+                input_entry_ptr->input_object_ptr = input_picture_demux_ptr->pcs_wrapper_ptr;
                 encode_context_ptr->input_picture_queue_tail_index =
                     (encode_context_ptr->input_picture_queue_tail_index ==
                      INPUT_QUEUE_MAX_DEPTH - 1)
@@ -502,7 +340,7 @@ void *picture_manager_kernel(void *input_ptr) {
                           (encode_context_ptr
                                ->reference_picture_queue[encode_context_ptr
                                                              ->reference_picture_queue_head_index]
-                               ->reference_object_ptr == EB_NULL))),
+                               ->reference_object_ptr == NULL))),
                         encode_context_ptr->app_callback_ptr,
                         EB_ENC_PM_ERROR5);
 
@@ -511,7 +349,7 @@ void *picture_manager_kernel(void *input_ptr) {
                         encode_context_ptr->reference_picture_queue
                             [encode_context_ptr->reference_picture_queue_tail_index];
                     reference_entry_ptr->picture_number        = pcs_ptr->picture_number;
-                    reference_entry_ptr->reference_object_ptr  = (EbObjectWrapper *)EB_NULL;
+                    reference_entry_ptr->reference_object_ptr  = (EbObjectWrapper *)NULL;
                     reference_entry_ptr->release_enable        = EB_TRUE;
                     reference_entry_ptr->reference_available   = EB_FALSE;
                     reference_entry_ptr->slice_type            = pcs_ptr->slice_type;
@@ -549,6 +387,8 @@ void *picture_manager_kernel(void *input_ptr) {
                     reference_entry_ptr->dep_list1_count = reference_entry_ptr->list1.list_count;
                     reference_entry_ptr->dependent_count =
                         reference_entry_ptr->dep_list0_count + reference_entry_ptr->dep_list1_count;
+                    //remove dependency to alredy knowmn broken links from PD
+                    reference_entry_ptr->dependent_count += pcs_ptr->self_updated_links;
 
                     CHECK_REPORT_ERROR(
                         (pcs_ptr->pred_struct_ptr->pred_struct_period * REF_LIST_MAX_DEPTH <
@@ -560,25 +400,8 @@ void *picture_manager_kernel(void *input_ptr) {
                 if (pcs_ptr->is_used_as_reference_flag == EB_FALSE) {
                     // Release the nominal live_count value
                     eb_release_object(pcs_ptr->reference_picture_wrapper_ptr);
-                    pcs_ptr->reference_picture_wrapper_ptr = (EbObjectWrapper *)EB_NULL;
+                    pcs_ptr->reference_picture_wrapper_ptr = (EbObjectWrapper *)NULL;
                 }
-
-                // Release the Picture Manager Reorder Queue
-                queue_entry_ptr->parent_pcs_wrapper_ptr = (EbObjectWrapper *)EB_NULL;
-                queue_entry_ptr->picture_number += PICTURE_MANAGER_REORDER_QUEUE_MAX_DEPTH;
-
-                // Increment the Picture Manager Reorder Queue
-                encode_context_ptr->picture_manager_reorder_queue_head_index =
-                    (encode_context_ptr->picture_manager_reorder_queue_head_index ==
-                     PICTURE_MANAGER_REORDER_QUEUE_MAX_DEPTH - 1)
-                        ? 0
-                        : encode_context_ptr->picture_manager_reorder_queue_head_index + 1;
-
-                // Get the next entry from the Picture Manager Reorder Queue (Entry N+1)
-                queue_entry_ptr =
-                    encode_context_ptr->picture_manager_reorder_queue
-                        [encode_context_ptr->picture_manager_reorder_queue_head_index];
-            }
 
             break;
 
@@ -586,7 +409,7 @@ void *picture_manager_kernel(void *input_ptr) {
 
             scs_ptr = (SequenceControlSet *)input_picture_demux_ptr->scs_wrapper_ptr->object_ptr;
             encode_context_ptr = scs_ptr->encode_context_ptr;
-
+            clean_pictures_in_ref_queue(scs_ptr->encode_context_ptr);
             // Check if Reference Queue is full
             CHECK_REPORT_ERROR((encode_context_ptr->reference_picture_queue_head_index !=
                                 encode_context_ptr->reference_picture_queue_tail_index),
@@ -630,6 +453,8 @@ void *picture_manager_kernel(void *input_ptr) {
         case EB_PIC_FEEDBACK:
             scs_ptr = (SequenceControlSet *)input_picture_demux_ptr->scs_wrapper_ptr->object_ptr;
             encode_context_ptr    = scs_ptr->encode_context_ptr;
+
+            clean_pictures_in_ref_queue(scs_ptr->encode_context_ptr);
             reference_queue_index = encode_context_ptr->reference_picture_queue_head_index;
             // Find the Reference in the Reference Queue
             do {
@@ -649,6 +474,9 @@ void *picture_manager_kernel(void *input_ptr) {
             } while (
                 (reference_queue_index != encode_context_ptr->reference_picture_queue_tail_index) &&
                 (reference_entry_ptr->picture_number != input_picture_demux_ptr->picture_number));
+            // Update the last decode order
+            if(input_picture_demux_ptr->decode_order == decode_order)
+                decode_order++;
 
             //keep the release of SCS here because we still need the encodeContext structure here
             // Release the Reference's SequenceControlSet
@@ -662,8 +490,8 @@ void *picture_manager_kernel(void *input_ptr) {
 
             CHECK_REPORT_ERROR_NC(encode_context_ptr->app_callback_ptr, EB_ENC_PM_ERROR9);
 
-            pcs_ptr            = (PictureParentControlSet *)EB_NULL;
-            encode_context_ptr = (EncodeContext *)EB_NULL;
+            pcs_ptr            = (PictureParentControlSet *)NULL;
+            encode_context_ptr = (EncodeContext *)NULL;
 
             break;
         }
@@ -673,65 +501,42 @@ void *picture_manager_kernel(void *input_ptr) {
         // *************************************
 
         // Walk the input queue and start all ready pictures.  Mark entry as null after started.  Increment the head as you go.
-        if (encode_context_ptr != (EncodeContext *)EB_NULL) {
+        if (encode_context_ptr != (EncodeContext *)NULL) {
             input_queue_index = encode_context_ptr->input_picture_queue_head_index;
             while (input_queue_index != encode_context_ptr->input_picture_queue_tail_index) {
                 input_entry_ptr = encode_context_ptr->input_picture_queue[input_queue_index];
 
-                if (input_entry_ptr->input_object_ptr != EB_NULL) {
+                if (input_entry_ptr->input_object_ptr != NULL) {
                     entry_pcs_ptr =
                         (PictureParentControlSet *)input_entry_ptr->input_object_ptr->object_ptr;
                     entry_scs_ptr =
                         (SequenceControlSet *)entry_pcs_ptr->scs_wrapper_ptr->object_ptr;
 
                     availability_flag = EB_TRUE;
+                    if (entry_pcs_ptr->decode_order != decode_order && use_input_stat(scs_ptr))
+                        availability_flag = EB_FALSE;
 
                     // Check RefList0 Availability
-                    uint8_t ref_idx;
-                    for (ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list0_count; ++ref_idx) {
+                    for (uint8_t ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list0_count; ++ref_idx) {
                         //if (entry_pcs_ptr->ref_list0_count)  // NM: to double check.
                         {
-                            // hardcode the reference for the overlay frame
-                            if (entry_pcs_ptr->is_overlay) {
-                                reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                    ((int32_t)input_entry_ptr->reference_entry_index),
-                                    REFERENCE_QUEUE_MAX_DEPTH);
 
-                                reference_entry_ptr =
-                                    encode_context_ptr
-                                        ->reference_picture_queue[reference_queue_index];
-
-                                CHECK_REPORT_ERROR((reference_entry_ptr),
-                                                   encode_context_ptr->app_callback_ptr,
-                                                   EB_ENC_PM_ERROR10);
-
-                                ref_poc = POC_CIRCULAR_ADD(entry_pcs_ptr->picture_number, 0);
-                            } else {
-                                reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                    ((int32_t)input_entry_ptr->reference_entry_index) - // Base
-                                        input_entry_ptr->list0_ptr
-                                            ->reference_list[ref_idx], // Offset
-                                    REFERENCE_QUEUE_MAX_DEPTH); // Max
-
-                                reference_entry_ptr =
-                                    encode_context_ptr
-                                        ->reference_picture_queue[reference_queue_index];
-
-                                CHECK_REPORT_ERROR((reference_entry_ptr),
-                                                   encode_context_ptr->app_callback_ptr,
-                                                   EB_ENC_PM_ERROR10);
-
+                            if (entry_pcs_ptr->is_overlay)
+                                // hardcode the reference for the overlay frame
+                                ref_poc = entry_pcs_ptr->picture_number;
+                            else
                                 ref_poc = POC_CIRCULAR_ADD(
                                     entry_pcs_ptr->picture_number,
-                                    -input_entry_ptr->list0_ptr->reference_list[ref_idx]/*,
-                                    entry_scs_ptr->bits_for_picture_order_count*/);
-                            }
+                                    -input_entry_ptr->list0_ptr->reference_list[ref_idx]);
+
+                            reference_entry_ptr = search_ref_in_ref_queue(encode_context_ptr, ref_poc);
+
                             // Increment the current_input_poc is the case of POC rollover
                             current_input_poc = encode_context_ptr->current_input_poc;
                             //current_input_poc += ((current_input_poc < ref_poc) && (input_entry_ptr->list0_ptr->reference_list[ref_idx] > 0)) ?
                             //    (1 << entry_scs_ptr->bits_for_picture_order_count) :
                             //    0;
-
+                            if (reference_entry_ptr != NULL){
                             availability_flag =
                                 (availability_flag == EB_FALSE) ? EB_FALSE
                                                                 : // Don't update if already False
@@ -751,35 +556,27 @@ void *picture_manager_kernel(void *input_ptr) {
                                                         ? EB_TRUE
                                                         : // The Reference has been completed
                                                         EB_FALSE; // The Reference has not been completed
+                            }else{
+                                availability_flag = EB_FALSE;
+                            }
                         }
                     }
                     // Check RefList1 Availability
                     if (entry_pcs_ptr->slice_type == B_SLICE) {
-                        uint8_t ref_idx;
-                        for (ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list1_count; ++ref_idx) {
+                        for (uint8_t ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list1_count;
+                             ++ref_idx) {
                             // if (entry_pcs_ptr->ref_list1_count) // NM: To double check
                             {
                                 // If Reference is valid (non-zero), update the availability
                                 if (input_entry_ptr->list1_ptr->reference_list[ref_idx] !=
                                     (int32_t)INVALID_POC) {
-                                    reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                        ((int32_t)input_entry_ptr->reference_entry_index) - // Base
-                                            input_entry_ptr->list1_ptr
-                                                ->reference_list[ref_idx], // Offset
-                                        REFERENCE_QUEUE_MAX_DEPTH); // Max
-
-                                    reference_entry_ptr =
-                                        encode_context_ptr
-                                            ->reference_picture_queue[reference_queue_index];
-
-                                    CHECK_REPORT_ERROR((reference_entry_ptr),
-                                                       encode_context_ptr->app_callback_ptr,
-                                                       EB_ENC_PM_ERROR10);
 
                                     ref_poc = POC_CIRCULAR_ADD(
                                         entry_pcs_ptr->picture_number,
-                                        -input_entry_ptr->list1_ptr->reference_list[ref_idx]/*,
-                                        entry_scs_ptr->bits_for_picture_order_count*/);
+                                        -input_entry_ptr->list1_ptr->reference_list[ref_idx]);
+
+                                    reference_entry_ptr = search_ref_in_ref_queue(encode_context_ptr, ref_poc);
+
 
                                     // Increment the current_input_poc is the case of POC rollover
                                     current_input_poc = encode_context_ptr->current_input_poc;
@@ -787,6 +584,7 @@ void *picture_manager_kernel(void *input_ptr) {
                                     //    (1 << entry_scs_ptr->bits_for_picture_order_count) :
                                     //    0;
 
+                                    if (reference_entry_ptr != NULL){
                                     availability_flag =
                                         (availability_flag == EB_FALSE)
                                             ? EB_FALSE
@@ -809,6 +607,9 @@ void *picture_manager_kernel(void *input_ptr) {
                                                                 ? EB_TRUE
                                                                 : // The Reference has been completed
                                                                 EB_FALSE; // The Reference has not been completed
+
+                                    }else{
+                                        availability_flag = EB_FALSE; }
                                 }
                             }
                         }
@@ -845,9 +646,8 @@ void *picture_manager_kernel(void *input_ptr) {
                         child_pcs_ptr->enc_mode = entry_pcs_ptr->enc_mode;
                         child_pcs_ptr->sb_total_count = entry_pcs_ptr->sb_total_count;
 
-#if TILES_PARALLEL
                         child_pcs_ptr->enc_dec_coded_sb_count = 0;
-#endif
+                        child_pcs_ptr->parent_pcs_ptr->av1_cm->rst_tmpbuf = child_pcs_ptr->rst_tmpbuf;
 
                         //3.make all  init for ChildPCS
                         pic_width_in_sb = (uint8_t)((entry_pcs_ptr->aligned_width +
@@ -858,7 +658,6 @@ void *picture_manager_kernel(void *input_ptr) {
                                        entry_scs_ptr->sb_size_pix - 1) /
                                       entry_scs_ptr->sb_size_pix);
 
-#if TILES_PARALLEL
                         set_tile_info(entry_pcs_ptr);
 
                         int      sb_size_log2    = entry_scs_ptr->seq_header.sb_size_log2;
@@ -885,8 +684,11 @@ void *picture_manager_kernel(void *input_ptr) {
                                 ->tile_group_row_count_array[entry_pcs_ptr->temporal_layer_index]);
 
                         if (tile_group_cols * tile_group_rows > 1) {
-                            enc_dec_seg_col_cnt = pic_width_in_sb / tile_group_cols;
-                            enc_dec_seg_row_cnt = picture_height_in_sb / tile_group_rows;
+                            enc_dec_seg_col_cnt = MIN(enc_dec_seg_col_cnt,
+                                                      (uint8_t)(pic_width_in_sb / tile_group_cols));
+                            enc_dec_seg_row_cnt = MIN(
+                                enc_dec_seg_row_cnt,
+                                (uint8_t)(picture_height_in_sb / tile_group_rows));
                         }
 
                         ppcs_ptr->tile_group_cols = tile_group_cols;
@@ -954,21 +756,21 @@ void *picture_manager_kernel(void *input_ptr) {
                                     tg_info_ptr->tile_group_height_in_sb);
 
                                 // Enable tile parallelism in Entropy Coding stage
-                                for (uint16_t r = top_left_tile_row_idx;
-                                     r < bottom_right_tile_row_idx;
-                                     r++) {
-                                    for (uint16_t c = top_left_tile_col_idx;
-                                         c < bottom_right_tile_col_idx;
-                                         c++) {
-                                        uint16_t tileIdx = r * tile_cols + c;
+                                for (uint16_t s = top_left_tile_row_idx;
+                                     s < bottom_right_tile_row_idx;
+                                     s++) {
+                                    for (uint16_t d = top_left_tile_col_idx;
+                                         d < bottom_right_tile_col_idx;
+                                         d++) {
+                                        uint16_t tileIdx = s * tile_cols + d;
                                         child_pcs_ptr->entropy_coding_info[tileIdx]
                                             ->entropy_coding_current_row = 0;
                                         child_pcs_ptr->entropy_coding_info[tileIdx]
                                             ->entropy_coding_current_available_row = 0;
                                         child_pcs_ptr->entropy_coding_info[tileIdx]
                                             ->entropy_coding_row_count =
-                                            (cm->tiles_info.tile_row_start_mi[r + 1] -
-                                             cm->tiles_info.tile_row_start_mi[r]) >>
+                                            (cm->tiles_info.tile_row_start_mi[s + 1] -
+                                             cm->tiles_info.tile_row_start_mi[s]) >>
                                             sb_size_log2;
                                         child_pcs_ptr->entropy_coding_info[tileIdx]
                                             ->entropy_coding_in_progress = EB_FALSE;
@@ -1009,86 +811,17 @@ void *picture_manager_kernel(void *input_ptr) {
 
                         // Update pcs_ptr->mi_stride
                         child_pcs_ptr->mi_stride = pic_width_in_sb * (scs_ptr->sb_size_pix >> MI_SIZE_LOG2);
-                        assert(child_pcs_ptr->mi_stride == entry_pcs_ptr->av1_cm->mi_stride);
 
                         // copy buffer info from the downsampled picture to the input frame 16 bit buffer
                         if(entry_pcs_ptr->frame_superres_enabled && scs_ptr->static_config.encoder_bit_depth > EB_8BIT){
                             copy_buffer_info(entry_pcs_ptr->enhanced_downscaled_picture_ptr, child_pcs_ptr->input_frame16bit);
                         }
-
-#else
-                        child_pcs_ptr->sb_total_count_pix = pic_width_in_sb * picture_height_in_sb;
-
-                        if(entry_pcs_ptr->frame_superres_enabled){
-                            // Modify sb_prt_array in child pcs
-                            uint16_t    sb_index;
-                            uint16_t    sb_origin_x = 0;
-                            uint16_t    sb_origin_y = 0;
-                            for (sb_index = 0; sb_index < child_pcs_ptr->sb_total_count_pix; ++sb_index) {
-                                largest_coding_unit_dctor(child_pcs_ptr->sb_ptr_array[sb_index]);
-                                largest_coding_unit_ctor(child_pcs_ptr->sb_ptr_array[sb_index],
-                                                         (uint8_t)scs_ptr->sb_size_pix,
-                                                         (uint16_t)(sb_origin_x * scs_ptr->sb_size_pix),
-                                                         (uint16_t)(sb_origin_y * scs_ptr->sb_size_pix),
-                                                         (uint16_t)sb_index,
-                                                         child_pcs_ptr);
-                                // Increment the Order in coding order (Raster Scan Order)
-                                sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
-                                sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;
-                            }
-                        }
-
-                        // Update pcs_ptr->mi_stride
-                        child_pcs_ptr->mi_stride = pic_width_in_sb * (scs_ptr->sb_size_pix >> MI_SIZE_LOG2);
-                        assert(child_pcs_ptr->mi_stride == entry_pcs_ptr->av1_cm->mi_stride);
-
-                        // copy buffer info from the downsampled picture to the input frame 16 bit buffer
-                        if(entry_pcs_ptr->frame_superres_enabled && scs_ptr->static_config.encoder_bit_depth > EB_8BIT){
-                            copy_buffer_info(entry_pcs_ptr->enhanced_downscaled_picture_ptr, child_pcs_ptr->input_frame16bit);
-                        }
-
-                        uint32_t enc_dec_seg_w = (scs_ptr->static_config.super_block_size == 128) ?
-                                                 ((entry_pcs_ptr->aligned_width + 64) / 128) :
-                                                 ((entry_pcs_ptr->aligned_width + 32) / 64);
-
-                        // EncDec Segments
-                        enc_dec_segments_init(child_pcs_ptr->enc_dec_segment_ctrl,
-                                              enc_dec_seg_w,
-                                              entry_scs_ptr->enc_dec_segment_row_count_array
-                                                  [entry_pcs_ptr->temporal_layer_index],
-                                              pic_width_in_sb,
-                                              picture_height_in_sb);
-
-                        // Entropy Coding Rows
-                        {
-                            unsigned row_index;
-
-                            child_pcs_ptr->entropy_coding_current_row           = 0;
-                            child_pcs_ptr->entropy_coding_current_available_row = 0;
-                            child_pcs_ptr->entropy_coding_row_count   = picture_height_in_sb;
-                            child_pcs_ptr->entropy_coding_in_progress = EB_FALSE;
-
-                            for (row_index = 0; row_index < MAX_SB_ROWS; ++row_index)
-                                child_pcs_ptr->entropy_coding_row_array[row_index] = EB_FALSE;
-                        }
-#endif
 
 //                        child_pcs_ptr->parent_pcs_ptr->av1_cm->pcs_ptr = child_pcs_ptr;
-#if !TILES_PARALLEL
-                        struct PictureParentControlSet *ppcs_ptr = child_pcs_ptr->parent_pcs_ptr;
-                        Av1Common *const                cm       = ppcs_ptr->av1_cm;
-                        int                             tile_row, tile_col;
-                        uint32_t                        x_sb_index, y_sb_index;
-                        const int tile_cols = ppcs_ptr->av1_cm->tiles_info.tile_cols;
-                        const int tile_rows = ppcs_ptr->av1_cm->tiles_info.tile_rows;
-                        TileInfo  tile_info;
-                        int       sb_size_log2 = scs_ptr->seq_header.sb_size_log2;
-#endif
-#if TILES_PARALLEL
                         // Palette
+                        alloc_palette_tokens(scs_ptr, child_pcs_ptr);
                         TOKENEXTRA * pre_tok  = child_pcs_ptr->tile_tok[0][0];
                         unsigned int tile_tok = 0;
-#endif
                         //Tile Loop
                         for (tile_row = 0; tile_row < tile_rows; tile_row++) {
                             eb_av1_tile_set_row(&tile_info, &cm->tiles_info, cm->mi_rows, tile_row);
@@ -1096,7 +829,6 @@ void *picture_manager_kernel(void *input_ptr) {
                             for (tile_col = 0; tile_col < tile_cols; tile_col++) {
                                 eb_av1_tile_set_col(
                                     &tile_info, &cm->tiles_info, cm->mi_cols, tile_col);
-#if TILES_PARALLEL
                                 tile_info.tile_rs_index = tile_col + tile_row * tile_cols;
 
                                 // Palette
@@ -1111,7 +843,6 @@ void *picture_manager_kernel(void *input_ptr) {
                                     tile_tok = get_token_alloc(
                                         tile_mb_rows, tile_mb_cols, (sb_size_log2 + 2), 2);
                                 }
-#endif
                                 for ((y_sb_index = cm->tiles_info.tile_row_start_mi[tile_row] >>
                                                    sb_size_log2);
                                      (y_sb_index <
@@ -1135,12 +866,6 @@ void *picture_manager_kernel(void *input_ptr) {
                         cm->mi_stride = child_pcs_ptr->mi_stride;
                         // Picture edges
                         configure_picture_edges(entry_scs_ptr, child_pcs_ptr);
-
-                        // Reset the qp array for DLF
-                        EB_MEMSET(child_pcs_ptr->qp_array,
-                                  0,
-                                  sizeof(uint8_t) * child_pcs_ptr->qp_array_size);
-
                         // Error resilience related
                         child_pcs_ptr->colocated_pu_ref_list = REF_LIST_0; // to be modified
 
@@ -1152,7 +877,7 @@ void *picture_manager_kernel(void *input_ptr) {
 
                         // Rate Control
                         child_pcs_ptr->dif_blk_delta_qp_depth =
-                            (uint8_t)entry_scs_ptr->input_resolution == INPUT_SIZE_4K_RANGE ? 3 : 2;
+                            (uint8_t)entry_scs_ptr->input_resolution <= INPUT_SIZE_1080p_RANGE ? 2 : 3;
 
                         // Reset the Reference Lists
                         EB_MEMSET(child_pcs_ptr->ref_pic_ptr_array[REF_LIST_0],
@@ -1179,27 +904,32 @@ void *picture_manager_kernel(void *input_ptr) {
                         EB_MEMSET(child_pcs_ptr->ref_pic_referenced_area_avg_array[REF_LIST_1],
                                   0,
                                   REF_LIST_MAX_DEPTH * sizeof(uint64_t));
+                        EB_MEMSET(child_pcs_ptr->ref_pic_r0[REF_LIST_0],
+                            0,
+                            REF_LIST_MAX_DEPTH * sizeof(double));
+                        EB_MEMSET(child_pcs_ptr->ref_pic_r0[REF_LIST_1],
+                            0,
+                            REF_LIST_MAX_DEPTH * sizeof(double));
                         int8_t max_temporal_index = -1, ref_index = 0;
                         // Configure List0
                         if ((entry_pcs_ptr->slice_type == P_SLICE) ||
                             (entry_pcs_ptr->slice_type == B_SLICE)) {
-                            uint8_t ref_idx;
-                            for (ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list0_count; ++ref_idx) {
+                            for (uint8_t ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list0_count;
+                                 ++ref_idx) {
                                 if (entry_pcs_ptr->ref_list0_count) {
-                                    // hardcode the reference for the overlay frame
-                                    if (entry_pcs_ptr->is_overlay)
-                                        reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                            ((int32_t)input_entry_ptr->reference_entry_index),
-                                            REFERENCE_QUEUE_MAX_DEPTH);
-                                    else
-                                        reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                            ((int32_t)input_entry_ptr->reference_entry_index) -
-                                                input_entry_ptr->list0_ptr->reference_list[ref_idx],
-                                            REFERENCE_QUEUE_MAX_DEPTH); // Max
 
-                                    reference_entry_ptr =
-                                        encode_context_ptr
-                                            ->reference_picture_queue[reference_queue_index];
+                                    if (entry_pcs_ptr->is_overlay)
+                                        ref_poc = entry_pcs_ptr->picture_number;
+                                    else
+                                        ref_poc = POC_CIRCULAR_ADD(
+                                            entry_pcs_ptr->picture_number,
+                                            -input_entry_ptr->list0_ptr->reference_list[ref_idx]);
+
+                                    reference_entry_ptr = search_ref_in_ref_queue(encode_context_ptr, ref_poc);
+                                    assert(reference_entry_ptr != 0);
+                                    CHECK_REPORT_ERROR((reference_entry_ptr),
+                                            encode_context_ptr->app_callback_ptr,
+                                            EB_ENC_PM_ERROR10);
                                     if (entry_pcs_ptr->frame_end_cdf_update_mode) {
                                         child_pcs_ptr->ref_frame_context[svt_get_ref_frame_type(
                                                                              REF_LIST_0, ref_idx) -
@@ -1208,7 +938,9 @@ void *picture_manager_kernel(void *input_ptr) {
                                                  ->reference_object_ptr->object_ptr)
                                                 ->frame_context;
                                         if (max_temporal_index <
-                                            (int8_t)reference_entry_ptr->temporal_layer_index) {
+                                                (int8_t)reference_entry_ptr->temporal_layer_index &&
+                                            (int8_t)reference_entry_ptr->temporal_layer_index <=
+                                                child_pcs_ptr->temporal_layer_index) {
                                             max_temporal_index =
                                                 (int8_t)reference_entry_ptr->temporal_layer_index;
                                             ref_index =
@@ -1244,6 +976,11 @@ void *picture_manager_kernel(void *input_ptr) {
                                         ((EbReferenceObject *)
                                              reference_entry_ptr->reference_object_ptr->object_ptr)
                                             ->referenced_area_avg;
+                                    child_pcs_ptr
+                                        ->ref_pic_r0[REF_LIST_0][ref_idx] =
+                                        ((EbReferenceObject *)
+                                            reference_entry_ptr->reference_object_ptr->object_ptr)
+                                        ->r0;
                                     // Increment the Reference's liveCount by the number of tiles in the input picture
                                     eb_object_inc_live_count(
                                         reference_entry_ptr->reference_object_ptr, 1);
@@ -1258,12 +995,13 @@ void *picture_manager_kernel(void *input_ptr) {
                                 }
                             }
                             //fill the non used spots to be used in MFMV.
-                            for (ref_idx = entry_pcs_ptr->ref_list0_count; ref_idx < 4; ++ref_idx)
+                            for (uint8_t ref_idx = entry_pcs_ptr->ref_list0_count; ref_idx < 4;
+                                 ++ref_idx)
                                 child_pcs_ptr->ref_pic_ptr_array[REF_LIST_0][ref_idx] =
                                     child_pcs_ptr->ref_pic_ptr_array[REF_LIST_0][0];
 
                             if (entry_pcs_ptr->ref_list1_count == 0) {
-                                for (ref_idx = entry_pcs_ptr->ref_list1_count; ref_idx < 3;
+                                for (uint8_t ref_idx = entry_pcs_ptr->ref_list1_count; ref_idx < 3;
                                      ++ref_idx)
                                     child_pcs_ptr->ref_pic_ptr_array[REF_LIST_1][ref_idx] =
                                         child_pcs_ptr->ref_pic_ptr_array[REF_LIST_0][0];
@@ -1272,17 +1010,20 @@ void *picture_manager_kernel(void *input_ptr) {
 
                         // Configure List1
                         if (entry_pcs_ptr->slice_type == B_SLICE) {
-                            uint8_t ref_idx;
-                            for (ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list1_count; ++ref_idx) {
+                            for (uint8_t ref_idx = 0; ref_idx < entry_pcs_ptr->ref_list1_count;
+                                 ++ref_idx) {
                                 if (entry_pcs_ptr->ref_list1_count) {
-                                    reference_queue_index = (uint32_t)CIRCULAR_ADD(
-                                        ((int32_t)input_entry_ptr->reference_entry_index) -
-                                            input_entry_ptr->list1_ptr->reference_list[ref_idx],
-                                        REFERENCE_QUEUE_MAX_DEPTH); // Max
 
-                                    reference_entry_ptr =
-                                        encode_context_ptr
-                                            ->reference_picture_queue[reference_queue_index];
+                                    ref_poc = POC_CIRCULAR_ADD(
+                                        entry_pcs_ptr->picture_number,
+                                        -input_entry_ptr->list1_ptr->reference_list[ref_idx]);
+
+                                    reference_entry_ptr = search_ref_in_ref_queue(encode_context_ptr, ref_poc);
+
+                                    assert(reference_entry_ptr != 0);
+                                    CHECK_REPORT_ERROR((reference_entry_ptr),
+                                        encode_context_ptr->app_callback_ptr,
+                                        EB_ENC_PM_ERROR10);
                                     if (entry_pcs_ptr->frame_end_cdf_update_mode) {
                                         child_pcs_ptr->ref_frame_context[svt_get_ref_frame_type(
                                                                              REF_LIST_1, ref_idx) -
@@ -1292,8 +1033,10 @@ void *picture_manager_kernel(void *input_ptr) {
                                                 ->frame_context;
                                         if (max_temporal_index <
                                                 (int8_t)reference_entry_ptr->temporal_layer_index &&
-                                            reference_entry_ptr->slice_type !=
-                                                I_SLICE /* && child_pcs_ptr->temporal_layer_index != 0*/) {
+                                            reference_entry_ptr->slice_type != I_SLICE &&
+                                            (int8_t)reference_entry_ptr->temporal_layer_index <=
+                                                child_pcs_ptr->temporal_layer_index) {
+
                                             max_temporal_index =
                                                 (int8_t)reference_entry_ptr->temporal_layer_index;
                                             ref_index =
@@ -1329,6 +1072,11 @@ void *picture_manager_kernel(void *input_ptr) {
                                         ((EbReferenceObject *)
                                              reference_entry_ptr->reference_object_ptr->object_ptr)
                                             ->referenced_area_avg;
+                                    child_pcs_ptr
+                                        ->ref_pic_r0[REF_LIST_1][ref_idx] =
+                                        ((EbReferenceObject *)
+                                            reference_entry_ptr->reference_object_ptr->object_ptr)
+                                        ->r0;
                                     // Increment the Reference's liveCount by the number of tiles in the input picture
                                     eb_object_inc_live_count(
                                         reference_entry_ptr->reference_object_ptr, 1);
@@ -1344,7 +1092,7 @@ void *picture_manager_kernel(void *input_ptr) {
                             }
                             //fill the non used spots to be used in MFMV.
                             if (entry_pcs_ptr->ref_list1_count) {
-                                for (ref_idx = entry_pcs_ptr->ref_list1_count; ref_idx < 3;
+                                for (uint8_t ref_idx = entry_pcs_ptr->ref_list1_count; ref_idx < 3;
                                      ++ref_idx)
                                     child_pcs_ptr->ref_pic_ptr_array[REF_LIST_1][ref_idx] =
                                         child_pcs_ptr->ref_pic_ptr_array[REF_LIST_1][0];
@@ -1390,7 +1138,7 @@ void *picture_manager_kernel(void *input_ptr) {
                         eb_post_full_object(output_wrapper_ptr);
 
                         // Remove the Input Entry from the Input Queue
-                        input_entry_ptr->input_object_ptr = (EbObjectWrapper *)EB_NULL;
+                        input_entry_ptr->input_object_ptr = (EbObjectWrapper *)NULL;
                     }
                 }
 
@@ -1423,18 +1171,8 @@ void *picture_manager_kernel(void *input_ptr) {
                     (reference_entry_ptr->release_enable) &&
                     (reference_entry_ptr->reference_object_ptr)) {
                     // Release the nominal live_count value
-                    if (scs_ptr->use_output_stat_file &&
-                        reference_entry_ptr->reference_object_ptr->live_count == 1)
-                        write_stat_to_file(
-                            scs_ptr,
-                            ((EbReferenceObject *)
-                                 reference_entry_ptr->reference_object_ptr->object_ptr)
-                                ->stat_struct,
-                            ((EbReferenceObject *)
-                                 reference_entry_ptr->reference_object_ptr->object_ptr)
-                                ->ref_poc);
                     eb_release_object(reference_entry_ptr->reference_object_ptr);
-                    reference_entry_ptr->reference_object_ptr      = (EbObjectWrapper *)EB_NULL;
+                    reference_entry_ptr->reference_object_ptr      = (EbObjectWrapper *)NULL;
                     reference_entry_ptr->reference_available       = EB_FALSE;
                     reference_entry_ptr->is_used_as_reference_flag = EB_FALSE;
                 }
@@ -1475,5 +1213,5 @@ void *picture_manager_kernel(void *input_ptr) {
         // Release the Input Picture Demux Results
         eb_release_object(input_picture_demux_wrapper_ptr);
     }
-    return EB_NULL;
+    return NULL;
 }

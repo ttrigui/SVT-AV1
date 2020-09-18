@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbFullLoop_h
@@ -17,8 +23,9 @@ extern "C" {
 
 void full_loop_r(SuperBlock *sb_ptr, ModeDecisionCandidateBuffer *candidate_buffer,
                  ModeDecisionContext *context_ptr, EbPictureBufferDesc *input_picture_ptr,
-                 PictureControlSet *pcs_ptr, uint32_t component_mask, uint32_t cb_qp,
-                 uint32_t cr_qp, uint32_t *cb_count_non_zero_coeffs,
+                 PictureControlSet *pcs_ptr, uint32_t component_mask,
+                 uint32_t cb_qindex, uint32_t cr_qindex,
+                 uint32_t *cb_count_non_zero_coeffs,
                  uint32_t *cr_count_non_zero_coeffs);
 
 void cu_full_distortion_fast_txb_mode_r(
@@ -31,7 +38,7 @@ void cu_full_distortion_fast_txb_mode_r(
 
 void product_full_loop(ModeDecisionCandidateBuffer *candidate_buffer,
                        ModeDecisionContext *context_ptr, PictureControlSet *pcs_ptr,
-                       EbPictureBufferDesc *input_picture_ptr, uint32_t qp,
+                       EbPictureBufferDesc *input_picture_ptr, uint32_t qindex,
                        uint32_t *y_count_non_zero_coeffs, uint64_t *y_coeff_bits,
                        uint64_t *y_full_distortion);
 

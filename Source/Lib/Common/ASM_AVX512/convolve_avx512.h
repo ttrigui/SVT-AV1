@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef AOM_DSP_X86_CONVOLVE_AVX512_H_
@@ -118,7 +124,7 @@ static INLINE void prepare_half_coeffs_4tap_avx512(const InterpFilterParams *con
                                                    __m512i *const coeffs /* [2] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -136,7 +142,7 @@ static INLINE void prepare_half_coeffs_6tap_avx512(const InterpFilterParams *con
                                                    __m512i *const coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -154,7 +160,7 @@ SIMD_INLINE void prepare_half_coeffs_8tap_avx512(const InterpFilterParams *const
                                                  __m512i *const                  coeffs /* [4] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -186,7 +192,7 @@ static INLINE void prepare_coeffs_4tap_avx512(const InterpFilterParams *const fi
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff_8 = _mm_loadu_si128((__m128i *)filter);
     const __m512i coeff   = eb_mm512_broadcast_i64x2(coeff_8);
 
     // coeffs 2 3 2 3 2 3 2 3
@@ -200,7 +206,7 @@ static INLINE void prepare_coeffs_6tap_avx512(const InterpFilterParams *const fi
                                               __m512i *const                  coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
     const __m512i coeff    = eb_mm512_broadcast_i64x2(coeffs_8);
 
     // coeffs 1 2 1 2 1 2 1 2
@@ -217,7 +223,7 @@ static INLINE void prepare_coeffs_8tap_avx512(const InterpFilterParams *const fi
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff_8 = _mm_loadu_si128((__m128i *)filter);
     const __m512i coeff   = eb_mm512_broadcast_i64x2(coeff_8);
 
     // coeffs 0 1 0 1 0 1 0 1

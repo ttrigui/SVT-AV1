@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbPredictionUnit_h
@@ -15,16 +21,9 @@ extern "C" {
 #endif
 #pragma pack(push, 1)
 typedef struct PredictionUnit {
-    Mv       mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
-    Mvd      mvd[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
-    unsigned merge_flag : 1;
-    unsigned inter_pred_direction_index : 2;
-    unsigned intra_luma_mode : 6;
-    unsigned intra_luma_left_mode : 6;
-    unsigned intra_luma_top_mode : 6;
+    Mv mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
+    uint8_t inter_pred_direction_index;
 
-    uint8_t intra_chroma_left_mode;
-    uint8_t intra_chroma_top_mode;
     // Intra Mode
     int32_t  angle_delta[PLANE_TYPES];
     EbBool   is_directional_mode_flag;
@@ -34,21 +33,9 @@ typedef struct PredictionUnit {
     // Inter Mode
     PredictionMode         inter_mode;
     EbBool                 is_compound;
-    uint8_t                compound_idx;
-    InterInterCompoundData interinter_comp;
-
-    uint32_t pred_mv_weight;
     uint8_t  ref_frame_type;
-    int8_t   ref_frame_index_l0;
-    int8_t   ref_frame_index_l1;
-    uint8_t  ref_mv_index;
-    EbBool   is_new_mv;
-    EbBool   is_zero_mv;
-
     MotionMode           motion_mode;
     uint16_t             num_proj_ref;
-    EbWarpedMotionParams wm_params_l0;
-    EbWarpedMotionParams wm_params_l1;
     uint32_t             overlappable_neighbors[2];
 
     // Index of the alpha Cb and alpha Cr combination

@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 // SUMMARY
@@ -59,83 +65,6 @@ CflAllowedType store_cfl_required(const EbColorConfig *cc, PartitionInfo *xd,
     return (CflAllowedType)(!is_inter_block(mbmi) && mbmi->uv_mode == UV_CFL_PRED);
 }
 
-/* decode partition */
-PartitionType get_partition(DecModCtxt *dec_mod_ctxt, FrameHeader *frame_header, uint32_t mi_row,
-                            uint32_t mi_col, SBInfo *sb_info, BlockSize bsize) {
-    if (mi_row >= frame_header->mi_rows || mi_col >= frame_header->mi_cols)
-        return PARTITION_INVALID;
-
-    BlockModeInfo *mode_info =
-        get_cur_mode_info(dec_mod_ctxt->dec_handle_ptr, mi_row, mi_col, sb_info);
-
-    const BlockSize subsize = mode_info->sb_type;
-
-    if (subsize == bsize) return PARTITION_NONE;
-
-    const int bhigh  = mi_size_high[bsize];
-    const int bwide  = mi_size_wide[bsize];
-    const int sshigh = mi_size_high[subsize];
-    const int sswide = mi_size_wide[subsize];
-
-    if (bsize > BLOCK_8X8 && mi_row + bwide / 2 < frame_header->mi_rows &&
-        mi_col + bhigh / 2 < frame_header->mi_cols) {
-        // In this case, the block might be using an extended partition type.
-        /* TODO: Fix the nbr access! */
-        const BlockModeInfo *const mbmi_right =
-            get_cur_mode_info(dec_mod_ctxt->dec_handle_ptr, mi_row, mi_col + (bwide / 2), sb_info);
-        const BlockModeInfo *const mbmi_below =
-            get_cur_mode_info(dec_mod_ctxt->dec_handle_ptr, mi_row + (bhigh / 2), mi_col, sb_info);
-
-        if (sswide == bwide) {
-            // Smaller height but same width. Is PARTITION_HORZ_4, PARTITION_HORZ or
-            // PARTITION_HORZ_B. To distinguish the latter two, check if the lower
-            // half was split.
-            if (sshigh * 4 == bhigh) return PARTITION_HORZ_4;
-            assert(sshigh * 2 == bhigh);
-
-            if (mbmi_below->sb_type == subsize)
-                return PARTITION_HORZ;
-            else
-                return PARTITION_HORZ_B;
-        } else if (sshigh == bhigh) {
-            // Smaller width but same height. Is PARTITION_VERT_4, PARTITION_VERT or
-            // PARTITION_VERT_B. To distinguish the latter two, check if the right
-            // half was split.
-            if (sswide * 4 == bwide) return PARTITION_VERT_4;
-            assert(sswide * 2 == bhigh);
-
-            if (mbmi_right->sb_type == subsize)
-                return PARTITION_VERT;
-            else
-                return PARTITION_VERT_B;
-        } else {
-            // Smaller width and smaller height. Might be PARTITION_SPLIT or could be
-            // PARTITION_HORZ_A or PARTITION_VERT_A. If subsize isn't halved in both
-            // dimensions, we immediately know this is a split (which will recurse to
-            // get to subsize). Otherwise look down and to the right. With
-            // PARTITION_VERT_A, the right block will have height bhigh; with
-            // PARTITION_HORZ_A, the lower block with have width bwide. Otherwise
-            // it's PARTITION_SPLIT.
-            if (sswide * 2 != bwide || sshigh * 2 != bhigh) return PARTITION_SPLIT;
-
-            if (mi_size_wide[mbmi_below->sb_type] == bwide) return PARTITION_HORZ_A;
-            if (mi_size_high[mbmi_right->sb_type] == bhigh) return PARTITION_VERT_A;
-
-            return PARTITION_SPLIT;
-        }
-    }
-
-    const int vert_split = sswide < bwide;
-    const int horz_split = sshigh < bhigh;
-    const int split_idx  = (vert_split << 1) | horz_split;
-    assert(split_idx != 0);
-
-    static const PartitionType base_partitions[4] = {
-        PARTITION_INVALID, PARTITION_HORZ, PARTITION_VERT, PARTITION_SPLIT};
-
-    return base_partitions[split_idx];
-}
-
 void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi_row, int32_t mi_col,
                    BlockSize bsize, TileInfo *tile, SBInfo *sb_info) {
     EbDecHandle *        dec_handle        = (EbDecHandle *)dec_mod_ctxt->dec_handle_ptr;
@@ -148,6 +77,7 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
 
     bool inter_block = is_inter_block(mode_info);
 
+    EbBool is16b = dec_handle->is_16bit_pipeline;
 #if MODE_INFO_DBG
     assert(mode_info->mi_row == mi_row);
     assert(mode_info->mi_col == mi_col);
@@ -155,7 +85,7 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
     int32_t bw4 = mi_size_wide[bsize];
     int32_t bh4 = mi_size_high[bsize];
 
-    int hbd = (recon_picture_buf->bit_depth > EB_8BIT);
+    int hbd = (recon_picture_buf->bit_depth > EB_8BIT) || is16b;
 
     int sub_x, sub_y, n_coeffs;
     sub_x                 = color_config->subsampling_x;
@@ -169,10 +99,8 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
     part_info.mi_row      = mi_row;
     part_info.mi_col      = mi_col;
     part_info.pv_cfl_ctxt = &dec_mod_ctxt->cfl_ctx;
-#if MC_DYNAMIC_PAD
     part_info.mc_buf[0] = dec_mod_ctxt->mc_buf[0];
     part_info.mc_buf[1] = dec_mod_ctxt->mc_buf[1];
-#endif
     part_info.is_chroma_ref = is_chroma_ref;
 
     /*!< Distance of MB away from frame edges in subpixels (1/8th pixel). */
@@ -320,11 +248,9 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
             const MvReferenceFrame frame = mode_info->ref_frame[ref];
             part_info.block_ref_sf[ref]  = get_ref_scale_factors(dec_handle, frame);
         }
-    }
-
-    if (inter_block)
         svtav1_predict_inter_block(
             dec_mod_ctxt, dec_handle, &part_info, mi_row, mi_col, num_planes);
+    }
 
     TxType           tx_type;
     int32_t *        coeffs;
@@ -441,7 +367,7 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
                 if (n_coeffs != 0) {
                     dec_mod_ctxt->cur_coeff[plane] += (n_coeffs + 1);
 
-                    if (recon_picture_buf->bit_depth == EB_8BIT)
+                    if (recon_picture_buf->bit_depth == EB_8BIT && !is16b)
                         av1_inv_transform_recon8bit(qcoeffs,
                                                     (uint8_t *)txb_recon_buf,
                                                     recon_stride,
@@ -459,7 +385,7 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
                                                 CONVERT_TO_BYTEPTR(txb_recon_buf),
                                                 recon_stride,
                                                 tx_size,
-                                                recon_picture_buf->bit_depth - EB_8BIT,
+                                                recon_picture_buf->bit_depth,
                                                 tx_type,
                                                 plane,
                                                 n_coeffs,
@@ -478,7 +404,8 @@ void decode_block(DecModCtxt *dec_mod_ctxt, BlockModeInfo *mode_info, int32_t mi
                              bsize,
                              color_config,
                              txb_recon_buf,
-                             recon_stride);
+                             recon_stride,
+                             is16b);
             }
 
             // increment transform pointer

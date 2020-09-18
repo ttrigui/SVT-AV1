@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbDecBlock_h
@@ -187,10 +193,8 @@ typedef struct PartitionInfo {
     int8_t *cdef_strength;
 
     int32_t is_chroma_ref;
-#if MC_DYNAMIC_PAD
     /*MC temp buff for dynamic padding*/
     uint8_t *mc_buf[2];
-#endif
 } PartitionInfo;
 
 #endif //EbDecBlock_h

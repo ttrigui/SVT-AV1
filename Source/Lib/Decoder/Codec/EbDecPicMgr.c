@@ -1,17 +1,13 @@
 /*
-* Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
+ * Copyright(c) 2019 Netflix, Inc.
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 // SUMMARY
@@ -110,8 +106,14 @@ static INLINE EbErrorType mvs_8x8_memory_alloc(TemporalMvRef **mvs, FrameHeader 
 *
 *******************************************************************************
 */
-EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecPicMgr *ps_pic_mgr, SeqHeader *seq_header,
-                                     FrameHeader *frame_info, EbColorFormat color_format) {
+
+EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecHandle *dec_handle_ptr) {
+    EbDecPicMgr *ps_pic_mgr = (EbDecPicMgr *)dec_handle_ptr->pv_pic_mgr;
+    SeqHeader   *seq_header = &dec_handle_ptr->seq_header;
+    FrameHeader *frame_info = &dec_handle_ptr->frame_header;
+    EbColorFormat color_format = seq_header->color_config.mono_chrome
+        ? EB_YUV400
+        : dec_handle_ptr->dec_config.max_color_format;
     int32_t      i;
     EbDecPicBuf *pic_buf = NULL;
     /* TODO: Add lock and unlock for MT */
@@ -125,17 +127,10 @@ EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecPicMgr *ps_pic_mgr, SeqHeader *seq_hea
     uint16_t       frame_width  = frame_info->frame_size.frame_width;
     uint16_t       frame_height = frame_info->frame_size.frame_height;
     EbColorConfig *cc           = &seq_header->color_config;
-#if MC_DYNAMIC_PAD
     size_t y_size = (frame_width + 2 * DEC_PAD_VALUE) * (frame_height + 2 * DEC_PAD_VALUE);
     size_t uv_size = cc->mono_chrome ? 0 :
                      (((frame_width + 2 * DEC_PAD_VALUE) >> cc->subsampling_x) *
                       ((frame_height + 2 * DEC_PAD_VALUE) >> cc->subsampling_y));
-#else
-    size_t         y_size       = (frame_width + 2 * PAD_VALUE) * (frame_height + 2 * PAD_VALUE);
-    size_t         uv_size      = cc->mono_chrome ? 0
-                                     : (((frame_width + 2 * PAD_VALUE) >> cc->subsampling_x) *
-                                        ((frame_height + 2 * PAD_VALUE) >> cc->subsampling_y));
-#endif
     size_t frame_size = y_size + uv_size;
 
     if (ps_pic_mgr->as_dec_pic[i].size < frame_size) {
@@ -151,22 +146,18 @@ EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecPicMgr *ps_pic_mgr, SeqHeader *seq_hea
         input_pic_buf_desc_init_data.buffer_enable_mask =
             cc->mono_chrome ? PICTURE_BUFFER_DESC_LUMA_MASK : PICTURE_BUFFER_DESC_FULL_MASK;
 
-#if MC_DYNAMIC_PAD
         input_pic_buf_desc_init_data.left_padding  = DEC_PAD_VALUE;
         input_pic_buf_desc_init_data.right_padding = DEC_PAD_VALUE;
         input_pic_buf_desc_init_data.top_padding = DEC_PAD_VALUE;
         input_pic_buf_desc_init_data.bot_padding = DEC_PAD_VALUE;
-#else
-        input_pic_buf_desc_init_data.left_padding  = PAD_VALUE;
-        input_pic_buf_desc_init_data.right_padding = PAD_VALUE;
-        input_pic_buf_desc_init_data.top_padding   = PAD_VALUE;
-        input_pic_buf_desc_init_data.bot_padding   = PAD_VALUE;
-#endif
 
         input_pic_buf_desc_init_data.split_mode = EB_FALSE;
 
         EbErrorType return_error = dec_eb_recon_picture_buffer_desc_ctor(
-            (EbPtr *)&(ps_pic_mgr->as_dec_pic[i].ps_pic_buf), (EbPtr)&input_pic_buf_desc_init_data);
+            (EbPtr *)&(ps_pic_mgr->as_dec_pic[i].ps_pic_buf),
+            (EbPtr)&input_pic_buf_desc_init_data,
+            dec_handle_ptr->is_16bit_pipeline);
+
         if (return_error != EB_ErrorNone) return NULL;
 
         ps_pic_mgr->as_dec_pic[i].size = frame_size;
@@ -190,8 +181,6 @@ EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecPicMgr *ps_pic_mgr, SeqHeader *seq_hea
 static INLINE void dec_ref_count_and_rel(EbDecPicBuf *ps_pic_buf) {
     if (ps_pic_buf != NULL) {
         ps_pic_buf->ref_count--;
-        assert(ps_pic_buf->ref_count >= 0);
-
         if (ps_pic_buf->ref_count == 0) ps_pic_buf->is_free = 1;
     }
 }
@@ -217,11 +206,11 @@ static INLINE void dec_ref_count_and_rel(EbDecPicBuf *ps_pic_buf) {
 */
 void dec_pic_mgr_update_ref_pic(EbDecHandle *dec_handle_ptr, int32_t frame_decoded,
                                 int32_t refresh_frame_flags) {
-    int32_t ref_index = 0, mask;
+    int32_t ref_index = 0;
 
     /* TODO: Add lock and unlock for MT */
     if (frame_decoded) {
-        for (mask = refresh_frame_flags; mask; mask >>= 1) {
+        for (int32_t mask = refresh_frame_flags; mask; mask >>= 1) {
             dec_ref_count_and_rel(dec_handle_ptr->ref_frame_map[ref_index]);
             dec_handle_ptr->ref_frame_map[ref_index] =
                 dec_handle_ptr->next_ref_frame_map[ref_index];
@@ -250,10 +239,15 @@ void dec_pic_mgr_update_ref_pic(EbDecHandle *dec_handle_ptr, int32_t frame_decod
     for (ref_index = 0; ref_index < INTER_REFS_PER_FRAME; ref_index++) {
         dec_handle_ptr->remapped_ref_idx[ref_index] = INVALID_IDX;
     }
-    for (int i = 0; i < NUM_REF_FRAMES; i++)
-        if ((dec_handle_ptr->frame_header.refresh_frame_flags >> i) & 1)
+
+    for (int i = 0; i < NUM_REF_FRAMES; i++) {
+        if ((dec_handle_ptr->frame_header.refresh_frame_flags >> i) & 1) {
             dec_handle_ptr->frame_header.ref_order_hint[i] =
                 dec_handle_ptr->frame_header.order_hint;
+            dec_handle_ptr->frame_header.ref_frame_id[i] =
+                dec_handle_ptr->frame_header.current_frame_id;
+        }
+    }
 }
 
 // Generate next_ref_frame_map.
@@ -303,6 +297,13 @@ ScaleFactors *get_ref_scale_factors(EbDecHandle *dec_handle_ptr, const MvReferen
     return (map_idx != INVALID_IDX) ? &dec_handle_ptr->ref_scale_factors[map_idx] : NULL;
 }
 
+EbDecPicBuf *get_primary_ref_frame_buf(EbDecHandle *dec_handle_ptr) {
+    int primary_ref_frame = dec_handle_ptr->frame_header.primary_ref_frame;
+    if (primary_ref_frame == PRIMARY_REF_NONE) return NULL;
+    const int map_idx = get_ref_frame_map_with_idx(dec_handle_ptr, primary_ref_frame + 1);
+    return (map_idx != INVALID_IDX) ? dec_handle_ptr->ref_frame_map[map_idx] : NULL;
+}
+
 /* Compares the sort_idx fields. If they are equal, then compares the map_idx
    fields to break the tie. This ensures a stable sort. */
 static int compare_ref_frame_info(const void *arg_a, const void *arg_b) {
@@ -325,7 +326,6 @@ void svt_set_frame_refs(EbDecHandle *dec_handle_ptr, int32_t lst_map_idx, int32_
     int32_t gld_frame_sort_idx = -1;
 
     assert(dec_handle_ptr->seq_header.order_hint_info.enable_order_hint);
-    assert(dec_handle_ptr->seq_header.order_hint_info.order_hint_bits >= 0);
 
     const int32_t cur_order_hint = (int32_t)dec_handle_ptr->frame_header.order_hint;
     const int32_t cur_frame_sort_idx =
@@ -346,7 +346,7 @@ void svt_set_frame_refs(EbDecHandle *dec_handle_ptr, int32_t lst_map_idx, int32_
         if (buf == NULL) continue;
         // If this assertion fails, there is a reference leak.
         assert(buf->ref_count > 0);
-        if (buf->ref_count <= 0) continue;
+        if (buf->ref_count == 0) continue;
 
         const int32_t offset = (int32_t)buf->order_hint;
         ref_frame_info[i].sort_idx =

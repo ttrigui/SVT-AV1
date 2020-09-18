@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "common_dsp_rtcd.h"
@@ -315,7 +315,7 @@ void eb_av1_highbd_warp_affine_sse4_1(const int32_t *mat, const uint16_t *ref, i
     assert(IMPLIES(conv_params->do_average, conv_params->is_compound));
 
     const int     offset_bits_vert = bd + 2 * FILTER_BITS - reduce_bits_horiz;
-    const __m128i clip_pixel       = _mm_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
+    const __m128i clp_pxl          = _mm_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
     const __m128i reduce_bits_vert_shift = _mm_cvtsi32_si128(reduce_bits_vert);
     const __m128i reduce_bits_vert_const = _mm_set1_epi32(((1 << reduce_bits_vert) >> 1));
     const __m128i res_add_const          = _mm_set1_epi32(1 << offset_bits_vert);
@@ -559,7 +559,7 @@ void eb_av1_highbd_warp_affine_sse4_1(const int32_t *mat, const uint16_t *ref, i
                                                  round_bits_shift);
 
                         __m128i res16_lo = _mm_packus_epi32(res32_lo, res32_lo);
-                        res16_lo         = _mm_min_epi16(res16_lo, clip_pixel);
+                        res16_lo         = _mm_min_epi16(res16_lo, clp_pxl);
                         _mm_storel_epi64(dst16, res16_lo);
                     } else {
                         res_lo = _mm_packus_epi32(res_lo, res_lo);
@@ -590,7 +590,7 @@ void eb_av1_highbd_warp_affine_sse4_1(const int32_t *mat, const uint16_t *ref, i
                             res32_hi = _mm_sra_epi32(_mm_add_epi32(res32_hi, round_bits_const),
                                                      round_bits_shift);
                             __m128i res16_hi = _mm_packus_epi32(res32_hi, res32_hi);
-                            res16_hi         = _mm_min_epi16(res16_hi, clip_pixel);
+                            res16_hi         = _mm_min_epi16(res16_hi, clp_pxl);
                             _mm_storel_epi64(dst16_4, res16_hi);
                         } else {
                             res_hi = _mm_packus_epi32(res_hi, res_hi);

@@ -1,14 +1,20 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Netflix, Inc.
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file OBMCVarianceTest.cc
  *
  * @brief Unit test for obmc variance functions:
- * - aom_obmc_variance{4-128}x{4-128}_{c, avx2}
- * - aom_obmc_sub_pixel_variance{4-128}x{4-128}_{c, sse4_1}
+ * - eb_aom_obmc_variance{4-128}x{4-128}_{c, avx2}
+ * - eb_aom_obmc_sub_pixel_variance{4-128}x{4-128}_{c, sse4_1}
  *
  * @author Cidana-Edmond
  *
@@ -96,8 +102,8 @@ TEST_P(OBMCVarianceTest, RunCheckOutput) {
     run_test(1000);
 };
 
-#define OBMC_VAR_FUNC_C(W, H) aom_obmc_variance##W##x##H##_c
-#define OBMC_VAR_FUNC_AVX2(W, H) aom_obmc_variance##W##x##H##_avx2
+#define OBMC_VAR_FUNC_C(W, H) eb_aom_obmc_variance##W##x##H##_c
+#define OBMC_VAR_FUNC_AVX2(W, H) eb_aom_obmc_variance##W##x##H##_avx2
 #define GEN_OBMC_VAR_TEST_PARAM(W, H) \
     ObmcVarParam(OBMC_VAR_FUNC_C(W, H), OBMC_VAR_FUNC_AVX2(W, H))
 #define GEN_TEST_PARAMS(GEN_PARAM)                                          \
@@ -198,9 +204,9 @@ TEST_P(OBMCSubPixelVarianceTest, RunCheckOutput) {
     run_test(1000);
 };
 
-#define OBMC_SUB_PIX_VAR_FUNC_C(W, H) aom_obmc_sub_pixel_variance##W##x##H##_c
+#define OBMC_SUB_PIX_VAR_FUNC_C(W, H) eb_aom_obmc_sub_pixel_variance##W##x##H##_c
 #define OBMC_SUB_PIX_VAR_FUNC_SSE41(W, H) \
-    aom_obmc_sub_pixel_variance##W##x##H##_sse4_1
+    eb_aom_obmc_sub_pixel_variance##W##x##H##_sse4_1
 #define GEN_OBMC_SUB_PIX_VAR_TEST_PARAM(W, H)         \
     ObmcSubPixVarParam(OBMC_SUB_PIX_VAR_FUNC_C(W, H), \
                        OBMC_SUB_PIX_VAR_FUNC_SSE41(W, H))

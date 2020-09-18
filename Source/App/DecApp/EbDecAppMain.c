@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 /***************************************
@@ -22,31 +28,29 @@
 #endif
 
 int init_pic_buffer(EbSvtIOFormat *pic_buffer, CliInput *cli, EbSvtAv1DecConfiguration *config) {
+    /* FilmGrain module req. even dim. for internal operation */
+    pic_buffer->y_stride = (cli->width & 1) ? cli->width + 1 : cli->width;
     switch (cli->fmt) {
     case EB_YUV400:
         pic_buffer->cb_stride = INT32_MAX;
         pic_buffer->cr_stride = INT32_MAX;
-        pic_buffer->y_stride  = cli->width;
         break;
     case EB_YUV420:
         pic_buffer->cb_stride = cli->width / 2;
         pic_buffer->cr_stride = cli->width / 2;
-        pic_buffer->y_stride  = cli->width;
         break;
     case EB_YUV422:
         pic_buffer->cb_stride = cli->width / 2;
         pic_buffer->cr_stride = cli->width / 2;
-        pic_buffer->y_stride  = cli->width;
         break;
     case EB_YUV444:
         pic_buffer->cb_stride = cli->width;
         pic_buffer->cr_stride = cli->width;
-        pic_buffer->y_stride  = cli->width;
         break;
     default: fprintf(stderr, "Unsupported colour format. \n"); return 0;
     }
     pic_buffer->width     = cli->width;
-    pic_buffer->height    = cli->width;
+    pic_buffer->height    = cli->height;
     pic_buffer->luma_ext  = NULL;
     pic_buffer->cb_ext    = NULL;
     pic_buffer->cr_ext    = NULL;
@@ -162,23 +166,22 @@ int32_t main(int32_t argc, char *argv[]) {
     uint8_t *buf             = NULL;
     size_t   bytes_in_buffer = 0, buffer_size = 0;
 
-    // Print Decoder Info
-    fprintf(stderr, "-------------------------------------\n");
-    fprintf(stderr, "SVT-AV1 Decoder\n");
-
     // Initialize config
     if (!config_ptr) return EB_ErrorInsufficientResources;
     EbComponentType *p_handle;
     void *           p_app_data = NULL;
 
-    return_error |= eb_dec_init_handle(&p_handle, p_app_data, config_ptr);
-    if (return_error != EB_ErrorNone) goto fail;
+    return_error |= svt_av1_dec_init_handle(&p_handle, p_app_data, config_ptr);
+    if (return_error != EB_ErrorNone) {
+        return_error |= svt_av1_dec_deinit_handle(p_handle);
+        goto fail;
+    }
 
     if (read_command_line(argc, argv, config_ptr, &cli, &obu_ctx) == 0 &&
-        !eb_svt_dec_set_parameter(p_handle, config_ptr)) {
-        return_error = eb_init_decoder(p_handle);
+        !svt_av1_dec_set_parameter(p_handle, config_ptr)) {
+        return_error = svt_av1_dec_init(p_handle);
         if (return_error != EB_ErrorNone) {
-            return_error |= eb_dec_deinit_handle(p_handle);
+            return_error |= svt_av1_dec_deinit_handle(p_handle);
             goto fail;
         }
 
@@ -190,13 +193,16 @@ int32_t main(int32_t argc, char *argv[]) {
         fps_frm     = cli.fps_frm;
         fps_summary = cli.fps_summary;
 
-        EbBufferHeaderType *recon_buffer = NULL;
-        recon_buffer                     = (EbBufferHeaderType *)malloc(sizeof(EbBufferHeaderType));
-        recon_buffer->p_buffer           = (uint8_t *)malloc(sizeof(EbSvtIOFormat));
+        EbBufferHeaderType *recon_buffer = malloc(sizeof(*recon_buffer));
+        assert(recon_buffer != NULL);
+        recon_buffer->p_buffer           = malloc(sizeof(EbSvtIOFormat));
 
+        /* FilmGrain module req. even dim. for internal operation */
+        int w = (cli.width & 1) ? (cli.width + 1) : cli.width;
+        int h = (cli.height & 1) ? (cli.height + 1) : cli.height;
         int size = (config_ptr->max_bit_depth == EB_EIGHT_BIT) ? sizeof(uint8_t) : sizeof(uint16_t);
-        size     = size * cli.height * cli.width;
-
+        size     = size * w * h;
+        assert(recon_buffer->p_buffer != NULL);
         ((EbSvtIOFormat *)recon_buffer->p_buffer)->luma = (uint8_t *)malloc(size);
         ((EbSvtIOFormat *)recon_buffer->p_buffer)->cb   = (uint8_t *)malloc(size >> 2);
         ((EbSvtIOFormat *)recon_buffer->p_buffer)->cr   = (uint8_t *)malloc(size >> 2);
@@ -221,14 +227,14 @@ int32_t main(int32_t argc, char *argv[]) {
                     dec_timer_start(&timer);
 
                     return_error |=
-                        eb_svt_decode_frame(p_handle, buf, bytes_in_buffer, obu_ctx.is_annexb);
+                        svt_av1_dec_frame(p_handle, buf, bytes_in_buffer, obu_ctx.is_annexb);
 
                     dec_timer_mark(&timer);
                     dx_time += dec_timer_elapsed(&timer);
 
                     in_frame++;
 
-                    if (eb_svt_dec_get_picture(p_handle, recon_buffer, stream_info, frame_info) !=
+                    if (svt_av1_dec_get_picture(p_handle, recon_buffer, stream_info, frame_info) !=
                         EB_DecNoOutputPicture) {
                         if (fps_frm) show_progress(in_frame, dx_time);
 
@@ -239,6 +245,7 @@ int32_t main(int32_t argc, char *argv[]) {
                     break;
             }
             if (fps_summary || fps_frm) {
+                assert(dx_time > 0);
                 show_progress(in_frame, dx_time);
                 fprintf(stderr, "\n");
             }
@@ -248,7 +255,7 @@ int32_t main(int32_t argc, char *argv[]) {
                 print_md5(md5_digest);
             }
 
-            return_error |= eb_deinit_decoder(p_handle);
+            return_error |= svt_av1_dec_deinit(p_handle);
 
             free(frame_info);
             free(stream_info);
@@ -263,7 +270,7 @@ int32_t main(int32_t argc, char *argv[]) {
         free(buf);
     } else
         fprintf(stderr, "Error in configuration. \n");
-    return_error |= eb_dec_deinit_handle(p_handle);
+    return_error |= svt_av1_dec_deinit_handle(p_handle);
 
 fail:
     if (cli.in_file) fclose(cli.in_file);

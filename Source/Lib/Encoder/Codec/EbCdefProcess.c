@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -28,8 +24,6 @@
 #include "EbSequenceControlSet.h"
 #include "EbUtility.h"
 #include "EbPictureControlSet.h"
-
-static int32_t priconv[REDUCED_PRI_STRENGTHS] = {0, 1, 2, 3, 5, 7, 10, 13};
 
 void copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset,
                  int32_t src_hoffset, int32_t sstride, int32_t vsize, int32_t hsize);
@@ -103,7 +97,6 @@ void cdef_seg_search(PictureControlSet *pcs_ptr, SequenceControlSet *scs_ptr,
     uint32_t y_b64_end_idx =
         SEGMENT_END_IDX(y_seg_idx, picture_height_in_b64, pcs_ptr->cdef_segments_row_count);
 
-    int32_t fast    = 0;
     int32_t mi_rows = ppcs->av1_cm->mi_rows;
     int32_t mi_cols = ppcs->av1_cm->mi_cols;
 
@@ -126,10 +119,10 @@ void cdef_seg_search(PictureControlSet *pcs_ptr, SequenceControlSet *scs_ptr,
     int32_t  nvfb        = (mi_rows + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t  nhfb        = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t  pri_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
-    int32_t  sec_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
+    int32_t  sec_damping = pri_damping;
 
     const int32_t num_planes      = 3;
-    const int32_t total_strengths = fast ? REDUCED_TOTAL_STRENGTHS : TOTAL_STRENGTHS;
+    const int32_t total_strengths = TOTAL_STRENGTHS;
     DECLARE_ALIGNED(32, uint16_t, inbuf[CDEF_INBUF_SIZE]);
     uint16_t *in;
     DECLARE_ALIGNED(32, uint8_t, tmp_dst[1 << (MAX_SB_SIZE_LOG2 * 2)]);
@@ -227,21 +220,20 @@ void cdef_seg_search(PictureControlSet *pcs_ptr, SequenceControlSet *scs_ptr,
                             stride_src[pli],
                             ysize,
                             xsize);
-                gi_step  = get_cdef_gi_step(ppcs->cdef_filter_mode);
-                mid_gi   = ppcs->cdf_ref_frame_strenght;
-                start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_filter_mode == 1
+                gi_step = get_cdef_gi_step(ppcs->cdef_level);
+                mid_gi   = ppcs->cdf_ref_frame_strength;
+                start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_level == 5
                                ? (AOMMAX(0, mid_gi - gi_step))
                                : 0;
                 end_gi = ppcs->use_ref_frame_cdef_strength
                              ? AOMMIN(total_strengths, mid_gi + gi_step)
-                             : ppcs->cdef_filter_mode == 1 ? 8 : total_strengths;
+                             : ppcs->cdef_level == 5 ? 8 : total_strengths;
 
                 for (gi = start_gi; gi < end_gi; gi++) {
                     int32_t  threshold;
                     uint64_t curr_mse;
                     int32_t  sec_strength;
                     threshold = gi / CDEF_SEC_STRENGTHS;
-                    if (fast) threshold = priconv[threshold];
                     /* We avoid filtering the pixels for which some of the pixels to
                     average are outside the frame. We could change the filter instead, but it would add special cases for any future vectorization. */
                     sec_strength = gi % CDEF_SEC_STRENGTHS;
@@ -316,7 +308,6 @@ void cdef_seg_search16bit(PictureControlSet *pcs_ptr, SequenceControlSet *scs_pt
     uint32_t y_b64_end_idx =
         SEGMENT_END_IDX(y_seg_idx, picture_height_in_b64, pcs_ptr->cdef_segments_row_count);
 
-    int32_t fast    = 0;
     int32_t mi_rows = ppcs->av1_cm->mi_rows;
     int32_t mi_cols = ppcs->av1_cm->mi_cols;
 
@@ -339,10 +330,10 @@ void cdef_seg_search16bit(PictureControlSet *pcs_ptr, SequenceControlSet *scs_pt
     int32_t   nvfb        = (mi_rows + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t   nhfb        = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t   pri_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
-    int32_t   sec_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
+    int32_t   sec_damping = pri_damping;
 
     const int32_t num_planes      = 3;
-    const int32_t total_strengths = fast ? REDUCED_TOTAL_STRENGTHS : TOTAL_STRENGTHS;
+    const int32_t total_strengths = TOTAL_STRENGTHS;
     DECLARE_ALIGNED(32, uint16_t, inbuf[CDEF_INBUF_SIZE]);
     uint16_t *in;
     DECLARE_ALIGNED(32, uint16_t, tmp_dst[1 << (MAX_SB_SIZE_LOG2 * 2)]);
@@ -429,21 +420,20 @@ void cdef_seg_search16bit(PictureControlSet *pcs_ptr, SequenceControlSet *scs_pt
                              stride_src[pli],
                              ysize,
                              xsize);
-                gi_step  = get_cdef_gi_step(ppcs->cdef_filter_mode);
-                mid_gi   = ppcs->cdf_ref_frame_strenght;
-                start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_filter_mode == 1
-                               ? (AOMMAX(0, mid_gi - gi_step))
-                               : 0;
+                gi_step = get_cdef_gi_step(ppcs->cdef_level);
+                mid_gi = ppcs->cdf_ref_frame_strength;
+                start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_level == 5
+                                ? (AOMMAX(0, mid_gi - gi_step))
+                                : 0;
                 end_gi = ppcs->use_ref_frame_cdef_strength
-                             ? AOMMIN(total_strengths, mid_gi + gi_step)
-                             : ppcs->cdef_filter_mode == 1 ? 8 : total_strengths;
+                                ? AOMMIN(total_strengths, mid_gi + gi_step)
+                                : ppcs->cdef_level == 5 ? 8 : total_strengths;
 
                 for (gi = start_gi; gi < end_gi; gi++) {
                     int32_t  threshold;
                     uint64_t curr_mse;
                     int32_t  sec_strength;
                     threshold = gi / CDEF_SEC_STRENGTHS;
-                    if (fast) threshold = priconv[threshold];
                     /* We avoid filtering the pixels for which some of the pixels to
                     average are outside the frame. We could change the filter instead, but it would add special cases for any future vectorization. */
                     sec_strength = gi % CDEF_SEC_STRENGTHS;
@@ -498,8 +488,6 @@ void *cdef_kernel(void *input_ptr) {
     PictureControlSet * pcs_ptr;
     SequenceControlSet *scs_ptr;
 
-    FrameHeader *frm_hdr;
-
     //// Input
     EbObjectWrapper *dlf_results_wrapper_ptr;
     DlfResults *     dlf_results_ptr;
@@ -511,8 +499,10 @@ void *cdef_kernel(void *input_ptr) {
     // SB Loop variables
 
     for (;;) {
+        FrameHeader *frm_hdr;
+
         // Get DLF Results
-        eb_get_full_object(context_ptr->cdef_input_fifo_ptr, &dlf_results_wrapper_ptr);
+        EB_GET_FULL_OBJECT(context_ptr->cdef_input_fifo_ptr, &dlf_results_wrapper_ptr);
 
         dlf_results_ptr = (DlfResults *)dlf_results_wrapper_ptr->object_ptr;
         pcs_ptr         = (PictureControlSet *)dlf_results_ptr->pcs_wrapper_ptr->object_ptr;
@@ -521,10 +511,9 @@ void *cdef_kernel(void *input_ptr) {
         EbBool     is_16bit = (EbBool)(scs_ptr->static_config.encoder_bit_depth > EB_8BIT);
         Av1Common *cm       = pcs_ptr->parent_pcs_ptr->av1_cm;
         frm_hdr             = &pcs_ptr->parent_pcs_ptr->frm_hdr;
-        int32_t selected_strength_cnt[64] = {0};
 
-        if (scs_ptr->seq_header.enable_cdef && pcs_ptr->parent_pcs_ptr->cdef_filter_mode) {
-            if (scs_ptr->static_config.encoder_16bit_pipeline || is_16bit)
+        if (scs_ptr->seq_header.cdef_level && pcs_ptr->parent_pcs_ptr->cdef_level) {
+            if (scs_ptr->static_config.is_16bit_pipeline || is_16bit)
                 cdef_seg_search16bit(pcs_ptr, scs_ptr, dlf_results_ptr->segment_index);
             else
                 cdef_seg_search(pcs_ptr, scs_ptr, dlf_results_ptr->segment_index);
@@ -536,13 +525,14 @@ void *cdef_kernel(void *input_ptr) {
         pcs_ptr->tot_seg_searched_cdef++;
         if (pcs_ptr->tot_seg_searched_cdef == pcs_ptr->cdef_segments_total_count) {
             // SVT_LOG("    CDEF all seg here  %i\n", pcs_ptr->picture_number);
-            if (scs_ptr->seq_header.enable_cdef && pcs_ptr->parent_pcs_ptr->cdef_filter_mode) {
+            if (scs_ptr->seq_header.cdef_level && pcs_ptr->parent_pcs_ptr->cdef_level) {
+                int32_t selected_strength_cnt[64] = {0};
                 finish_cdef_search(0, pcs_ptr, selected_strength_cnt);
 
                 if (scs_ptr->seq_header.enable_restoration != 0 ||
                     pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag ||
                     scs_ptr->static_config.recon_enabled) {
-                    if (scs_ptr->static_config.encoder_16bit_pipeline || is_16bit)
+                    if (scs_ptr->static_config.is_16bit_pipeline || is_16bit)
                         av1_cdef_frame16bit(0, scs_ptr, pcs_ptr);
                     else
                         eb_av1_cdef_frame(0, scs_ptr, pcs_ptr);
@@ -552,74 +542,6 @@ void *cdef_kernel(void *input_ptr) {
                 frm_hdr->cdef_params.cdef_y_strength[0]    = 0;
                 pcs_ptr->parent_pcs_ptr->nb_cdef_strengths = 1;
                 frm_hdr->cdef_params.cdef_uv_strength[0]   = 0;
-            }
-
-            // TODO: remove the copy when entire 16bit pipeline is ready
-            if (scs_ptr->static_config.encoder_16bit_pipeline &&
-                scs_ptr->static_config.encoder_bit_depth == EB_8BIT &&
-               !scs_ptr->seq_header.enable_restoration) {
-                //copy recon from 16bit to 8bit
-                uint8_t*  recon_8bit;
-                int32_t   recon_stride_8bit;
-                uint16_t* recon_16bit;
-                int32_t   recon_stride_16bit;
-                EbPictureBufferDesc *recon_buffer, *recon_buffer_8bit;
-                if (pcs_ptr->parent_pcs_ptr->is_used_as_reference_flag == EB_TRUE) {
-                    recon_buffer = ((EbReferenceObject *)
-                        pcs_ptr->parent_pcs_ptr->reference_picture_wrapper_ptr->object_ptr)
-                        ->reference_picture16bit;
-                    recon_buffer_8bit = ((EbReferenceObject *)
-                        pcs_ptr->parent_pcs_ptr->reference_picture_wrapper_ptr->object_ptr)
-                        ->reference_picture;
-                } else {
-                    recon_buffer = pcs_ptr->recon_picture16bit_ptr;
-                    recon_buffer_8bit = pcs_ptr->recon_picture_ptr;
-                }
-                // Y
-                recon_16bit = (uint16_t*)(recon_buffer->buffer_y)
-                            + recon_buffer->origin_x
-                            + recon_buffer->origin_y * recon_buffer->stride_y;
-                recon_stride_16bit = recon_buffer->stride_y;
-                recon_8bit  = recon_buffer_8bit->buffer_y
-                            + recon_buffer_8bit->origin_x
-                            + recon_buffer_8bit->origin_y * recon_buffer_8bit->stride_y;
-                recon_stride_8bit = recon_buffer_8bit->stride_y;
-                for (int j = 0; j < recon_buffer->height; j++) {
-                    for (int i = 0; i < recon_buffer->width; i++) {
-                        recon_8bit[i + j * recon_stride_8bit] =
-                            (uint8_t)recon_16bit[i + j * recon_stride_16bit];
-                    }
-                }
-                // Cb
-                recon_16bit = (uint16_t*)(recon_buffer->buffer_cb)
-                            + recon_buffer->origin_x / 2
-                            + recon_buffer->origin_y / 2 * recon_buffer->stride_cb;
-                recon_stride_16bit = recon_buffer->stride_cb;
-                recon_8bit  = recon_buffer_8bit->buffer_cb
-                            + recon_buffer_8bit->origin_x / 2
-                            + recon_buffer_8bit->origin_y / 2 * recon_buffer_8bit->stride_cb;
-                recon_stride_8bit = recon_buffer_8bit->stride_cb;
-                for (int j = 0; j < recon_buffer->height / 2; j++) {
-                    for (int i = 0; i < recon_buffer->width / 2; i++) {
-                        recon_8bit[i + j * recon_stride_8bit] =
-                            (uint8_t)recon_16bit[i + j * recon_stride_16bit];
-                    }
-                }
-                // Cr
-                recon_16bit = (uint16_t*)(recon_buffer->buffer_cr)
-                            + recon_buffer->origin_x / 2
-                            + recon_buffer->origin_y / 2 * recon_buffer->stride_cr;
-                recon_stride_16bit = recon_buffer->stride_cr;
-                recon_8bit  = recon_buffer_8bit->buffer_cr
-                            + recon_buffer_8bit->origin_x / 2
-                            + recon_buffer_8bit->origin_y / 2 * recon_buffer_8bit->stride_cr;
-                recon_stride_8bit = recon_buffer_8bit->stride_cr;
-                for (int j = 0; j < recon_buffer->height / 2; j++) {
-                    for (int i = 0; i < recon_buffer->width / 2; i++) {
-                        recon_8bit[i + j * recon_stride_8bit] =
-                            (uint8_t)recon_16bit[i + j * recon_stride_16bit];
-                    }
-                }
             }
 
             //restoration prep
@@ -634,21 +556,21 @@ void *cdef_kernel(void *input_ptr) {
                                 cm->frame_to_show->strides[0],
                                 RESTORATION_BORDER,
                                 RESTORATION_BORDER,
-                                scs_ptr->static_config.encoder_16bit_pipeline || is_16bit);
+                                scs_ptr->static_config.is_16bit_pipeline || is_16bit);
                 eb_extend_frame(cm->frame_to_show->buffers[1],
                                 cm->frame_to_show->crop_widths[1],
                                 cm->frame_to_show->crop_heights[1],
                                 cm->frame_to_show->strides[1],
                                 RESTORATION_BORDER,
                                 RESTORATION_BORDER,
-                                scs_ptr->static_config.encoder_16bit_pipeline || is_16bit);
+                                scs_ptr->static_config.is_16bit_pipeline || is_16bit);
                 eb_extend_frame(cm->frame_to_show->buffers[2],
                                 cm->frame_to_show->crop_widths[1],
                                 cm->frame_to_show->crop_heights[1],
                                 cm->frame_to_show->strides[1],
                                 RESTORATION_BORDER,
                                 RESTORATION_BORDER,
-                                scs_ptr->static_config.encoder_16bit_pipeline || is_16bit);
+                                scs_ptr->static_config.is_16bit_pipeline || is_16bit);
             }
 
             pcs_ptr->rest_segments_column_count = scs_ptr->rest_segment_column_count;
@@ -674,5 +596,5 @@ void *cdef_kernel(void *input_ptr) {
         eb_release_object(dlf_results_wrapper_ptr);
     }
 
-    return EB_NULL;
+    return NULL;
 }

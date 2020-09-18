@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbDefinitions.h"
@@ -113,9 +119,9 @@ static void convolve_2d_sr_hor_6tap_avx512(const uint8_t *const src, const int32
     if (w <= 16) {
         __m256i coeffs_256[3], filt_256[3];
 
-        filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-        filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-        filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
+        filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+        filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+        filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
         prepare_half_coeffs_6tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
         if (w == 8) {
@@ -185,10 +191,10 @@ static void convolve_2d_sr_hor_8tap_avx512(const uint8_t *const src, const int32
     if (w <= 16) {
         __m256i coeffs_256[4], filt_256[4];
 
-        filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-        filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-        filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
-        filt_256[3] = _mm256_load_si256((__m256i const *)filt4_global_avx);
+        filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+        filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+        filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
+        filt_256[3] = _mm256_loadu_si256((__m256i const *)filt4_global_avx);
 
         prepare_half_coeffs_8tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
@@ -301,7 +307,7 @@ static void convolve_2d_sr_ver_2tap_avx512(const int16_t *const im_block, const 
             __m128i s_128[2];
             __m256i r[2];
 
-            s_128[0] = _mm_load_si128((__m128i *)im);
+            s_128[0] = _mm_loadu_si128((__m128i *)im);
 
             do {
                 xy_y_convolve_2tap_8x2_avx2(im, s_128, &coeffs_256, r);
@@ -315,7 +321,7 @@ static void convolve_2d_sr_ver_2tap_avx512(const int16_t *const im_block, const 
 
             assert(w == 16);
 
-            s_256[0] = _mm256_load_si256((__m256i *)im);
+            s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
             do {
                 xy_y_convolve_2tap_16x2_avx2(im, s_256, &coeffs_256, r);
@@ -420,7 +426,7 @@ static void convolve_2d_sr_ver_2tap_half_avx512(const int16_t *const im_block, c
     } else if (w == 8) {
         __m128i s_128[2];
 
-        s_128[0] = _mm_load_si128((__m128i *)im);
+        s_128[0] = _mm_loadu_si128((__m128i *)im);
 
         do {
             const __m256i res = xy_y_convolve_2tap_8x2_half_pel_avx2(im, s_128);
@@ -433,7 +439,7 @@ static void convolve_2d_sr_ver_2tap_half_avx512(const int16_t *const im_block, c
     } else if (w == 16) {
         __m256i s_256[2], r[2];
 
-        s_256[0] = _mm256_load_si256((__m256i *)im);
+        s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
         do {
             xy_y_convolve_2tap_16x2_half_pel_avx2(im, s_256, r);
@@ -1120,20 +1126,20 @@ void eb_av1_convolve_2d_copy_sr_avx512(const uint8_t *src, int32_t src_stride, u
 
     if (w == 2) {
         do {
-            memcpy(dst, src, 2 * sizeof(*src));
+            eb_memcpy(dst, src, 2 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
-            memcpy(dst, src, 2 * sizeof(*src));
+            eb_memcpy(dst, src, 2 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
             h -= 2;
         } while (h);
     } else if (w == 4) {
         do {
-            memcpy(dst, src, 4 * sizeof(*src));
+            eb_memcpy(dst, src, 4 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
-            memcpy(dst, src, 4 * sizeof(*src));
+            eb_memcpy(dst, src, 4 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
             h -= 2;

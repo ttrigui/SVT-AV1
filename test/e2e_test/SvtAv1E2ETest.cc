@@ -1,7 +1,13 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright (c) 2019, Alliance for Open Media. All rights reserved
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file SvtAv1E2ETest.cc
@@ -155,8 +161,8 @@ static const std::vector<EncTestSetting> default_enc_settings = {
     // test enable_adaptive_quantization, default is 0
     {"AdapQTest1", {{"AdaptiveQuantization", "1"}}, default_test_vectors},
 
-    // test enable_altrefs, defalt is 1;
-    {"AltrefTest1", {{"EnableAltRefs", "0"}}, default_test_vectors},
+    // test tf_level, default is -1;
+    {"AltrefTest1", {{"TfLevel", "0"}}, default_test_vectors},
 
     // test tile settings
     {"TileTest1", {{"TileRow", "1"}}, default_test_vectors},

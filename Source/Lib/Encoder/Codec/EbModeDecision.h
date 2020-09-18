@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbModeDecision_h
@@ -70,15 +76,16 @@ typedef struct ModeDecisionCandidate {
     EbBool      merge_flag;
     uint16_t    count_non_zero_coeffs;
     uint8_t     type;
-    PaletteInfo palette_info;
+    PaletteInfo *palette_info;
     // MD Rate Estimation Ptr
     MdRateEstimationContext *md_rate_estimation_ptr; // 64 bits
     uint64_t                 fast_luma_rate;
     uint64_t                 fast_chroma_rate;
+    uint64_t                 total_rate;
     uint64_t                 chroma_distortion;
     uint64_t                 chroma_distortion_inter_depth;
     uint32_t                 luma_fast_distortion;
-    uint32_t                 full_distortion;
+    uint64_t                 full_distortion;
     EbPtr                    prediction_context_ptr;
     PictureControlSet *      pcs_ptr;
     EbPredDirection          prediction_direction
@@ -112,13 +119,11 @@ typedef struct ModeDecisionCandidate {
     // Inter Mode
     PredictionMode         inter_mode;
     EbBool                 is_compound;
-    uint32_t               pred_mv_weight;
     uint8_t                ref_frame_type;
     uint8_t                ref_mv_index;
     int8_t                 ref_frame_index_l0;
     int8_t                 ref_frame_index_l1;
     EbBool                 is_new_mv;
-    EbBool                 is_zero_mv;
     TxType                 transform_type[MAX_TXB_COUNT];
     TxType                 transform_type_uv;
     MacroblockPlane        candidate_plane[MAX_MB_PLANE];
@@ -141,7 +146,6 @@ typedef struct ModeDecisionCandidate {
     uint8_t                is_interintra_used;
     uint8_t                use_wedge_interintra;
     int32_t                interintra_wedge_index; //inter_intra wedge index
-    int32_t                ii_wedge_sign; //inter_intra wedge sign=-1
 } ModeDecisionCandidate;
 
 /**************************************
@@ -157,7 +161,7 @@ typedef uint64_t (*EbFastCostFunc)(BlkStruct *                  blk_ptr,
                                    uint64_t lambda, EbBool use_ssd, PictureControlSet *pcs_ptr,
                                    CandidateMv *ref_mv_stack, const BlockGeom *blk_geom,
                                    uint32_t miRow, uint32_t miCol, uint8_t enable_inter_intra,
-                                   EbBool full_cost_shut_fast_rate_flag, uint8_t md_pass,
+                                   uint8_t md_pass,
                                    uint32_t left_neighbor_mode, uint32_t top_neighbor_mode);
 
 typedef EbErrorType (*EB_FULL_COST_FUNC)(
@@ -197,10 +201,6 @@ typedef struct ModeDecisionCandidateBuffer {
 
     // Video Buffers
     EbPictureBufferDesc *prediction_ptr;
-    EbPictureBufferDesc *prediction_ptr_temp;
-    EbPictureBufferDesc *cfl_temp_prediction_ptr;
-    EbPictureBufferDesc
-        *residual_quant_coeff_ptr; // One buffer for residual and quantized coefficient
     EbPictureBufferDesc *recon_coeff_ptr;
     EbPictureBufferDesc *residual_ptr;
 
@@ -219,18 +219,23 @@ typedef struct ModeDecisionCandidateBuffer {
     * Extern Function Declarations
     **************************************/
 extern EbErrorType mode_decision_candidate_buffer_ctor(
-    ModeDecisionCandidateBuffer *buffer_ptr, EbBitDepthEnum max_bitdepth, uint64_t *fast_cost_ptr,
+    ModeDecisionCandidateBuffer *buffer_ptr, EbBitDepthEnum max_bitdepth, uint8_t sb_size,
+    uint32_t buffer_mask,
+    EbPictureBufferDesc *temp_residual_ptr, EbPictureBufferDesc *temp_recon_ptr,
+    uint64_t *fast_cost_ptr,
     uint64_t *full_cost_ptr, uint64_t *full_cost_skip_ptr, uint64_t *full_cost_merge_ptr);
 
 extern EbErrorType mode_decision_scratch_candidate_buffer_ctor(
-    ModeDecisionCandidateBuffer *buffer_ptr, EbBitDepthEnum max_bitdepth);
+    ModeDecisionCandidateBuffer *buffer_ptr, uint8_t sb_size, EbBitDepthEnum max_bitdepth);
 
 uint32_t product_full_mode_decision(struct ModeDecisionContext *context_ptr, BlkStruct *blk_ptr,
                                     ModeDecisionCandidateBuffer **buffer_ptr_array,
                                     uint32_t                      candidate_total_count,
                                     uint32_t *                    best_candidate_index_array,
-                                    uint8_t   prune_ref_frame_for_rec_partitions,
                                     uint32_t *best_intra_mode);
+uint32_t get_blk_tuned_full_lambda(struct ModeDecisionContext *context_ptr, PictureControlSet *pcs_ptr,
+                                   uint32_t pic_full_lambda);
+void set_tuned_blk_lambda(struct ModeDecisionContext *context_ptr, PictureControlSet *pcs_ptr);
 
 typedef EbErrorType (*EB_INTRA_4x4_FAST_LUMA_COST_FUNC)(
     struct ModeDecisionContext *context_ptr, uint32_t pu_index,
@@ -259,6 +264,12 @@ struct CodingLoopContext_s;
 uint8_t                 get_ref_frame_idx(uint8_t ref_type);
 extern MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);
 uint8_t                 get_list_idx(uint8_t ref_type);
+ void angle_estimation(
+    const uint8_t *src,
+    int src_stride,
+    int rows,
+    int cols,
+    uint8_t *directional_mode_skip_mask);
 #ifdef __cplusplus
 }
 #endif

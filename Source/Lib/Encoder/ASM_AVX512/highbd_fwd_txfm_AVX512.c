@@ -1,7 +1,13 @@
 /*
- * Copyright(c) 2019 Intel Corporation
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Intel Corporation
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 #include "EbDefinitions.h"
 
@@ -1388,7 +1394,7 @@ static INLINE void load_buffer_32x32_avx512(const int16_t *input, __m512i *outpu
 
     for (i = 0; i < 32; ++i) {
         temp[0] = _mm256_loadu_si256((const __m256i *)(input + 0 * 16));
-        temp[1] = _mm256_load_si256((const __m256i *)(input + 1 * 16));
+        temp[1] = _mm256_loadu_si256((const __m256i *)(input + 1 * 16));
 
         output[0] = _mm512_cvtepi16_epi32(temp[0]);
         output[1] = _mm512_cvtepi16_epi32(temp[1]);

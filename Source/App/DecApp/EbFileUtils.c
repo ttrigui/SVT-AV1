@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -505,10 +511,10 @@ int obudec_read_temporal_unit(DecInputContext *input, uint8_t **buffer, size_t *
     size_t  obu_size                            = 0;
     size_t  length_of_temporal_unit_size        = 0;
     size_t  length_of_frame_unit_size           = 0;
-    uint8_t frheader[OBU_MAX_LENGTH_FIELD_SIZE] = {0};
 
     if (obu_ctx->is_annexb) {
         uint64_t size = 0;
+        uint8_t  frheader[OBU_MAX_LENGTH_FIELD_SIZE] = {0};
 
         assert(obu_ctx->bytes_buffered == 0);
 
@@ -531,7 +537,7 @@ int obudec_read_temporal_unit(DecInputContext *input, uint8_t **buffer, size_t *
             fprintf(stderr, "obudec: Failure reading frame header\n");
             return 0;
         }
-        if (size == 0 && feof(f)) { return 0; }
+        if (size == 0 || feof(f)) { return 0; }
 
         fr_size  = (size_t)size;
         txb_size = fr_size;

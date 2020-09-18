@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #ifndef AOM_DSP_X86_SYNONYMS_H_
@@ -14,7 +14,7 @@
 
 #include <immintrin.h>
 #include "EbDefinitions.h"
-
+#include "common_dsp_rtcd.h"
 //#define EB_TEST_SIMD_ALIGN
 
 /**
@@ -26,7 +26,7 @@
 
 static INLINE __m128i xx_loadl_32(const void *a) {
     int val;
-    memcpy(&val, a, sizeof(val));
+    eb_memcpy_intrin_sse(&val, a, sizeof(val));
     return _mm_cvtsi32_si128(val);
 }
 static INLINE __m128i xx_loadl_64(const void *a) { return _mm_loadl_epi64((const __m128i *)a); }
@@ -73,13 +73,13 @@ static INLINE __m128i load_u16_4x2_sse2(const uint16_t *const src, const ptrdiff
 
 SIMD_INLINE void store_u8_4x2_sse2(const __m128i src, uint8_t *const dst, const ptrdiff_t stride) {
     xx_storel_32(dst, src);
-    *(int32_t *)(dst + stride) = _mm_extract_epi32(src, 1);
+    *(int32_t *)(dst + stride) = (_mm_extract_epi16(src, 3) << 16) | _mm_extract_epi16(src, 2);
 }
 
 SIMD_INLINE void store_u16_2x2_sse2(const __m128i src, uint16_t *const dst,
                                     const ptrdiff_t stride) {
     xx_storel_32(dst, src);
-    *(int32_t *)(dst + stride) = _mm_extract_epi32(src, 1);
+    *(int32_t *)(dst + stride) = (_mm_extract_epi16(src, 3) << 16) | _mm_extract_epi16(src, 2);
 }
 
 SIMD_INLINE void store_s16_4x2_sse2(const __m128i src, int16_t *const dst, const ptrdiff_t stride) {

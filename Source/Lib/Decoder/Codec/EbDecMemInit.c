@@ -1,7 +1,13 @@
 // clang-format off
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 // SUMMARY
@@ -39,14 +45,19 @@
  *****************************************/
 EbErrorType dec_eb_recon_picture_buffer_desc_ctor(
     EbPtr  *object_dbl_ptr,
-    EbPtr   object_init_data_ptr)
+    EbPtr   object_init_data_ptr,
+    EbBool is_16bit_pipeline /* can be removed as an extra argument once
+                                EbPictureBufferDescInitData adds the support for this */
+)
 {
     EbPictureBufferDesc          *picture_buffer_desc_ptr;
     EbPictureBufferDescInitData  *picture_buffer_desc_init_data_ptr = (EbPictureBufferDescInitData*)object_init_data_ptr;
 
-    uint32_t bytes_per_pixel = (picture_buffer_desc_init_data_ptr->bit_depth == EB_8BIT) ? 1 : 2;
-
     EB_MALLOC_DEC(EbPictureBufferDesc*, picture_buffer_desc_ptr, sizeof(EbPictureBufferDesc), EB_N_PTR);
+
+    uint32_t bytes_per_pixel = (picture_buffer_desc_init_data_ptr->bit_depth > EB_8BIT ||
+        is_16bit_pipeline) ? 2 : 1;
+    picture_buffer_desc_ptr->is_16bit_pipeline = is_16bit_pipeline;
 
     // Allocate the PictureBufferDesc Object
     *object_dbl_ptr = (EbPtr)picture_buffer_desc_ptr;
@@ -60,28 +71,30 @@ EbErrorType dec_eb_recon_picture_buffer_desc_ctor(
     picture_buffer_desc_ptr->color_format = picture_buffer_desc_init_data_ptr->color_format;
     picture_buffer_desc_ptr->stride_y = picture_buffer_desc_init_data_ptr->max_width +
         picture_buffer_desc_init_data_ptr->left_padding + picture_buffer_desc_init_data_ptr->right_padding;
-    if(picture_buffer_desc_ptr->color_format == EB_YUV420 ||
-       picture_buffer_desc_ptr->color_format == EB_YUV422)
-        picture_buffer_desc_ptr->stride_cb = picture_buffer_desc_ptr->stride_cr
-            = picture_buffer_desc_ptr->stride_y >> 1;
-    else if (picture_buffer_desc_ptr->color_format == EB_YUV444)
-        picture_buffer_desc_ptr->stride_cb = picture_buffer_desc_ptr->stride_cr
-            = picture_buffer_desc_ptr->stride_y;
+    uint32_t height_y = (picture_buffer_desc_init_data_ptr->max_height + picture_buffer_desc_init_data_ptr->top_padding
+        + picture_buffer_desc_init_data_ptr->bot_padding);
+
     picture_buffer_desc_ptr->origin_x = picture_buffer_desc_init_data_ptr->left_padding;
     picture_buffer_desc_ptr->origin_y = picture_buffer_desc_init_data_ptr->top_padding;
     picture_buffer_desc_ptr->origin_bot_y = picture_buffer_desc_init_data_ptr->bot_padding;
 
-    picture_buffer_desc_ptr->luma_size = (picture_buffer_desc_init_data_ptr->max_width +
-        picture_buffer_desc_init_data_ptr->left_padding + picture_buffer_desc_init_data_ptr->right_padding) *
-        (picture_buffer_desc_init_data_ptr->max_height + picture_buffer_desc_init_data_ptr->top_padding
-            + picture_buffer_desc_init_data_ptr->bot_padding);
+    picture_buffer_desc_ptr->luma_size = (picture_buffer_desc_ptr->stride_y) * height_y;
 
-    if (picture_buffer_desc_ptr->color_format == EB_YUV420) // 420
-        picture_buffer_desc_ptr->chroma_size = picture_buffer_desc_ptr->luma_size >> 2;
-    else if (picture_buffer_desc_ptr->color_format == EB_YUV422) // 422
-        picture_buffer_desc_ptr->chroma_size = picture_buffer_desc_ptr->luma_size >> 1;
-    else if (picture_buffer_desc_ptr->color_format == EB_YUV444) // 444
-        picture_buffer_desc_ptr->chroma_size = picture_buffer_desc_ptr->luma_size;
+    uint32_t stride_c = 0, height_c = 0;
+    if (picture_buffer_desc_ptr->color_format == EB_YUV420) {// 420
+        stride_c = (picture_buffer_desc_ptr->stride_y + 1) >> 1;
+        height_c = (height_y + 1) >> 1;
+    }
+    else if (picture_buffer_desc_ptr->color_format == EB_YUV422) {// 422
+        stride_c = (picture_buffer_desc_ptr->stride_y + 1) >> 1;
+        height_c = height_y;
+    }
+    else if (picture_buffer_desc_ptr->color_format == EB_YUV444) {// 444
+        stride_c = picture_buffer_desc_ptr->stride_y;
+        height_c = height_y;
+    }
+    picture_buffer_desc_ptr->stride_cb = picture_buffer_desc_ptr->stride_cr = stride_c;
+    picture_buffer_desc_ptr->chroma_size = (stride_c * height_c);
 
     picture_buffer_desc_ptr->packed_flag = EB_FALSE;
 
@@ -356,9 +369,9 @@ EbErrorType init_dec_mod_ctxt(EbDecHandle  *dec_handle_ptr,
         iq_size * sizeof(int32_t), EB_N_PTR);
     av1_inverse_qm_init(p_dec_mod_ctxt, seq_header);
 
-#if MC_DYNAMIC_PAD
     EbColorConfig *cc = &dec_handle_ptr->seq_header.color_config;
-    uint32_t use_highbd = cc->bit_depth > EB_8BIT;
+    uint32_t use_highbd = (cc->bit_depth > EB_8BIT ||
+        dec_handle_ptr->is_16bit_pipeline);
     int32_t sb_size = 1 << sb_size_log2;
     uint16_t *hbd_mc_buf[2];
     for (int ref = 0; ref < 2; ref++) {
@@ -379,8 +392,6 @@ EbErrorType init_dec_mod_ctxt(EbDecHandle  *dec_handle_ptr,
                 sizeof(uint8_t), EB_N_PTR);
         }
     }
-
-#endif //MC_DYNAMIC_PAD
 
     return return_error;
 }
@@ -438,9 +449,9 @@ static EbErrorType init_lr_ctxt(EbDecHandle  *dec_handle_ptr)
     if (num_instances == dec_handle_ptr->dec_config.threads)
         lr_ctxt->is_thread_min = EB_TRUE;
     EB_MALLOC_DEC(RestorationLineBuffers ***, lr_ctxt->rlbs,
-        num_instances * sizeof(RestorationLineBuffers**), EB_N_PTR)
+        num_instances * sizeof(RestorationLineBuffers**), EB_N_PTR);
     EB_MALLOC_DEC(int32_t **, lr_ctxt->rst_tmpbuf,
-         num_instances * RESTORATION_TMPBUF_SIZE, EB_N_PTR)
+         num_instances * RESTORATION_TMPBUF_SIZE, EB_N_PTR);
     for (uint32_t i = 0; i < num_instances; i++) {
         RestorationLineBuffers **p_rlbs;
         EB_MALLOC_DEC(RestorationLineBuffers**, lr_ctxt->rlbs[i],
@@ -448,12 +459,12 @@ static EbErrorType init_lr_ctxt(EbDecHandle  *dec_handle_ptr)
         p_rlbs = lr_ctxt->rlbs[i];
         for (int32_t pli = 0; pli < num_planes; pli++) {
             EB_MALLOC_DEC(RestorationLineBuffers *, p_rlbs[pli],
-                sizeof(RestorationLineBuffers), EB_N_PTR)
+                sizeof(RestorationLineBuffers), EB_N_PTR);
         }
     }
     for (uint32_t i = 0; i < num_instances; i++) {
         EB_MALLOC_DEC(int32_t *, lr_ctxt->rst_tmpbuf[i],
-            RESTORATION_TMPBUF_SIZE, EB_N_PTR)
+            RESTORATION_TMPBUF_SIZE, EB_N_PTR);
     }
 
     int frame_width = dec_handle_ptr->seq_header.max_frame_width;
@@ -463,7 +474,8 @@ static EbErrorType init_lr_ctxt(EbDecHandle  *dec_handle_ptr)
     // Allocate memory for Deblocked line buffer around stripe(64) boundary for a frame
     const int ext_h = RESTORATION_UNIT_OFFSET + frame_height;
     const int num_stripes = (ext_h + 63) / 64;
-    int use_highbd = (dec_handle_ptr->seq_header.color_config.bit_depth > 8);
+    int use_highbd = (dec_handle_ptr->seq_header.color_config.bit_depth > EB_8BIT ||
+        dec_handle_ptr->is_16bit_pipeline);
 
     for (int plane = 0; plane < num_planes; plane++)
     {

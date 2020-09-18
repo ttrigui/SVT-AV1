@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <assert.h>
@@ -292,22 +288,22 @@ static INLINE void load_buffer_8x8(const int16_t *input, __m256i *in, int32_t st
     __m128i temp[8];
     if (!flipud) {
         temp[0] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 1 * stride));
-        temp[2] = _mm_load_si128((const __m128i *)(input + 2 * stride));
-        temp[3] = _mm_load_si128((const __m128i *)(input + 3 * stride));
-        temp[4] = _mm_load_si128((const __m128i *)(input + 4 * stride));
-        temp[5] = _mm_load_si128((const __m128i *)(input + 5 * stride));
-        temp[6] = _mm_load_si128((const __m128i *)(input + 6 * stride));
-        temp[7] = _mm_load_si128((const __m128i *)(input + 7 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
+        temp[2] = _mm_loadu_si128((const __m128i *)(input + 2 * stride));
+        temp[3] = _mm_loadu_si128((const __m128i *)(input + 3 * stride));
+        temp[4] = _mm_loadu_si128((const __m128i *)(input + 4 * stride));
+        temp[5] = _mm_loadu_si128((const __m128i *)(input + 5 * stride));
+        temp[6] = _mm_loadu_si128((const __m128i *)(input + 6 * stride));
+        temp[7] = _mm_loadu_si128((const __m128i *)(input + 7 * stride));
     } else {
-        temp[0] = _mm_load_si128((const __m128i *)(input + 7 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 6 * stride));
-        temp[2] = _mm_load_si128((const __m128i *)(input + 5 * stride));
-        temp[3] = _mm_load_si128((const __m128i *)(input + 4 * stride));
-        temp[4] = _mm_load_si128((const __m128i *)(input + 3 * stride));
-        temp[5] = _mm_load_si128((const __m128i *)(input + 2 * stride));
-        temp[6] = _mm_load_si128((const __m128i *)(input + 1 * stride));
-        temp[7] = _mm_load_si128((const __m128i *)(input + 0 * stride));
+        temp[0] = _mm_loadu_si128((const __m128i *)(input + 7 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 6 * stride));
+        temp[2] = _mm_loadu_si128((const __m128i *)(input + 5 * stride));
+        temp[3] = _mm_loadu_si128((const __m128i *)(input + 4 * stride));
+        temp[4] = _mm_loadu_si128((const __m128i *)(input + 3 * stride));
+        temp[5] = _mm_loadu_si128((const __m128i *)(input + 2 * stride));
+        temp[6] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
+        temp[7] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
     }
 
     if (fliplr) {
@@ -1011,10 +1007,10 @@ static void fidtx16x16_avx2(const __m256i *in, __m256i *out, int8_t bit, int32_t
 static INLINE void write_buffer_16x16(const __m256i *res, int32_t *output) {
     int32_t fact = -1, index = -1;
     for (int32_t i = 0; i < 8; i++) {
-        _mm256_store_si256((__m256i *)(output + (++fact) * 16), res[++index]);
-        _mm256_store_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
-        _mm256_store_si256((__m256i *)(output + (++fact) * 16), res[++index]);
-        _mm256_store_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
     }
 }
 
@@ -3994,8 +3990,8 @@ static void fidtx64x64_avx2(const __m256i *input, __m256i *output) {
     }
 }
 
-static INLINE TxfmFuncAVX2 fwd_txfm_type_to_func(TxfmType TxfmType) {
-    switch (TxfmType) {
+static INLINE TxfmFuncAVX2 fwd_txfm_type_to_func(TxfmType txfmtype) {
+    switch (txfmtype) {
     case TXFM_TYPE_DCT32: return fdct32x32_avx2; break;
     case TXFM_TYPE_IDENTITY32: return fidtx32x32_avx2; break;
     default: assert(0);
@@ -4009,9 +4005,9 @@ static INLINE void load_buffer_32x32_avx2(const int16_t *input, __m256i *output,
 
     for (i = 0; i < 32; ++i) {
         temp[0] = _mm_loadu_si128((const __m128i *)(input + 0 * 8));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 1 * 8));
-        temp[2] = _mm_load_si128((const __m128i *)(input + 2 * 8));
-        temp[3] = _mm_load_si128((const __m128i *)(input + 3 * 8));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 1 * 8));
+        temp[2] = _mm_loadu_si128((const __m128i *)(input + 2 * 8));
+        temp[3] = _mm_loadu_si128((const __m128i *)(input + 3 * 8));
 
         output[0] = _mm256_cvtepi16_epi32(temp[0]);
         output[1] = _mm256_cvtepi16_epi32(temp[1]);
@@ -4139,14 +4135,14 @@ static INLINE void load_buffer_32_avx2(const int16_t *input, __m256i *in, int32_
     __m128i temp[4];
     if (!flipud) {
         temp[0] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 1 * stride));
-        temp[2] = _mm_load_si128((const __m128i *)(input + 2 * stride));
-        temp[3] = _mm_load_si128((const __m128i *)(input + 3 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
+        temp[2] = _mm_loadu_si128((const __m128i *)(input + 2 * stride));
+        temp[3] = _mm_loadu_si128((const __m128i *)(input + 3 * stride));
     } else {
-        temp[0] = _mm_load_si128((const __m128i *)(input + 3 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 2 * stride));
-        temp[2] = _mm_load_si128((const __m128i *)(input + 1 * stride));
-        temp[3] = _mm_load_si128((const __m128i *)(input + 0 * stride));
+        temp[0] = _mm_loadu_si128((const __m128i *)(input + 3 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 2 * stride));
+        temp[2] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
+        temp[3] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
     }
 
     if (fliplr) {
@@ -4172,10 +4168,10 @@ static INLINE void load_buffer_16_avx2(const int16_t *input, __m256i *in, int32_
     __m128i temp[2];
     if (!flipud) {
         temp[0] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 1 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
     } else {
-        temp[0] = _mm_load_si128((const __m128i *)(input + 1 * stride));
-        temp[1] = _mm_load_si128((const __m128i *)(input + 0 * stride));
+        temp[0] = _mm_loadu_si128((const __m128i *)(input + 1 * stride));
+        temp[1] = _mm_loadu_si128((const __m128i *)(input + 0 * stride));
     }
 
     if (fliplr) {
@@ -4193,11 +4189,9 @@ static INLINE void load_buffer_16_avx2(const int16_t *input, __m256i *in, int32_
 static INLINE void load_buffer_32x8n(const int16_t *input, __m256i *out, int32_t stride,
                                      int32_t flipud, int32_t fliplr, int32_t shift,
                                      const int32_t height) {
-    const int16_t *in     = input;
-    __m256i *      output = out;
     for (int32_t col = 0; col < height; col++) {
-        in     = input + col * stride;
-        output = out + col * 4;
+        const int16_t *in     = input + col * stride;
+        __m256i *      output = out + col * 4;
         load_buffer_32_avx2(in, output, 8, flipud, fliplr, shift);
     }
 }
@@ -4683,7 +4677,7 @@ void eb_av1_fwd_txfm2d_8x16_avx2(int16_t *input, int32_t *output, uint32_t strid
 /* call this function for all 16 transform types */
 void eb_av1_fwd_txfm2d_16x8_avx2(int16_t *input, int32_t *output, uint32_t stride, TxType tx_type,
                                  uint8_t bd) {
-    __m256i                  in[16], out[16] = {0};
+    __m256i                  in[16], out[16];
     const int8_t *           shift    = fwd_txfm_shift_ls[TX_16X8];
     const int32_t            txw_idx  = get_txw_idx(TX_16X8);
     const int32_t            txh_idx  = get_txh_idx(TX_16X8);
@@ -4697,7 +4691,7 @@ void eb_av1_fwd_txfm2d_16x8_avx2(int16_t *input, int32_t *output, uint32_t strid
     const int32_t txfm_size_row = tx_size_high[TX_16X8];
     const int32_t num_row       = txfm_size_row >> 3;
     const int32_t num_col       = txfm_size_col >> 3;
-
+    assert(num_col > 0);
     // column transform
     for (int32_t i = 0; i < num_col; i++) {
         load_buffer_8x8(input + i * 8, in, stride, ud_flip, 0, shift[0]);

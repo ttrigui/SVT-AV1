@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #ifndef AOM_DSP_X86_CONVOLVE_AVX2_H_
@@ -68,17 +68,17 @@ void jnt_convolve_2d_ver_4tap_avx2(const int16_t *const im_block, const int32_t 
                                    const int32_t dst8_stride);
 
 static INLINE EbBool is_convolve_2tap(const int16_t *const filter) {
-    return (EbBool)((InterpKernel *)filter == bilinear_filters);
+    return (const void *)filter == (const void *)bilinear_filters;
 }
 
 static INLINE EbBool is_convolve_4tap(const int16_t *const filter) {
-    return (EbBool)(((InterpKernel *)filter == sub_pel_filters_4) ||
-                    ((InterpKernel *)filter == sub_pel_filters_4smooth));
+    return (const void *)filter == (const void *)sub_pel_filters_4 ||
+        (const void *)filter == (const void *)sub_pel_filters_4smooth;
 }
 
 static INLINE EbBool is_convolve_6tap(const int16_t *const filter) {
-    return (EbBool)(((InterpKernel *)filter == sub_pel_filters_8) ||
-                    ((InterpKernel *)filter == sub_pel_filters_8smooth));
+    return (const void *)filter == (const void *)sub_pel_filters_8 ||
+        (const void *)filter == (const void *)sub_pel_filters_8smooth;
 }
 
 static INLINE int32_t get_convolve_tap(const int16_t *const filter) {
@@ -151,7 +151,7 @@ static INLINE void prepare_half_coeffs_4tap_ssse3(const InterpFilterParams *cons
                                                   __m128i *const coeffs /* [2] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -174,7 +174,7 @@ static INLINE void prepare_half_coeffs_6tap_ssse3(const InterpFilterParams *cons
                                                   __m128i *const coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -199,7 +199,7 @@ static INLINE void prepare_half_coeffs_8tap_ssse3(const InterpFilterParams *cons
                                                   __m128i *const coeffs /* [4] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -248,7 +248,7 @@ static INLINE void prepare_half_coeffs_4tap_avx2(const InterpFilterParams *const
                                                  __m256i *const                  coeffs /* [2] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -266,7 +266,7 @@ static INLINE void prepare_half_coeffs_6tap_avx2(const InterpFilterParams *const
                                                  __m256i *const                  coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -284,7 +284,7 @@ static INLINE void prepare_half_coeffs_8tap_avx2(const InterpFilterParams *const
                                                  __m256i *const                  coeffs /* [4] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
 
     // right shift all filter co-efficients by 1 to reduce the bits required.
     // This extra right shift will be taken care of at the end while rounding
@@ -315,7 +315,7 @@ static INLINE void prepare_coeffs_4tap_sse2(const InterpFilterParams *const filt
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff = _mm_loadu_si128((__m128i *)filter);
 
     // coeffs 2 3 2 3 2 3 2 3
     coeffs[0] = _mm_shuffle_epi32(coeff, 0x55);
@@ -328,7 +328,7 @@ static INLINE void prepare_coeffs_6tap_ssse3(const InterpFilterParams *const fil
                                              __m128i *const                  coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeff = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff = _mm_loadu_si128((__m128i *)filter);
 
     // coeffs 1 2 1 2 1 2 1 2
     coeffs[0] = _mm_shuffle_epi8(coeff, _mm_set1_epi32(0x05040302u));
@@ -344,7 +344,7 @@ static INLINE void prepare_coeffs_8tap_sse2(const InterpFilterParams *const filt
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff = _mm_loadu_si128((__m128i *)filter);
 
     // coeffs 0 1 0 1 0 1 0 1
     coeffs[0] = _mm_shuffle_epi32(coeff, 0x00);
@@ -375,7 +375,7 @@ static INLINE void prepare_coeffs_4tap_avx2(const InterpFilterParams *const filt
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff_8 = _mm_loadu_si128((__m128i *)filter);
     const __m256i coeff   = _mm256_broadcastsi128_si256(coeff_8);
 
     // coeffs 2 3 2 3 2 3 2 3
@@ -389,7 +389,7 @@ static INLINE void prepare_coeffs_6tap_avx2(const InterpFilterParams *const filt
                                             __m256i *const                  coeffs /* [3] */) {
     const int16_t *const filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
-    const __m128i coeffs_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeffs_8 = _mm_loadu_si128((__m128i *)filter);
     const __m256i coeff    = _mm256_broadcastsi128_si256(coeffs_8);
 
     // coeffs 1 2 1 2 1 2 1 2
@@ -406,7 +406,7 @@ static INLINE void prepare_coeffs_8tap_avx2(const InterpFilterParams *const filt
     const int16_t *filter =
         av1_get_interp_filter_subpel_kernel(*filter_params, subpel_q4 & SUBPEL_MASK);
 
-    const __m128i coeff_8 = _mm_load_si128((__m128i *)filter);
+    const __m128i coeff_8 = _mm_loadu_si128((__m128i *)filter);
     const __m256i coeff   = _mm256_broadcastsi128_si256(coeff_8);
 
     // coeffs 0 1 0 1 0 1 0 1
@@ -421,34 +421,34 @@ static INLINE void prepare_coeffs_8tap_avx2(const InterpFilterParams *const filt
 
 static INLINE void load_16bit_5rows_avx2(const int16_t *const src, const ptrdiff_t stride,
                                          __m256i dst[5]) {
-    dst[0] = _mm256_load_si256((__m256i *)(src + 0 * stride));
-    dst[1] = _mm256_load_si256((__m256i *)(src + 1 * stride));
-    dst[2] = _mm256_load_si256((__m256i *)(src + 2 * stride));
-    dst[3] = _mm256_load_si256((__m256i *)(src + 3 * stride));
-    dst[4] = _mm256_load_si256((__m256i *)(src + 4 * stride));
+    dst[0] = _mm256_loadu_si256((__m256i *)(src + 0 * stride));
+    dst[1] = _mm256_loadu_si256((__m256i *)(src + 1 * stride));
+    dst[2] = _mm256_loadu_si256((__m256i *)(src + 2 * stride));
+    dst[3] = _mm256_loadu_si256((__m256i *)(src + 3 * stride));
+    dst[4] = _mm256_loadu_si256((__m256i *)(src + 4 * stride));
 }
 
 static INLINE void load_16bit_7rows_avx2(const int16_t *const src, const ptrdiff_t stride,
                                          __m256i dst[7]) {
-    dst[0] = _mm256_load_si256((__m256i *)(src + 0 * stride));
-    dst[1] = _mm256_load_si256((__m256i *)(src + 1 * stride));
-    dst[2] = _mm256_load_si256((__m256i *)(src + 2 * stride));
-    dst[3] = _mm256_load_si256((__m256i *)(src + 3 * stride));
-    dst[4] = _mm256_load_si256((__m256i *)(src + 4 * stride));
-    dst[5] = _mm256_load_si256((__m256i *)(src + 5 * stride));
-    dst[6] = _mm256_load_si256((__m256i *)(src + 6 * stride));
+    dst[0] = _mm256_loadu_si256((__m256i *)(src + 0 * stride));
+    dst[1] = _mm256_loadu_si256((__m256i *)(src + 1 * stride));
+    dst[2] = _mm256_loadu_si256((__m256i *)(src + 2 * stride));
+    dst[3] = _mm256_loadu_si256((__m256i *)(src + 3 * stride));
+    dst[4] = _mm256_loadu_si256((__m256i *)(src + 4 * stride));
+    dst[5] = _mm256_loadu_si256((__m256i *)(src + 5 * stride));
+    dst[6] = _mm256_loadu_si256((__m256i *)(src + 6 * stride));
 }
 
 SIMD_INLINE void load_16bit_8rows_avx2(const int16_t *const src, const ptrdiff_t stride,
                                        __m256i dst[8]) {
-    dst[0] = _mm256_load_si256((__m256i *)(src + 0 * stride));
-    dst[1] = _mm256_load_si256((__m256i *)(src + 1 * stride));
-    dst[2] = _mm256_load_si256((__m256i *)(src + 2 * stride));
-    dst[3] = _mm256_load_si256((__m256i *)(src + 3 * stride));
-    dst[4] = _mm256_load_si256((__m256i *)(src + 4 * stride));
-    dst[5] = _mm256_load_si256((__m256i *)(src + 5 * stride));
-    dst[6] = _mm256_load_si256((__m256i *)(src + 6 * stride));
-    dst[7] = _mm256_load_si256((__m256i *)(src + 7 * stride));
+    dst[0] = _mm256_loadu_si256((__m256i *)(src + 0 * stride));
+    dst[1] = _mm256_loadu_si256((__m256i *)(src + 1 * stride));
+    dst[2] = _mm256_loadu_si256((__m256i *)(src + 2 * stride));
+    dst[3] = _mm256_loadu_si256((__m256i *)(src + 3 * stride));
+    dst[4] = _mm256_loadu_si256((__m256i *)(src + 4 * stride));
+    dst[5] = _mm256_loadu_si256((__m256i *)(src + 5 * stride));
+    dst[6] = _mm256_loadu_si256((__m256i *)(src + 6 * stride));
+    dst[7] = _mm256_loadu_si256((__m256i *)(src + 7 * stride));
 }
 
 SIMD_INLINE void loadu_unpack_16bit_5rows_avx2(const int16_t *const src, const ptrdiff_t stride,
@@ -664,7 +664,7 @@ static INLINE void xy_x_round_store_2x2_sse2(const __m128i res, int16_t *const d
 
 static INLINE void xy_x_round_store_4x2_sse2(const __m128i res, int16_t *const dst) {
     const __m128i d = xy_x_round_sse2(res);
-    _mm_store_si128((__m128i *)dst, d);
+    _mm_storeu_si128((__m128i *)dst, d);
 }
 
 static INLINE void xy_x_round_store_8x2_sse2(const __m128i res[2], int16_t *const dst) {
@@ -672,13 +672,13 @@ static INLINE void xy_x_round_store_8x2_sse2(const __m128i res[2], int16_t *cons
 
     r[0] = xy_x_round_sse2(res[0]);
     r[1] = xy_x_round_sse2(res[1]);
-    _mm_store_si128((__m128i *)dst, r[0]);
-    _mm_store_si128((__m128i *)(dst + 8), r[1]);
+    _mm_storeu_si128((__m128i *)dst, r[0]);
+    _mm_storeu_si128((__m128i *)(dst + 8), r[1]);
 }
 
 static INLINE void xy_x_round_store_8x2_avx2(const __m256i res, int16_t *const dst) {
     const __m256i d = xy_x_round_avx2(res);
-    _mm256_store_si256((__m256i *)dst, d);
+    _mm256_storeu_si256((__m256i *)dst, d);
 }
 
 static INLINE void xy_x_round_store_32_avx2(const __m256i res[2], int16_t *const dst) {
@@ -688,8 +688,8 @@ static INLINE void xy_x_round_store_32_avx2(const __m256i res[2], int16_t *const
     r[1]             = xy_x_round_avx2(res[1]);
     const __m256i d0 = _mm256_inserti128_si256(r[0], _mm256_extracti128_si256(r[1], 0), 1);
     const __m256i d1 = _mm256_inserti128_si256(r[1], _mm256_extracti128_si256(r[0], 1), 0);
-    _mm256_store_si256((__m256i *)dst, d0);
-    _mm256_store_si256((__m256i *)(dst + 16), d1);
+    _mm256_storeu_si256((__m256i *)dst, d0);
+    _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }
 
 static INLINE __m128i xy_y_round_sse2(const __m128i src) {
@@ -1145,7 +1145,7 @@ static INLINE __m256i y_convolve_4tap_8x2_avx2(const uint8_t *const src, const p
 
 static INLINE void y_convolve_4tap_16x2_avx2(const uint8_t *const src, const ptrdiff_t stride,
                                              const __m256i coeffs[2], __m128i s_128[4],
-                                             __m256i ss_256[2], __m256i r[2]) {
+                                             __m256i ss_256[4], __m256i r[2]) {
     s_128[3]            = _mm_loadu_si128((__m128i *)(src + stride));
     const __m256i src23 = _mm256_setr_m128i(s_128[2], s_128[3]);
     s_128[2]            = _mm_loadu_si128((__m128i *)(src + 2 * stride));
@@ -1206,7 +1206,7 @@ static INLINE __m256i y_convolve_6tap_8x2_avx2(const uint8_t *const src, const p
 
 static INLINE void y_convolve_6tap_16x2_avx2(const uint8_t *const src, const ptrdiff_t stride,
                                              const __m256i coeffs[3], __m128i s_128[6],
-                                             __m256i ss_256[3], __m256i r[2]) {
+                                             __m256i ss_256[6], __m256i r[2]) {
     s_128[5]            = _mm_loadu_si128((__m128i *)(src + 3 * stride));
     const __m256i src45 = _mm256_setr_m128i(s_128[4], s_128[5]);
     s_128[4]            = _mm_loadu_si128((__m128i *)(src + 4 * stride));
@@ -1267,7 +1267,7 @@ static INLINE __m256i y_convolve_8tap_8x2_avx2(const uint8_t *const src, const p
 
 static INLINE void y_convolve_8tap_16x2_avx2(const uint8_t *const src, const ptrdiff_t stride,
                                              const __m256i coeffs[4], __m128i s_128[8],
-                                             __m256i ss_256[4], __m256i r[2]) {
+                                             __m256i ss_256[8], __m256i r[2]) {
     s_128[7]            = _mm_loadu_si128((__m128i *)(src + 7 * stride));
     const __m256i src67 = _mm256_setr_m128i(s_128[6], s_128[7]);
     s_128[6]            = _mm_loadu_si128((__m128i *)(src + 8 * stride));
@@ -1313,8 +1313,8 @@ static INLINE void xy_x_2tap_32_avx2(const uint8_t *const src, const __m256i coe
     const __m256i d1 = xy_x_round_avx2(r[1]);
     // d0 = _mm256_inserti128_si256(d0, _mm256_extracti128_si256(d1, 0), 1);
     // d1 = _mm256_inserti128_si256(d1, _mm256_extracti128_si256(d0, 1), 0);
-    _mm256_store_si256((__m256i *)dst, d0);
-    _mm256_store_si256((__m256i *)(dst + 16), d1);
+    _mm256_storeu_si256((__m256i *)dst, d0);
+    _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }
 
 static INLINE void xy_x_6tap_32_avx2(const uint8_t *const src, const __m256i coeffs[3],
@@ -1324,8 +1324,8 @@ static INLINE void xy_x_6tap_32_avx2(const uint8_t *const src, const __m256i coe
     x_convolve_6tap_32_avx2(src, coeffs, filt, r);
     const __m256i d0 = xy_x_round_avx2(r[0]);
     const __m256i d1 = xy_x_round_avx2(r[1]);
-    _mm256_store_si256((__m256i *)dst, d0);
-    _mm256_store_si256((__m256i *)(dst + 16), d1);
+    _mm256_storeu_si256((__m256i *)dst, d0);
+    _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }
 
 static INLINE void xy_x_8tap_32_avx2(const uint8_t *const src, const __m256i coeffs[4],
@@ -1335,8 +1335,8 @@ static INLINE void xy_x_8tap_32_avx2(const uint8_t *const src, const __m256i coe
     x_convolve_8tap_32_avx2(src, coeffs, filt, r);
     const __m256i d0 = xy_x_round_avx2(r[0]);
     const __m256i d1 = xy_x_round_avx2(r[1]);
-    _mm256_store_si256((__m256i *)dst, d0);
-    _mm256_store_si256((__m256i *)(dst + 16), d1);
+    _mm256_storeu_si256((__m256i *)dst, d0);
+    _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }
 
 static INLINE __m128i xy_y_convolve_2tap_2x2_sse2(const int16_t *const src, __m128i s_32[2],
@@ -1398,9 +1398,9 @@ static INLINE void xy_y_convolve_2tap_16_avx2(const __m256i s0, const __m256i s1
 static INLINE void xy_y_convolve_2tap_8x2_avx2(const int16_t *const src, __m128i s_128[2],
                                                const __m256i coeffs[1], __m256i r[2]) {
     __m256i s_256[2];
-    s_128[1] = _mm_load_si128((__m128i *)(src + 8));
+    s_128[1] = _mm_loadu_si128((__m128i *)(src + 8));
     s_256[0] = _mm256_setr_m128i(s_128[0], s_128[1]);
-    s_128[0] = _mm_load_si128((__m128i *)(src + 2 * 8));
+    s_128[0] = _mm_loadu_si128((__m128i *)(src + 2 * 8));
     s_256[1] = _mm256_setr_m128i(s_128[1], s_128[0]);
     xy_y_convolve_2tap_16_avx2(s_256[0], s_256[1], coeffs, r);
 }
@@ -1408,18 +1408,18 @@ static INLINE void xy_y_convolve_2tap_8x2_avx2(const int16_t *const src, __m128i
 static INLINE __m256i xy_y_convolve_2tap_8x2_half_pel_avx2(const int16_t *const src,
                                                            __m128i              s_128[2]) {
     __m256i s_256[2];
-    s_128[1] = _mm_load_si128((__m128i *)(src + 8));
+    s_128[1] = _mm_loadu_si128((__m128i *)(src + 8));
     s_256[0] = _mm256_setr_m128i(s_128[0], s_128[1]);
-    s_128[0] = _mm_load_si128((__m128i *)(src + 2 * 8));
+    s_128[0] = _mm_loadu_si128((__m128i *)(src + 2 * 8));
     s_256[1] = _mm256_setr_m128i(s_128[1], s_128[0]);
     return _mm256_add_epi16(s_256[0], s_256[1]);
 }
 
 static INLINE void xy_y_convolve_2tap_16x2_half_pel_avx2(const int16_t *const src, __m256i s_256[2],
                                                          __m256i r[2]) {
-    s_256[1] = _mm256_load_si256((__m256i *)(src + 16));
+    s_256[1] = _mm256_loadu_si256((__m256i *)(src + 16));
     r[0]     = _mm256_add_epi16(s_256[0], s_256[1]);
-    s_256[0] = _mm256_load_si256((__m256i *)(src + 2 * 16));
+    s_256[0] = _mm256_loadu_si256((__m256i *)(src + 2 * 16));
     r[1]     = _mm256_add_epi16(s_256[1], s_256[0]);
 }
 
@@ -1432,17 +1432,17 @@ static INLINE void xy_y_store_16x2_avx2(const __m256i r[2], uint8_t *const dst,
 
 static INLINE void xy_y_convolve_2tap_16x2_avx2(const int16_t *const src, __m256i s[2],
                                                 const __m256i coeffs[1], __m256i r[4]) {
-    s[1] = _mm256_load_si256((__m256i *)(src + 16));
+    s[1] = _mm256_loadu_si256((__m256i *)(src + 16));
     xy_y_convolve_2tap_16_avx2(s[0], s[1], coeffs, r + 0);
-    s[0] = _mm256_load_si256((__m256i *)(src + 2 * 16));
+    s[0] = _mm256_loadu_si256((__m256i *)(src + 2 * 16));
     xy_y_convolve_2tap_16_avx2(s[1], s[0], coeffs, r + 2);
 }
 
 static INLINE void xy_y_convolve_2tap_32_avx2(const int16_t *const src, const __m256i s0[2],
                                               __m256i s1[2], const __m256i coeffs[1],
                                               __m256i r[4]) {
-    s1[0] = _mm256_load_si256((__m256i *)src);
-    s1[1] = _mm256_load_si256((__m256i *)(src + 16));
+    s1[0] = _mm256_loadu_si256((__m256i *)src);
+    s1[1] = _mm256_loadu_si256((__m256i *)(src + 16));
     xy_y_convolve_2tap_16_avx2(s0[0], s1[0], coeffs, r + 0);
     xy_y_convolve_2tap_16_avx2(s0[1], s1[1], coeffs, r + 2);
 }
@@ -1459,8 +1459,8 @@ static INLINE void xy_y_convolve_2tap_32_all_avx2(const int16_t *const src, cons
 static INLINE void xy_y_convolve_2tap_half_pel_32_avx2(const int16_t *const src,
                                                        const __m256i s0[2], __m256i s1[2],
                                                        __m256i r[2]) {
-    s1[0] = _mm256_load_si256((__m256i *)src);
-    s1[1] = _mm256_load_si256((__m256i *)(src + 16));
+    s1[0] = _mm256_loadu_si256((__m256i *)src);
+    s1[1] = _mm256_loadu_si256((__m256i *)(src + 16));
     r[0]  = _mm256_add_epi16(s0[0], s1[0]);
     r[1]  = _mm256_add_epi16(s0[1], s1[1]);
 }
@@ -1635,7 +1635,7 @@ static INLINE void xy_y_convolve_6tap_8x2_avx2(const int16_t *const src, __m256i
 }
 
 static INLINE void xy_y_convolve_6tap_8x2_half_pel_avx2(const int16_t *const src,
-                                                        const __m256i coeffs[2], __m256i s_256[4],
+                                                        const __m256i coeffs[2], __m256i s_256[6],
                                                         __m256i r[2]) {
     __m256i a_256[2], ss_256[4];
     s_256[4]  = _mm256_loadu_si256((__m256i *)(src + 4 * 8));
@@ -1785,10 +1785,10 @@ static INLINE void xy_y_convolve_8tap_8x2_half_pel_avx2(const int16_t *const src
 SIMD_INLINE void xy_y_convolve_8tap_16x2_avx2(const int16_t *const src, const ptrdiff_t stride,
                                               const __m256i coeffs[4], __m256i s_256[8],
                                               __m256i ss_256[8], __m256i tt_256[8], __m256i r[4]) {
-    s_256[7]  = _mm256_load_si256((__m256i *)(src + 7 * stride));
+    s_256[7]  = _mm256_loadu_si256((__m256i *)(src + 7 * stride));
     ss_256[3] = _mm256_unpacklo_epi16(s_256[6], s_256[7]);
     ss_256[7] = _mm256_unpackhi_epi16(s_256[6], s_256[7]);
-    s_256[6]  = _mm256_load_si256((__m256i *)(src + 8 * stride));
+    s_256[6]  = _mm256_loadu_si256((__m256i *)(src + 8 * stride));
     tt_256[3] = _mm256_unpacklo_epi16(s_256[7], s_256[6]);
     tt_256[7] = _mm256_unpackhi_epi16(s_256[7], s_256[6]);
 
@@ -1815,7 +1815,7 @@ static INLINE void xy_y_convolve_8tap_16x2_half_pel_avx2(const int16_t *const sr
                                                          const __m256i coeffs[4], __m256i s_256[8],
                                                          __m256i r[4]) {
     __m256i a_256[4], ss_256[4];
-    s_256[7] = _mm256_load_si256((__m256i *)(src + 7 * stride));
+    s_256[7] = _mm256_loadu_si256((__m256i *)(src + 7 * stride));
 
     a_256[0]  = _mm256_add_epi16(s_256[0], s_256[7]);
     a_256[1]  = _mm256_add_epi16(s_256[1], s_256[6]);
@@ -1834,7 +1834,7 @@ static INLINE void xy_y_convolve_8tap_16x2_half_pel_avx2(const int16_t *const sr
     s_256[0] = s_256[2];
     s_256[2] = s_256[4];
     s_256[4] = s_256[6];
-    s_256[6] = _mm256_load_si256((__m256i *)(src + 8 * stride));
+    s_256[6] = _mm256_loadu_si256((__m256i *)(src + 8 * stride));
 
     a_256[0]  = _mm256_add_epi16(s_256[1], s_256[6]);
     s_256[1]  = s_256[3];
@@ -2389,12 +2389,8 @@ static INLINE __m256i jnt_2d_comp_avg_round_pack_half_pel_avx2(const __m256i res
 static INLINE void jnt_2d_comp_avg_round_store_4x2_avx2(
     const __m256i res, const __m256i factor, const __m256i offset, const ConvBufType *const dst,
     const ptrdiff_t dst_stride, uint8_t *const dst8, const int32_t dst8_stride) {
-    __m128i d_128[2];
     __m256i d;
 
-    d_128[0]         = _mm_loadl_epi64((__m128i *)dst);
-    d_128[1]         = _mm_loadl_epi64((__m128i *)(dst + dst_stride));
-    d                = _mm256_setr_m128i(d_128[0], d_128[1]);
     d                = loadu_u16_8x2_avx2(dst, dst_stride);
     d                = jnt_2d_comp_avg_round_pack_8_avx2(res, factor, offset, d);
     d                = _mm256_packus_epi16(d, d);

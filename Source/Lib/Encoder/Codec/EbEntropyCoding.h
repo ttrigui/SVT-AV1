@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbEntropyCoding_h
@@ -43,40 +39,26 @@ struct ModeDecisionCandidate;
      * Extern Function Declarations
      **************************************/
 struct EntropyCodingContext;
-#if TILES_PARALLEL
 extern EbErrorType write_sb(struct EntropyCodingContext *context_ptr, SuperBlock *tb_ptr,
                             PictureControlSet *pcs_ptr, uint16_t tile_idx,
                             EntropyCoder *entropy_coder_ptr,
                             EbPictureBufferDesc *coeff_ptr);
-#else
-extern EbErrorType write_sb(struct EntropyCodingContext *context_ptr, SuperBlock *tb_ptr,
-                            PictureControlSet *pcs_ptr, EntropyCoder *entropy_coder_ptr,
-                            EbPictureBufferDesc *coeff_ptr);
-#endif
 
 extern int get_wedge_params_bits(BlockSize sb_type);
 
 extern EbErrorType encode_slice_finish(EntropyCoder *entropy_coder_ptr);
 
-extern EbErrorType reset_bitstream(EbPtr bitstream_ptr);
-
 extern EbErrorType reset_entropy_coder(EncodeContext *encode_context_ptr,
                                        EntropyCoder *entropy_coder_ptr, uint32_t qp,
                                        EB_SLICE slice_type);
-
 EbErrorType av1_txb_estimate_coeff_bits(
     struct ModeDecisionContext *md_context, uint8_t allow_update_cdf, FRAME_CONTEXT *ec_ctx,
     PictureControlSet *pcs_ptr, struct ModeDecisionCandidateBuffer *candidate_buffer_ptr,
-    uint32_t txb_origin_index, uint32_t txb_chroma_origin_index, EntropyCoder *entropy_coder_ptr,
+    uint32_t txb_origin_index, uint32_t txb_chroma_origin_index,
     EbPictureBufferDesc *coeff_buffer_sb, uint32_t y_eob, uint32_t cb_eob, uint32_t cr_eob,
     uint64_t *y_txb_coeff_bits, uint64_t *cb_txb_coeff_bits, uint64_t *cr_txb_coeff_bits,
     TxSize txsize, TxSize txsize_uv, TxType tx_type, TxType tx_type_uv,
     COMPONENT_TYPE component_type);
-
-extern EbErrorType copy_payload(Bitstream *bitstream_ptr, EbByte output_buffer,
-                                                  uint32_t *     output_buffer_index,
-                                                  uint32_t *     output_buffer_size,
-                                                  EncodeContext *encode_context_ptr);
 
 //**********************************************************************************************************//
 //onyxc_int.h

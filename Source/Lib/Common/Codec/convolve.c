@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <assert.h>
@@ -48,7 +48,6 @@ static INLINE int32_t highbd_vert_scalar_product(const uint16_t *a, ptrdiff_t a_
 
 static const InterpKernel *get_filter_base(const int16_t *filter) {
     // NOTE: This assumes that the filter table is 256-byte aligned.
-    // TODO(agrange) Modify to make independent of table alignment.
     return (const InterpKernel *)(((intptr_t)filter) & ~((intptr_t)0xFF));
 }
 
@@ -284,9 +283,9 @@ static void convolve_vert(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst
     }
 }
 
-void aom_convolve8_horiz_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
-                           ptrdiff_t dst_stride, const int16_t *filter_x, int x_step_q4,
-                           const int16_t *filter_y, int y_step_q4, int w, int h) {
+void eb_aom_convolve8_horiz_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+                              ptrdiff_t dst_stride, const int16_t *filter_x, int x_step_q4,
+                              const int16_t *filter_y, int y_step_q4, int w, int h) {
     const InterpKernel *const filters_x = get_filter_base(filter_x);
     const int                 x0_q4     = get_filter_offset(filter_x, filters_x);
 
@@ -296,9 +295,9 @@ void aom_convolve8_horiz_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *ds
     convolve_horiz(src, src_stride, dst, dst_stride, filters_x, x0_q4, x_step_q4, w, h);
 }
 
-void aom_convolve8_vert_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
-                          ptrdiff_t dst_stride, const int16_t *filter_x, int x_step_q4,
-                          const int16_t *filter_y, int y_step_q4, int w, int h) {
+void eb_aom_convolve8_vert_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+                             ptrdiff_t dst_stride, const int16_t *filter_x, int x_step_q4,
+                             const int16_t *filter_y, int y_step_q4, int w, int h) {
     const InterpKernel *const filters_y = get_filter_base(filter_y);
     const int                 y0_q4     = get_filter_offset(filter_y, filters_y);
 

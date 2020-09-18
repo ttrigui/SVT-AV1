@@ -1,17 +1,13 @@
 /*
-* Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
+ * Copyright(c) 2019 Netflix, Inc.
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #ifndef EbDecHandle_h
@@ -28,15 +24,10 @@ extern "C" {
 #include "Av1Common.h"
 #include "EbThreads.h"
 
-#if MC_DYNAMIC_PAD
-
 /* This value is set to 72 to make
    DEC_PAD_VALUE a multiple of 16. */
 #define DYNIMIC_PAD_VALUE  72
 #define DEC_PAD_VALUE    (DYNIMIC_PAD_VALUE + 8)
-#else
-#define DEC_PAD_VALUE    (128+32)
-#endif
 
 /* Maximum number of frames in parallel */
 #define DEC_MAX_NUM_FRM_PRLL 1
@@ -85,6 +76,10 @@ typedef struct EbDecPicBuf {
     /* film grain */
     AomFilmGrain film_grain_params;
 
+    // Inter frame reference frame delta for loop filter
+    int8_t ref_deltas[REF_FRAMES];
+    // 0 = ZERO_MV, MV
+    int8_t mode_deltas[MAX_MODE_LF_DELTAS];
 } EbDecPicBuf;
 
 /* Frame level buffers */
@@ -221,6 +216,8 @@ typedef struct EbDecHandle {
     // Prepare ref_frame_map for the next frame.
     EbDecPicBuf *next_ref_frame_map[REF_FRAMES];
 
+    /* For Reference frame loading process */
+    EbDecPicBuf *prev_frame;
     /* TODO: Move to buffer pool. */
     EbDecPicBuf *cur_pic_buf[DEC_MAX_NUM_FRM_PRLL];
 
@@ -247,6 +244,8 @@ typedef struct EbDecHandle {
     EbBool                start_thread_process;
     EbHandle              thread_semaphore;
     struct DecThreadCtxt *thread_ctxt_pa;
+
+    EbBool is_16bit_pipeline; // internal bit-depth: when equals 1 internal bit-depth is 16bits regardless of the input bit-depth
 } EbDecHandle;
 
 /* Thread level context data */

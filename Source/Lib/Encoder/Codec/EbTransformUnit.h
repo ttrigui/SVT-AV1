@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbTransformUnit_h
@@ -10,23 +16,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#if TXS_DEPTH_2
-#define TRANSFORM_UNIT_MAX_COUNT 21
-#else
-#define TRANSFORM_UNIT_MAX_COUNT 5
-#endif
-#define TRANSFORM_UNIT_2Nx2N_AREA 16
-#define TRANSFORM_UNIT_NxN_AREA 4
-
+#define TRANSFORM_UNIT_MAX_COUNT 16
 #pragma pack(push, 1)
 typedef struct TransformUnit {
-    unsigned txb_index : 5;
-    unsigned split_flag : 1;
-    unsigned u_has_coeff : 1;
-    unsigned v_has_coeff : 1;
-    unsigned y_has_coeff : 1;
     uint16_t nz_coef_count[3];
-    EbBool   is_only_dc[3];
     TxType   transform_type[PLANE_TYPES];
 } TransformUnit;
 #pragma pack(pop)

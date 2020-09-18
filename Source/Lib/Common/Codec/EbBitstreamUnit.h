@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbBitstreamUnit_h
@@ -29,7 +35,6 @@ extern "C" {
 typedef struct OutputBitstreamUnit {
     EbDctor  dctor;
     uint32_t size; // allocated buffer size
-    uint32_t written_bits_count; // count of written bits
     uint8_t *buffer_begin_av1; // the byte buffer
     uint8_t *buffer_av1; // the byte buffer
 } OutputBitstreamUnit;
@@ -41,12 +46,6 @@ extern EbErrorType output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr
                                               uint32_t             buffer_size);
 
 extern EbErrorType output_bitstream_reset(OutputBitstreamUnit *bitstream_ptr);
-
-extern EbErrorType output_bitstream_rbsp_to_payload(OutputBitstreamUnit *bitstream_ptr,
-                                                    EbByte               output_buffer,
-                                                    uint32_t *           output_buffer_index,
-                                                    uint32_t *           output_buffer_size,
-                                                    uint32_t             startLocation);
 
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/
@@ -142,7 +141,7 @@ extern uint32_t od_divu_small_consts[OD_DIVU_DMAX][2];
 /** Copy n elements of memory from src to dst. The 0* term provides
 compile-time type checking  */
 #if !defined(OVERRIDE_OD_COPY)
-#define OD_COPY(dst, src, n) (memcpy((dst), (src), sizeof(*(dst)) * (n) + 0 * ((dst) - (src))))
+#define OD_COPY(dst, src, n) (eb_memcpy((dst), (src), sizeof(*(dst)) * (n) + 0 * ((dst) - (src))))
 #endif
 
 /** Copy n elements of memory from src to dst, allowing overlapping regions.

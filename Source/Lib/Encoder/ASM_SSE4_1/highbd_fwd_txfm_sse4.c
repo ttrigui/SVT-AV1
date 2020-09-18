@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <assert.h>
@@ -19,7 +15,7 @@
 
 #include "EbDefinitions.h"
 #include "aom_dsp_rtcd.h"
-#include "emmintrin.h"
+#include <emmintrin.h>
 #include "EbTransforms.h"
 
 static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
@@ -149,10 +145,10 @@ static void fdct4x4_sse4_1(__m128i *in, __m128i *out, int32_t bit, const int32_t
 }
 
 static INLINE void write_buffer_4x4(__m128i *res, int32_t *output) {
-    _mm_store_si128((__m128i *)(output + 0 * 4), res[0]);
-    _mm_store_si128((__m128i *)(output + 1 * 4), res[1]);
-    _mm_store_si128((__m128i *)(output + 2 * 4), res[2]);
-    _mm_store_si128((__m128i *)(output + 3 * 4), res[3]);
+    _mm_storeu_si128((__m128i *)(output + 0 * 4), res[0]);
+    _mm_storeu_si128((__m128i *)(output + 1 * 4), res[1]);
+    _mm_storeu_si128((__m128i *)(output + 2 * 4), res[2]);
+    _mm_storeu_si128((__m128i *)(output + 3 * 4), res[3]);
 }
 
 static void fadst4x4_sse4_1(__m128i *in, __m128i *out, int32_t bit, const int32_t num_col) {

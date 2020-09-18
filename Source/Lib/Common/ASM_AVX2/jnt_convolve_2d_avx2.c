@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <immintrin.h>
@@ -139,9 +139,9 @@ static void jnt_convolve_2d_hor_6tap_avx2(const uint8_t *src, const int32_t src_
     int16_t *      im      = im_block;
     __m256i        coeffs_256[3], filt_256[3];
 
-    filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-    filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-    filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
+    filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+    filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+    filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
 
     prepare_half_coeffs_6tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
@@ -199,10 +199,10 @@ static void jnt_convolve_2d_hor_8tap_avx2(const uint8_t *src, const int32_t src_
     int16_t *      im      = im_block;
     __m256i        coeffs_256[4], filt_256[4];
 
-    filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-    filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-    filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
-    filt_256[3] = _mm256_load_si256((__m256i const *)filt4_global_avx);
+    filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+    filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+    filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
+    filt_256[3] = _mm256_loadu_si256((__m256i const *)filt4_global_avx);
 
     prepare_half_coeffs_8tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
@@ -379,7 +379,7 @@ static void jnt_convolve_2d_ver_2tap_avx2(const int16_t *const im_block, const i
             __m128i s_128[2];
             __m256i r[2];
 
-            s_128[0] = _mm_load_si128((__m128i *)im);
+            s_128[0] = _mm_loadu_si128((__m128i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -415,7 +415,7 @@ static void jnt_convolve_2d_ver_2tap_avx2(const int16_t *const im_block, const i
         } else if (w == 16) {
             __m256i s_256[2], r[4];
 
-            s_256[0] = _mm256_load_si256((__m256i *)im);
+            s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -451,8 +451,8 @@ static void jnt_convolve_2d_ver_2tap_avx2(const int16_t *const im_block, const i
         } else if (w == 32) {
             __m256i s_256[2][2], r[4];
 
-            s_256[0][0] = _mm256_load_si256((__m256i *)(im + 0 * 16));
-            s_256[0][1] = _mm256_load_si256((__m256i *)(im + 1 * 16));
+            s_256[0][0] = _mm256_loadu_si256((__m256i *)(im + 0 * 16));
+            s_256[0][1] = _mm256_loadu_si256((__m256i *)(im + 1 * 16));
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -506,10 +506,10 @@ static void jnt_convolve_2d_ver_2tap_avx2(const int16_t *const im_block, const i
         } else if (w == 64) {
             __m256i s_256[2][4];
 
-            s_256[0][0] = _mm256_load_si256((__m256i *)(im + 0 * 16));
-            s_256[0][1] = _mm256_load_si256((__m256i *)(im + 1 * 16));
-            s_256[0][2] = _mm256_load_si256((__m256i *)(im + 2 * 16));
-            s_256[0][3] = _mm256_load_si256((__m256i *)(im + 3 * 16));
+            s_256[0][0] = _mm256_loadu_si256((__m256i *)(im + 0 * 16));
+            s_256[0][1] = _mm256_loadu_si256((__m256i *)(im + 1 * 16));
+            s_256[0][2] = _mm256_loadu_si256((__m256i *)(im + 2 * 16));
+            s_256[0][3] = _mm256_loadu_si256((__m256i *)(im + 3 * 16));
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -942,7 +942,7 @@ static void jnt_convolve_2d_ver_2tap_half_avx2(const int16_t *const im_block, co
         if (w == 8) {
             __m128i s_128[2];
 
-            s_128[0] = _mm_load_si128((__m128i *)im);
+            s_128[0] = _mm_loadu_si128((__m128i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -984,7 +984,7 @@ static void jnt_convolve_2d_ver_2tap_half_avx2(const int16_t *const im_block, co
         } else if (w == 16) {
             __m256i s_256[2], r[2];
 
-            s_256[0] = _mm256_load_si256((__m256i *)im);
+            s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1021,8 +1021,8 @@ static void jnt_convolve_2d_ver_2tap_half_avx2(const int16_t *const im_block, co
         } else if (w == 32) {
             __m256i s_256[2][2], r[2];
 
-            s_256[0][0] = _mm256_load_si256((__m256i *)(im + 0 * 16));
-            s_256[0][1] = _mm256_load_si256((__m256i *)(im + 1 * 16));
+            s_256[0][0] = _mm256_loadu_si256((__m256i *)(im + 0 * 16));
+            s_256[0][1] = _mm256_loadu_si256((__m256i *)(im + 1 * 16));
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1075,10 +1075,10 @@ static void jnt_convolve_2d_ver_2tap_half_avx2(const int16_t *const im_block, co
         } else if (w == 64) {
             __m256i s_256[2][4];
 
-            s_256[0][0] = _mm256_load_si256((__m256i *)(im + 0 * 16));
-            s_256[0][1] = _mm256_load_si256((__m256i *)(im + 1 * 16));
-            s_256[0][2] = _mm256_load_si256((__m256i *)(im + 2 * 16));
-            s_256[0][3] = _mm256_load_si256((__m256i *)(im + 3 * 16));
+            s_256[0][0] = _mm256_loadu_si256((__m256i *)(im + 0 * 16));
+            s_256[0][1] = _mm256_loadu_si256((__m256i *)(im + 1 * 16));
+            s_256[0][2] = _mm256_loadu_si256((__m256i *)(im + 2 * 16));
+            s_256[0][3] = _mm256_loadu_si256((__m256i *)(im + 3 * 16));
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1588,7 +1588,6 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
                                (1 << offset_bits) - (1 << (offset_bits - 1));
     const int32_t offset_no_avg =
         (1 << (round_1 - 1)) + (1 << offset_bits) + (1 << (offset_bits - 1));
-    int32_t      y   = h;
     ConvBufType *dst = conv_params->dst;
 
     if (w == 2) {
@@ -1614,7 +1613,7 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
         ss_128[0] = _mm_unpacklo_epi16(src01, src12);
         ss_128[1] = _mm_unpacklo_epi16(src23, src34);
 
-        y = h;
+        int32_t y = h;
 
         if (conv_params->do_average) {
             if (conv_params->use_jnt_comp_avg) {
@@ -1675,7 +1674,7 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
             ss_256[0] = _mm256_unpacklo_epi16(s_256[0], s_256[1]);
             ss_256[1] = _mm256_unpacklo_epi16(s_256[2], s_256[3]);
 
-            y = h;
+            int32_t y = h;
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1722,7 +1721,7 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
             s_256[1] = _mm256_loadu_si256((__m256i *)(im + 1 * 8));
             s_256[2] = _mm256_loadu_si256((__m256i *)(im + 2 * 8));
             s_256[3] = _mm256_loadu_si256((__m256i *)(im + 3 * 8));
-            y        = h;
+            int32_t y = h;
 
             __m256i ss_256[6];
 
@@ -1767,7 +1766,7 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
             __m256i s_256[6], ss_256[6], tt_256[6], r[4];
 
             loadu_unpack_16bit_5rows_avx2(im, 16, s_256, ss_256, tt_256);
-            y = h;
+            int32_t y = h;
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1814,7 +1813,7 @@ static void jnt_convolve_2d_ver_6tap_avx2(const int16_t *const im_block, const i
                 loadu_unpack_16bit_5rows_avx2(s, w, s_256[0], ss_256[0], tt_256[0]);
                 loadu_unpack_16bit_5rows_avx2(s + 16, w, s_256[1], ss_256[1], tt_256[1]);
 
-                y = h;
+                int32_t y = h;
 
                 if (conv_params->do_average) {
                     if (conv_params->use_jnt_comp_avg) {
@@ -1895,7 +1894,6 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
                                (1 << offset_bits) - (1 << (offset_bits - 1));
     const int32_t offset_no_avg =
         (1 << (round_1 - 1)) + (1 << offset_bits) + (1 << (offset_bits - 1));
-    int32_t      y   = h;
     ConvBufType *dst = conv_params->dst;
 
     if (w == 2) {
@@ -1926,7 +1924,7 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
         ss_128[1] = _mm_unpacklo_epi16(src23, src34);
         ss_128[2] = _mm_unpacklo_epi16(src45, src56);
 
-        y = h;
+        int32_t y = h;
 
         if (conv_params->do_average) {
             if (conv_params->use_jnt_comp_avg) {
@@ -1992,7 +1990,7 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
             ss_256[1] = _mm256_unpacklo_epi16(s_256[2], s_256[3]);
             ss_256[2] = _mm256_unpacklo_epi16(s_256[4], s_256[5]);
 
-            y = h;
+            int32_t y = h;
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -2041,7 +2039,7 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
             s_256[3] = _mm256_loadu_si256((__m256i *)(im + 3 * 8));
             s_256[4] = _mm256_loadu_si256((__m256i *)(im + 4 * 8));
             s_256[5] = _mm256_loadu_si256((__m256i *)(im + 5 * 8));
-            y        = h;
+            int32_t y        = h;
 
             __m256i ss_256[8];
 
@@ -2082,7 +2080,7 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
             __m256i s_256[8], ss_256[8], tt_256[8], r[4];
 
             load_16bit_7rows_avx2(im, 16, s_256);
-            y = h;
+            int32_t y = h;
 
             convolve_8tap_unapck_avx2(s_256, ss_256);
             convolve_8tap_unapck_avx2(s_256 + 1, tt_256);
@@ -2137,7 +2135,7 @@ static void jnt_convolve_2d_ver_8tap_avx2(const int16_t *const im_block, const i
                 convolve_8tap_unapck_avx2(s_256[1], ss_256[1]);
                 convolve_8tap_unapck_avx2(s_256[1] + 1, tt_256[1]);
 
-                y = h;
+                int32_t y = h;
 
                 if (conv_params->do_average) {
                     if (conv_params->use_jnt_comp_avg) {

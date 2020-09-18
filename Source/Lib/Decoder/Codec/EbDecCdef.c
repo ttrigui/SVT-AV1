@@ -1,17 +1,13 @@
 /*
-* Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
+ * Copyright(c) 2019 Netflix, Inc.
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <stdio.h>
@@ -86,7 +82,8 @@ void svt_cdef_block(EbDecHandle *dec_handle, int32_t *mi_wide_l2, int32_t *mi_hi
     CurFrameBuf *        frame_buf         = &master_frame_buf->cur_frame_bufs[0];
     EbPictureBufferDesc *recon_picture_ptr = dec_handle->cur_pic_buf[0]->ps_pic_buf;
 
-    int8_t        use_highbd = dec_handle->seq_header.color_config.bit_depth > 8;
+    int8_t use_highbd = (dec_handle->seq_header.color_config.bit_depth > EB_8BIT ||
+        dec_handle->is_16bit_pipeline);
     const int32_t cdef_mask  = 1;
     uint32_t      cdef_count;
     int32_t       coeff_shift = AOMMAX(recon_picture_ptr->bit_depth - 8, 0);
@@ -178,7 +175,7 @@ void svt_cdef_block(EbDecHandle *dec_handle, int32_t *mi_wide_l2, int32_t *mi_hi
         uint32_t coffset;
         int32_t  rend, cend;
         int32_t  pri_damping = frame_info->cdef_params.cdef_damping;
-        int32_t  sec_damping = frame_info->cdef_params.cdef_damping;
+        int32_t  sec_damping = pri_damping;
         int32_t  hsize       = nhb << mi_wide_l2[pli];
         int32_t  vsize       = nvb << mi_high_l2[pli];
         int32_t  sub_x       = (pli == 0) ? 0 : dec_handle->seq_header.color_config.subsampling_x;

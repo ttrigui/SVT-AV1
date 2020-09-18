@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EBMCP_H
@@ -59,6 +65,10 @@ extern void generate_padding16_bit(EbByte src_pic, uint32_t src_stride, uint32_t
 extern void pad_input_picture(EbByte src_pic, uint32_t src_stride, uint32_t original_src_width,
                               uint32_t original_src_height, uint32_t pad_right,
                               uint32_t pad_bottom);
+
+extern void pad_input_picture_16bit(uint16_t* src_pic, uint32_t src_stride,
+                                    uint32_t original_src_width, uint32_t original_src_height,
+                                    uint32_t pad_right, uint32_t pad_bottom);
 
     void generate_padding_l(EbByte src_pic, uint32_t src_stride,
         uint32_t row_height, uint32_t padding_width);

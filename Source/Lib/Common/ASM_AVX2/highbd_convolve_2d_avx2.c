@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <immintrin.h>
@@ -51,7 +51,7 @@ void eb_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, 
     const int32_t bits             = FILTER_BITS * 2 - conv_params->round_0 - conv_params->round_1;
     const __m128i round_shift_bits = _mm_cvtsi32_si128(bits);
     const __m256i round_const_bits = _mm256_set1_epi32((1 << bits) >> 1);
-    const __m256i clip_pixel       = _mm256_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
+    const __m256i clp_pxl          = _mm256_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
     const __m256i zero             = _mm256_setzero_si256();
 
     prepare_coeffs_8tap_avx2(filter_params_x, subpel_x_q4, coeffs_x);
@@ -92,7 +92,7 @@ void eb_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, 
                 __m256i res_odd1  = _mm256_packs_epi32(res_odd, res_odd);
                 __m256i res       = _mm256_unpacklo_epi16(res_even1, res_odd1);
 
-                _mm256_store_si256((__m256i *)&im_block[i * im_stride], res);
+                _mm256_storeu_si256((__m256i *)&im_block[i * im_stride], res);
             }
         }
 
@@ -137,7 +137,7 @@ void eb_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, 
                                                    round_shift_bits);
 
                     __m256i res_16bit = _mm256_packs_epi32(res_a_round, res_b_round);
-                    res_16bit         = _mm256_min_epi16(res_16bit, clip_pixel);
+                    res_16bit         = _mm256_min_epi16(res_16bit, clp_pxl);
                     res_16bit         = _mm256_max_epi16(res_16bit, zero);
 
                     _mm_storeu_si128((__m128i *)&dst[i * dst_stride + j],
@@ -146,7 +146,7 @@ void eb_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, 
                                      _mm256_extracti128_si256(res_16bit, 1));
                 } else if (w == 4) {
                     res_a_round = _mm256_packs_epi32(res_a_round, res_a_round);
-                    res_a_round = _mm256_min_epi16(res_a_round, clip_pixel);
+                    res_a_round = _mm256_min_epi16(res_a_round, clp_pxl);
                     res_a_round = _mm256_max_epi16(res_a_round, zero);
 
                     _mm_storel_epi64((__m128i *)&dst[i * dst_stride + j],
@@ -155,7 +155,7 @@ void eb_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, 
                                      _mm256_extracti128_si256(res_a_round, 1));
                 } else {
                     res_a_round = _mm256_packs_epi32(res_a_round, res_a_round);
-                    res_a_round = _mm256_min_epi16(res_a_round, clip_pixel);
+                    res_a_round = _mm256_min_epi16(res_a_round, clp_pxl);
                     res_a_round = _mm256_max_epi16(res_a_round, zero);
 
                     xx_storel_32((__m128i *)&dst[i * dst_stride + j],
@@ -222,17 +222,12 @@ void eb_av1_highbd_convolve_2d_copy_sr_avx2(const uint16_t *src, int32_t src_str
     (void)conv_params;
     (void)bd;
 
-    if (w >= 16) {
-        assert(!((intptr_t)dst % 16));
-        assert(!(dst_stride % 16));
-    }
-
     if (w == 2) {
         do {
-            memcpy(dst, src, 2 * sizeof(*src));
+            eb_memcpy_intrin_sse(dst, src, 2 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
-            memcpy(dst, src, 2 * sizeof(*src));
+            eb_memcpy_intrin_sse(dst, src, 2 * sizeof(*src));
             src += src_stride;
             dst += dst_stride;
             h -= 2;
@@ -257,9 +252,9 @@ void eb_av1_highbd_convolve_2d_copy_sr_avx2(const uint16_t *src, int32_t src_str
             src += src_stride;
             s[1] = _mm_loadu_si128((__m128i *)src);
             src += src_stride;
-            _mm_store_si128((__m128i *)dst, s[0]);
+            _mm_storeu_si128((__m128i *)dst, s[0]);
             dst += dst_stride;
-            _mm_store_si128((__m128i *)dst, s[1]);
+            _mm_storeu_si128((__m128i *)dst, s[1]);
             dst += dst_stride;
             h -= 2;
         } while (h);

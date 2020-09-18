@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbInterPrediction_h
@@ -79,6 +85,12 @@ typedef enum WedgeDirectionType
     WEDGE_DIRECTIONS
 } WedgeDirectionType;
 
+static const InterpFilterParams av1_interp_filter_params_list[SWITCHABLE_FILTERS + 1] = {
+    {(const int16_t *)sub_pel_filters_8, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_REGULAR},
+    {(const int16_t *)sub_pel_filters_8smooth, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_SMOOTH},
+    {(const int16_t *)sub_pel_filters_8sharp, SUBPEL_TAPS, SUBPEL_SHIFTS, MULTITAP_SHARP},
+    {(const int16_t *)bilinear_filters, SUBPEL_TAPS, SUBPEL_SHIFTS, BILINEAR}};
+
 static INLINE void clamp_mv(MV *mv, int32_t min_col, int32_t max_col, int32_t min_row,
                             int32_t max_row) {
     mv->col = (int16_t)clamp(mv->col, min_col, max_col);
@@ -120,7 +132,7 @@ typedef struct WedgeParamsType
         InterpFilters interp_filters, int32_t is_intrabc, int32_t bd);
 
 
-    void av1_dist_wtd_comp_weight_assign(
+    void eb_av1_dist_wtd_comp_weight_assign(
         SeqHeader *seq_header,
         int cur_frame_index,
         int bck_frame_index,
@@ -136,7 +148,7 @@ typedef struct WedgeParamsType
         const CONV_BUF_TYPE *src1, int src1_stride,
         const InterInterCompoundData *const comp_data, uint8_t *seg_mask,
         BlockSize sb_type, int h, int w, ConvolveParams *conv_params,
-        uint8_t bd);
+        uint8_t bd, EbBool is_16bit);
 
     void av1_get_convolve_filter_params(uint32_t interp_filters,
         InterpFilterParams *params_x, InterpFilterParams *params_y,
@@ -162,7 +174,7 @@ typedef struct WedgeParamsType
         int interstride, const uint8_t *intrapred8, int intrastride, int bd);
 
 
-    void av1_setup_scale_factors_for_frame(ScaleFactors *sf, int other_w,
+    void eb_av1_setup_scale_factors_for_frame(ScaleFactors *sf, int other_w,
         int other_h, int this_w, int this_h);
 
     static INLINE int av1_is_valid_scale(const struct ScaleFactors *sf) {
@@ -179,7 +191,7 @@ typedef struct WedgeParamsType
         return 2 * this_width >= ref_width && 2 * this_height >= ref_height &&
             this_width <= 16 * ref_width && this_height <= 16 * ref_height;
     }
-    MV32 av1_scale_mv(const MV *mvq4, int x, int y,
+    MV32 eb_av1_scale_mv(const MV *mvq4, int x, int y,
         const ScaleFactors *sf);
 
 
@@ -427,7 +439,7 @@ static INLINE int is_inter_block(const BlockModeInfo *bloc_mi) {
 
 void av1_set_ref_frame(MvReferenceFrame *rf, int8_t ref_frame_type);
 
-int av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y);
+int eb_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y);
 
 #ifdef __cplusplus
 }

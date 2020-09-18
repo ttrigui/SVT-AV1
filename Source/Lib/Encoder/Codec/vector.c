@@ -79,8 +79,7 @@ Iterator eb_aom_vector_begin(Vector *vector) { return eb_aom_vector_iterator(vec
 Iterator eb_aom_vector_iterator(Vector *vector, size_t index) {
     Iterator iterator = {NULL, 0};
 
-    assert(vector != NULL);
-    assert(index <= vector->size);
+    assert(vector != NULL && index <= vector->size);
 
     if (vector == NULL) return iterator;
     if (index > vector->size) return iterator;
@@ -114,7 +113,7 @@ void *_vector_offset(Vector *vector, size_t index) {
 void _vector_assign(Vector *vector, size_t index, void *element) {
     /* Insert the element */
     void *offset = _vector_offset(vector, index);
-    memcpy(offset, element, vector->element_size);
+    eb_memcpy(offset, element, vector->element_size);
 }
 
 int _vector_adjust_capacity(Vector *vector) {
@@ -149,7 +148,7 @@ int _vector_reallocate(Vector *vector, size_t new_capacity) {
     }
 /* clang-format on */
 #else
-    memcpy(vector->data, old, eb_aom_vector_byte_size(vector));
+    eb_memcpy(vector->data, old, eb_aom_vector_byte_size(vector));
 #endif
 
     vector->capacity = new_capacity;

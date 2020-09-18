@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbAdaptiveMotionVectorPrediction_h
@@ -25,7 +31,7 @@ struct InterPredictionContext;
 extern EbErrorType clip_mv(uint32_t blk_origin_x, uint32_t blk_origin_y, int16_t *mv_x,
                            int16_t *mv_y, uint32_t picture_width, uint32_t picture_height,
                            uint32_t tb_size);
-void mvp_bypass_init(PictureControlSet *pcs_ptr, struct ModeDecisionContext *context_ptr);
+void init_xd(PictureControlSet *pcs_ptr, struct ModeDecisionContext *context_ptr);
 void generate_av1_mvp_table(TileInfo *tile, struct ModeDecisionContext *context_ptr,
                             BlkStruct  *blk_ptr, const BlockGeom *blk_geom, uint16_t blk_origin_x,
                             uint16_t blk_origin_y, MvReferenceFrame *ref_frames, uint32_t tot_refs,

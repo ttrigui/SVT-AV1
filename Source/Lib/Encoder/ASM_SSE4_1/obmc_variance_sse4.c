@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "aom_dsp_rtcd.h"
@@ -29,20 +29,20 @@ static const uint8_t bilinear_filters_2t[BIL_SUBPEL_SHIFTS][2] = {
     {16, 112},
 };
 
-void aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
+void svt_aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b,
                                                  unsigned int src_pixels_per_line,
                                                  unsigned int pixel_step,
                                                  unsigned int output_height,
                                                  unsigned int output_width, const uint8_t *filter);
 
-void aom_var_filter_block2d_bil_second_pass_ssse3(const uint16_t *a, uint8_t *b,
+void svt_aom_var_filter_block2d_bil_second_pass_ssse3(const uint16_t *a, uint8_t *b,
                                                   unsigned int src_pixels_per_line,
                                                   unsigned int pixel_step,
                                                   unsigned int output_height,
                                                   unsigned int output_width, const uint8_t *filter);
 
 #define OBMC_SUBPIX_VAR(W, H)                                                         \
-    uint32_t aom_obmc_sub_pixel_variance##W##x##H##_sse4_1(const uint8_t *pre,        \
+    uint32_t eb_aom_obmc_sub_pixel_variance##W##x##H##_sse4_1(const uint8_t *pre,        \
                                                            int            pre_stride, \
                                                            int            xoffset,    \
                                                            int            yoffset,    \
@@ -52,12 +52,12 @@ void aom_var_filter_block2d_bil_second_pass_ssse3(const uint16_t *a, uint8_t *b,
         uint16_t fdata3[(H + 1) * W];                                                 \
         uint8_t  temp2[H * W];                                                        \
                                                                                       \
-        aom_var_filter_block2d_bil_first_pass_ssse3(                                  \
+        svt_aom_var_filter_block2d_bil_first_pass_ssse3(                                  \
             pre, fdata3, pre_stride, 1, H + 1, W, bilinear_filters_2t[xoffset]);      \
-        aom_var_filter_block2d_bil_second_pass_ssse3(                                 \
+        svt_aom_var_filter_block2d_bil_second_pass_ssse3(                                 \
             fdata3, temp2, W, W, H, W, bilinear_filters_2t[yoffset]);                 \
                                                                                       \
-        return aom_obmc_variance##W##x##H##_avx2(temp2, W, wsrc, mask, sse);          \
+        return eb_aom_obmc_variance##W##x##H##_avx2(temp2, W, wsrc, mask, sse);          \
     }
 
 OBMC_SUBPIX_VAR(128, 128)

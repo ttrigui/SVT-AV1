@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbDefinitions.h"
@@ -332,9 +338,9 @@ static void jnt_convolve_2d_hor_6tap_avx512(const uint8_t *src, const int32_t sr
     if (w <= 16) {
         __m256i coeffs_256[3], filt_256[3];
 
-        filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-        filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-        filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
+        filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+        filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+        filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
 
         prepare_half_coeffs_6tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
@@ -405,10 +411,10 @@ static void jnt_convolve_2d_hor_8tap_avx512(const uint8_t *src, const int32_t sr
     if (w <= 16) {
         __m256i coeffs_256[4], filt_256[4];
 
-        filt_256[0] = _mm256_load_si256((__m256i const *)filt1_global_avx);
-        filt_256[1] = _mm256_load_si256((__m256i const *)filt2_global_avx);
-        filt_256[2] = _mm256_load_si256((__m256i const *)filt3_global_avx);
-        filt_256[3] = _mm256_load_si256((__m256i const *)filt4_global_avx);
+        filt_256[0] = _mm256_loadu_si256((__m256i const *)filt1_global_avx);
+        filt_256[1] = _mm256_loadu_si256((__m256i const *)filt2_global_avx);
+        filt_256[2] = _mm256_loadu_si256((__m256i const *)filt3_global_avx);
+        filt_256[3] = _mm256_loadu_si256((__m256i const *)filt4_global_avx);
 
         prepare_half_coeffs_8tap_avx2(filter_params_x, subpel_x_q4, coeffs_256);
 
@@ -598,7 +604,7 @@ static void jnt_convolve_2d_ver_2tap_avx512(const int16_t *const im_block, const
             __m128i s_128[2];
             __m256i r[2];
 
-            s_128[0] = _mm_load_si128((__m128i *)im);
+            s_128[0] = _mm_loadu_si128((__m128i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -636,7 +642,7 @@ static void jnt_convolve_2d_ver_2tap_avx512(const int16_t *const im_block, const
 
             assert(w == 16);
 
-            s_256[0] = _mm256_load_si256((__m256i *)im);
+            s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1033,7 +1039,7 @@ static void jnt_convolve_2d_ver_2tap_half_avx512(const int16_t *const im_block, 
         if (w == 8) {
             __m128i s_128[2];
 
-            s_128[0] = _mm_load_si128((__m128i *)im);
+            s_128[0] = _mm_loadu_si128((__m128i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {
@@ -1077,7 +1083,7 @@ static void jnt_convolve_2d_ver_2tap_half_avx512(const int16_t *const im_block, 
 
             assert(w == 16);
 
-            s_256[0] = _mm256_load_si256((__m256i *)im);
+            s_256[0] = _mm256_loadu_si256((__m256i *)im);
 
             if (conv_params->do_average) {
                 if (conv_params->use_jnt_comp_avg) {

@@ -4,9 +4,9 @@
 ; This source code is subject to the terms of the BSD 2 Clause License and
 ; the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 ; was not distributed with this source code in the LICENSE file, you can
-; obtain it at www.aomedia.org/license/software. If the Alliance for Open
+; obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 ; Media Patent License 1.0 was not distributed with this source code in the
-; PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+; PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 ;
 
 ;
@@ -16,7 +16,7 @@
 
 SECTION .text
 
-;uint32_t aom_highbd_calc16x16var_sse2
+;uint32_t eb_aom_highbd_calc16x16var_sse2
 ;(
 ;    uint8_t   *  src_ptr,
 ;    int32_t             source_stride,
@@ -27,8 +27,8 @@ SECTION .text
 ;)
 
 
-global sym(aom_highbd_calc16x16var_sse2) PRIVATE
-sym(aom_highbd_calc16x16var_sse2):
+global sym(eb_aom_highbd_calc16x16var_sse2) PRIVATE
+sym(eb_aom_highbd_calc16x16var_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -171,7 +171,7 @@ sym(aom_highbd_calc16x16var_sse2):
     ret
 
 
-;uint32_t aom_highbd_calc8x8var_sse2
+;uint32_t eb_aom_highbd_calc8x8var_sse2
 ;(
 ;    uint8_t   *  src_ptr,
 ;    int32_t             source_stride,
@@ -180,8 +180,8 @@ sym(aom_highbd_calc16x16var_sse2):
 ;    uint32_t    *  SSE,
 ;    int32_t             *  Sum
 ;)
-global sym(aom_highbd_calc8x8var_sse2) PRIVATE
-sym(aom_highbd_calc8x8var_sse2):
+global sym(eb_aom_highbd_calc8x8var_sse2) PRIVATE
+sym(eb_aom_highbd_calc8x8var_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6
@@ -320,7 +320,7 @@ sym(aom_highbd_calc8x8var_sse2):
     ret
 
 
-;uint32_t aom_highbd_calc4x4var_sse2
+;uint32_t eb_aom_highbd_calc4x4var_sse2
 ;(
 ;    uint8_t   *  src_ptr,
 ;    int32_t             source_stride,
@@ -329,8 +329,8 @@ sym(aom_highbd_calc8x8var_sse2):
 ;    uint32_t    *  SSE,
 ;    int32_t             *  Sum
 ;)
-global sym(aom_highbd_calc4x4var_sse2) PRIVATE
-sym(aom_highbd_calc4x4var_sse2):
+global sym(eb_aom_highbd_calc4x4var_sse2) PRIVATE
+sym(eb_aom_highbd_calc4x4var_sse2):
     push        rbp
     mov         rbp, rsp
     SHADOW_ARGS_TO_STACK 6

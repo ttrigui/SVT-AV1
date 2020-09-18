@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbPackUnPack_C.h"
@@ -106,8 +112,10 @@ void eb_enc_msb_un_pack2_d(uint16_t *in16_bit_buffer, uint32_t in_stride, uint8_
         for (k = 0; k < width; k++) {
             in_pixel                             = in16_bit_buffer[k + j * in_stride];
             out8_bit_buffer[k + j * out8_stride] = (uint8_t)(in_pixel >> 2);
+            if (outn_bit_buffer) {
             tmp_pixel                            = (uint8_t)(in_pixel << 6);
             outn_bit_buffer[k + j * outn_stride] = tmp_pixel;
+            }
         }
     }
 }
@@ -161,6 +169,23 @@ void unpack_avg_safe_sub_c(uint16_t *ref16_l0, uint32_t ref_l0_stride, uint16_t 
             in_pixel_l0                     = (uint8_t)(ref16_l0[k + j * ref_l0_stride / 2] >> 2);
             in_pixel_l1                     = (uint8_t)(ref16_l1[k + j * ref_l1_stride / 2] >> 2);
             dst_ptr[k + j * dst_stride / 2] = (in_pixel_l0 + in_pixel_l1 + 1) >> 1;
+        }
+    }
+}
+void convert_8bit_to_16bit_c(uint8_t* src, uint32_t src_stride, uint16_t* dst, uint32_t dst_stride,
+    uint32_t width, uint32_t height) {
+    for (uint32_t j = 0; j < height; j++) {
+        for (uint32_t k = 0; k < width; k++) {
+            dst[k + j * dst_stride] = src[k + j * src_stride];
+        }
+    }
+}
+
+void convert_16bit_to_8bit_c(uint16_t *src, uint32_t src_stride, uint8_t *dst, uint32_t dst_stride,
+    uint32_t width, uint32_t height) {
+    for (uint32_t j = 0; j < height; j++) {
+        for (uint32_t k = 0; k < width; k++) {
+            dst[k + j * dst_stride] = (uint8_t)(src[k + j * src_stride]);
         }
     }
 }

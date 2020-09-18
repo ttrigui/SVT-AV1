@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 #include "EbDefinitions.h"
 #include "common_dsp_rtcd.h"
@@ -251,7 +251,7 @@ static SubtractWxHFuncType get_subtract_func(int rows, int cols) {
     return NULL;
 }
 
-void aom_highbd_subtract_block_sse2(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
+void eb_aom_highbd_subtract_block_sse2(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
                                     const uint8_t *src8, ptrdiff_t src_stride, const uint8_t *pred8,
                                     ptrdiff_t pred_stride, int bd) {
     uint16_t *          src  = (uint16_t *)(src8);

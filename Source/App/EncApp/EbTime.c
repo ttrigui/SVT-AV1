@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdint.h>
@@ -9,7 +15,6 @@
 #define __USE_POSIX199309
 #endif
 #include <time.h>
-#include <stdio.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -93,10 +98,6 @@ void injector(uint64_t processed_frame_count, uint32_t injector_frame_rate) {
     double injector_interval =
         (double)(1 << 16) /
         (double)injector_frame_rate; // 1.0 / injector frame rate (in this case, 1.0/encodRate)
-    double         elapsed_time;
-    double         predicted_time;
-    int32_t        buffer_frames = 1; // How far ahead of time should we let it get
-    int32_t        millisec_ahead;
     static int32_t first_time = 0;
 
     if (first_time == 0) {
@@ -111,19 +112,21 @@ void injector(uint64_t processed_frame_count, uint32_t injector_frame_rate) {
     } else {
 #ifdef _WIN32
         QueryPerformanceCounter(&now_count);
-        elapsed_time =
-            (double)(now_count.QuadPart - start_count.QuadPart) / (double)counter_freq.QuadPart;
+        double elapsed_time = (double)(now_count.QuadPart - start_count.QuadPart) /
+            (double)counter_freq.QuadPart;
 #else
-        finish_time((uint64_t *)&currentTimesSeconds, (uint64_t *)&currentTimesuSeconds);
+        double elapsed_time;
+        finish_time((uint64_t *)&currentTimesSeconds,
+                                        (uint64_t *)&currentTimesuSeconds);
         compute_overall_elapsed_time(startTimesSeconds,
                                      startTimesuSeconds,
                                      currentTimesSeconds,
                                      currentTimesuSeconds,
                                      &elapsed_time);
 #endif
-
-        predicted_time = (processed_frame_count - buffer_frames) * injector_interval;
-        millisec_ahead = (int32_t)(1000 * (predicted_time - elapsed_time));
+        const int32_t buffer_frames  = 1; // How far ahead of time should we let it get
+        double        predicted_time = (processed_frame_count - buffer_frames) * injector_interval;
+        const int32_t millisec_ahead = (int32_t)(1000 * (predicted_time - elapsed_time));
         if (millisec_ahead > 0) {
             //  timeBeginPeriod(1);
             sleep_ms(millisec_ahead);

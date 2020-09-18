@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 #ifndef AOM_AV1_ENCODER_CORNER_MATCH_H_
 #define AOM_AV1_ENCODER_CORNER_MATCH_H_
@@ -24,7 +24,7 @@ typedef struct {
     int rx, ry;
 } Correspondence;
 
-int av1_determine_correspondence(unsigned char *frm, int *frm_corners, int num_frm_corners,
+int svt_av1_determine_correspondence(unsigned char *frm, int *frm_corners, int num_frm_corners,
                                  unsigned char *ref, int *ref_corners, int num_ref_corners,
                                  int width, int height, int frm_stride, int ref_stride,
                                  int *correspondence_pts);

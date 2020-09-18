@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  *
  */
 //#include "EbSequenceControlSet.h"
@@ -17,8 +17,8 @@
 #include "EbUtility.h"
 #include "EbLog.h"
 
-void av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride,
-                                uint8_t *dst, int dst_stride, int rows, int sub_x, int bd);
+void eb_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride,
+                                   uint8_t *dst, int dst_stride, int rows, int sub_x, int bd, EbBool is_16bit_pipeline);
 
 void av1_foreach_rest_unit_in_frame(Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
                                     RestUnitVisitor on_rest_unit, void *priv);
@@ -224,9 +224,9 @@ static void extend_frame_lowbd(uint8_t *data, int32_t width, int32_t height, int
         memset(data_p + width, data_p[width - 1], border_horz);
     }
     data_p = data - border_horz;
-    for (i = -border_vert; i < 0; ++i) memcpy(data_p + i * stride, data_p, width + 2 * border_horz);
+    for (i = -border_vert; i < 0; ++i) eb_memcpy(data_p + i * stride,data_p, width + 2 * border_horz);
     for (i = height; i < height + border_vert; ++i) {
-        memcpy(data_p + i * stride, data_p + (height - 1) * stride, width + 2 * border_horz);
+        eb_memcpy(data_p + i * stride,data_p + (height - 1) * stride, width + 2 * border_horz);
     }
 }
 
@@ -241,10 +241,10 @@ static void extend_frame_highbd(uint16_t *data, int32_t width, int32_t height, i
     }
     data_p = data - border_horz;
     for (i = -border_vert; i < 0; ++i) {
-        memcpy(data_p + i * stride, data_p, (width + 2 * border_horz) * sizeof(uint16_t));
+        eb_memcpy(data_p + i * stride, data_p, (width + 2 * border_horz) * sizeof(uint16_t));
     }
     for (i = height; i < height + border_vert; ++i) {
-        memcpy(data_p + i * stride,
+        eb_memcpy(data_p + i * stride,
                data_p + (height - 1) * stride,
                (width + 2 * border_horz) * sizeof(uint16_t));
     }
@@ -261,13 +261,13 @@ void eb_extend_frame(uint8_t *data, int32_t width, int32_t height, int32_t strid
 
 static void copy_tile_lowbd(int32_t width, int32_t height, const uint8_t *src, int32_t src_stride,
                             uint8_t *dst, int32_t dst_stride) {
-    for (int32_t i = 0; i < height; ++i) memcpy(dst + i * dst_stride, src + i * src_stride, width);
+    for (int32_t i = 0; i < height; ++i) eb_memcpy(dst + i * dst_stride, src + i * src_stride, width);
 }
 
 static void copy_tile_highbd(int32_t width, int32_t height, const uint16_t *src, int32_t src_stride,
                              uint16_t *dst, int32_t dst_stride) {
     for (int32_t i = 0; i < height; ++i)
-        memcpy(dst + i * dst_stride, src + i * src_stride, width * sizeof(*dst));
+        eb_memcpy(dst + i * dst_stride, src + i * src_stride, width * sizeof(*dst));
 }
 
 void copy_tile(int32_t width, int32_t height, const uint8_t *src, int32_t src_stride,
@@ -385,10 +385,10 @@ void setup_processing_stripe_boundary(const RestorationTileLimits *      limits,
                 const uint8_t *buf     = rsb->stripe_boundary_above + (buf_off << use_highbd);
                 uint8_t *      dst8    = data8_tl + i * data_stride;
                 // Save old pixels, then replace with data from stripe_boundary_above
-                memcpy(rlbs->tmp_save_above[i + RESTORATION_BORDER],
+                eb_memcpy(rlbs->tmp_save_above[i + RESTORATION_BORDER],
                        REAL_PTR(use_highbd, dst8),
                        line_size);
-                memcpy(REAL_PTR(use_highbd, dst8), buf, line_size);
+                eb_memcpy(REAL_PTR(use_highbd, dst8), buf, line_size);
             }
         }
 
@@ -406,8 +406,8 @@ void setup_processing_stripe_boundary(const RestorationTileLimits *      limits,
 
                 uint8_t *dst8 = data8_bl + i * data_stride;
                 // Save old pixels, then replace with data from stripe_boundary_below
-                memcpy(rlbs->tmp_save_below[i], REAL_PTR(use_highbd, dst8), line_size);
-                memcpy(REAL_PTR(use_highbd, dst8), src, line_size);
+                eb_memcpy(rlbs->tmp_save_below[i], REAL_PTR(use_highbd, dst8), line_size);
+                eb_memcpy(REAL_PTR(use_highbd, dst8), src, line_size);
             }
         }
     } else {
@@ -417,8 +417,8 @@ void setup_processing_stripe_boundary(const RestorationTileLimits *      limits,
             // Only save and overwrite i=-RESTORATION_BORDER line.
             uint8_t *dst8 = data8_tl + (-RESTORATION_BORDER) * data_stride;
             // Save old pixels, then replace with data from stripe_boundary_above
-            memcpy(rlbs->tmp_save_above[0], REAL_PTR(use_highbd, dst8), line_size);
-            memcpy(REAL_PTR(use_highbd, dst8),
+            eb_memcpy(rlbs->tmp_save_above[0], REAL_PTR(use_highbd, dst8), line_size);
+            eb_memcpy(REAL_PTR(use_highbd, dst8),
                    REAL_PTR(use_highbd, data8_tl + (-RESTORATION_BORDER + 1) * data_stride),
                    line_size);
         }
@@ -430,8 +430,8 @@ void setup_processing_stripe_boundary(const RestorationTileLimits *      limits,
             // Only save and overwrite i=2 line.
             uint8_t *dst8 = data8_bl + 2 * data_stride;
             // Save old pixels, then replace with data from stripe_boundary_below
-            memcpy(rlbs->tmp_save_below[2], REAL_PTR(use_highbd, dst8), line_size);
-            memcpy(REAL_PTR(use_highbd, dst8),
+            eb_memcpy(rlbs->tmp_save_below[2], REAL_PTR(use_highbd, dst8), line_size);
+            eb_memcpy(REAL_PTR(use_highbd, dst8),
                    REAL_PTR(use_highbd, data8_bl + (2 - 1) * data_stride),
                    line_size);
         }
@@ -466,7 +466,7 @@ void restore_processing_stripe_boundary(const RestorationTileLimits * limits,
             uint8_t *data8_tl = data8 + data_x0 + limits->v_start * data_stride;
             for (int32_t i = -RESTORATION_BORDER; i < 0; ++i) {
                 uint8_t *dst8 = data8_tl + i * data_stride;
-                memcpy(REAL_PTR(use_highbd, dst8),
+                eb_memcpy(REAL_PTR(use_highbd, dst8),
                        rlbs->tmp_save_above[i + RESTORATION_BORDER],
                        line_size);
             }
@@ -480,7 +480,7 @@ void restore_processing_stripe_boundary(const RestorationTileLimits * limits,
                 if (stripe_bottom + i >= limits->v_end + RESTORATION_BORDER) break;
 
                 uint8_t *dst8 = data8_bl + i * data_stride;
-                memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_below[i], line_size);
+                eb_memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_below[i], line_size);
             }
         }
     } else {
@@ -489,7 +489,7 @@ void restore_processing_stripe_boundary(const RestorationTileLimits * limits,
 
             // Only restore i=-RESTORATION_BORDER line.
             uint8_t *dst8 = data8_tl + (-RESTORATION_BORDER) * data_stride;
-            memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_above[0], line_size);
+            eb_memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_above[0], line_size);
         }
 
         if (copy_below) {
@@ -499,7 +499,7 @@ void restore_processing_stripe_boundary(const RestorationTileLimits * limits,
             // Only restore i=2 line.
             if (stripe_bottom + 2 < limits->v_end + RESTORATION_BORDER) {
                 uint8_t *dst8 = data8_bl + 2 * data_stride;
-                memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_below[2], line_size);
+                eb_memcpy(REAL_PTR(use_highbd, dst8), rlbs->tmp_save_below[2], line_size);
             }
         }
     }
@@ -1353,6 +1353,10 @@ void eb_av1_loop_restoration_filter_frame(Yv12BufferConfig *frame, Av1Common *cm
 
         copy_funs[plane](dst, frame);
     }
+    if (dst->buffer_alloc_sz) {
+        dst->buffer_alloc_sz = 0;
+        EB_FREE_ARRAY(dst->buffer_alloc);
+    }
 }
 
 static void foreach_rest_unit_in_tile(const Av1PixelRect *tile_rect, int32_t tile_row,
@@ -1664,23 +1668,24 @@ void save_deblock_boundary_lines(uint8_t *src_buf, int32_t src_stride, int32_t s
         upscaled_width = (cm->frm_size.superres_upscaled_width + sx) >> sx;
         line_bytes     = upscaled_width << use_highbd;
 
-        av1_upscale_normative_rows(cm,
-                                   (src_rows),
-                                   src_stride >> use_highbd,
-                                   (bdry_rows),
-                                   boundaries->stripe_boundary_stride,
-                                   lines_to_save,
-                                   sx,
-                                   cm->bit_depth);
+        eb_av1_upscale_normative_rows(cm,
+                                      (src_rows),
+                                      src_stride >> use_highbd,
+                                      (bdry_rows),
+                                      boundaries->stripe_boundary_stride,
+                                      lines_to_save,
+                                      sx,
+                                      cm->bit_depth,
+                                      use_highbd);
     } else {
         upscaled_width = src_width;
         line_bytes     = upscaled_width << use_highbd;
         for (int32_t i = 0; i < lines_to_save; i++) {
-            memcpy(bdry_rows + i * bdry_stride, src_rows + i * src_stride, line_bytes);
+            eb_memcpy(bdry_rows + i * bdry_stride, src_rows + i * src_stride, line_bytes);
         }
     }
     // If we only saved one line, then copy it into the second line buffer
-    if (lines_to_save == 1) memcpy(bdry_rows + bdry_stride, bdry_rows, line_bytes);
+    if (lines_to_save == 1) eb_memcpy(bdry_rows + bdry_stride, bdry_rows, line_bytes);
 
     extend_lines(bdry_rows,
                  upscaled_width,
@@ -1717,7 +1722,7 @@ void save_cdef_boundary_lines(uint8_t *src_buf, int32_t src_stride, int32_t src_
         // we want to (effectively) extend the outermost row of CDEF data
         // from this tile to produce a border, rather than using deblocked
         // pixels from the tile above/below.
-        memcpy(bdry_rows + i * bdry_stride, src_rows, line_bytes);
+        eb_memcpy(bdry_rows + i * bdry_stride, src_rows, line_bytes);
     }
     extend_lines(bdry_rows,
                  upscaled_width,
@@ -1860,14 +1865,6 @@ EbErrorType eb_av1_alloc_restoration_buffers(Av1Common *cm) {
     const int32_t num_planes   = 3; // av1_num_planes(cm);
     for (int32_t p = 0; p < num_planes; ++p)
         return_error = eb_av1_alloc_restoration_struct(cm, &cm->rst_info[p], p > 0);
-
-    //CHKNif (cm->rst_tmpbuf == NULL)
-    {
-        //CHKN CHECK_MEM_ERROR(cm, cm->rst_tmpbuf,
-        //cm->rst_tmpbuf = (int32_t *)eb_aom_memalign(16, RESTORATION_TMPBUF_SIZE);
-
-        EB_MALLOC_ALIGNED(cm->rst_tmpbuf, RESTORATION_TMPBUF_SIZE);
-    }
 
     // For striped loop restoration, we divide each row of tiles into "stripes",
     // of height 64 luma pixels but with an offset by RESTORATION_UNIT_OFFSET

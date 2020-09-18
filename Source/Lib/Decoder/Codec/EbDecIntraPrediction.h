@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbDecIntraPrediction_h
@@ -24,10 +30,10 @@ void svtav1_predict_intra_block(PartitionInfo *xd, int32_t plane, TxSize tx_size
                                 void *pv_pred_buf, int32_t pred_stride, void *top_neigh_array,
                                 void *left_neigh_array, int32_t ref_stride, SeqHeader *seq_header,
                                 const PredictionMode mode, int32_t blk_mi_col_off,
-                                int32_t blk_mi_row_off, EbBitDepthEnum bit_depth);
+                                int32_t blk_mi_row_off, EbBitDepthEnum bit_depth, EbBool is_16bit);
 
 void cfl_store_tx(PartitionInfo *xd, CflCtx *cfl_ctx, int row, int col, TxSize tx_size,
-                  BlockSize bsize, EbColorConfig *cc, uint8_t *dst_buff, uint32_t dst_stride);
+                  BlockSize bsize, EbColorConfig *cc, uint8_t *dst_buff, uint32_t dst_stride, EbBool is_16bit);
 
 #ifdef __cplusplus
 }

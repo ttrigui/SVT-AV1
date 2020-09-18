@@ -1,11 +1,17 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbPictureOperators_C.h"
 #include "EbUtility.h"
-
+#include "common_dsp_rtcd.h"
 /*********************************
 * Picture Average
 *********************************/
@@ -30,6 +36,10 @@ void picture_average_kernel1_line_c(EbByte src0, EbByte src1, EbByte dst, uint32
 /*********************************
 * Picture Copy Kernel
 *********************************/
+void eb_memcpy_c(void  *dst_ptr, void  const*src_ptr, size_t size)
+{
+    memcpy(dst_ptr, src_ptr, size);
+}
 void picture_copy_kernel(EbByte src, uint32_t src_stride, EbByte dst, uint32_t dst_stride,
                          uint32_t area_width, uint32_t area_height,
                          uint32_t bytes_per_sample) //=1 always)
@@ -42,7 +52,7 @@ void picture_copy_kernel(EbByte src, uint32_t src_stride, EbByte dst, uint32_t d
     dst_stride *= bytes_per_sample;
 
     while (sample_count < sample_total_count) {
-        EB_MEMCPY(dst, src, copy_length);
+        eb_memcpy_c(dst, src, copy_length);
         src += src_stride;
         dst += dst_stride;
         sample_count += area_width;
@@ -55,16 +65,14 @@ void picture_copy_kernel(EbByte src, uint32_t src_stride, EbByte dst, uint32_t d
 
 uint64_t spatial_full_distortion_kernel_c(uint8_t *input, uint32_t input_offset,
                                           uint32_t input_stride, uint8_t *recon,
-                                          uint32_t recon_offset, uint32_t recon_stride,
+                                          int32_t recon_offset, uint32_t recon_stride,
                                           uint32_t area_width, uint32_t area_height) {
-    uint32_t column_index;
-    uint32_t row_index          = 0;
     uint64_t spatial_distortion = 0;
     input += input_offset;
     recon += recon_offset;
 
-    while (row_index < area_height) {
-        column_index = 0;
+    for (uint32_t row_index = 0; row_index < area_height; ++row_index) {
+        uint32_t column_index = 0;
         while (column_index < area_width) {
             spatial_distortion +=
                 (int64_t)SQR((int64_t)(input[column_index]) - (recon[column_index]));
@@ -73,7 +81,6 @@ uint64_t spatial_full_distortion_kernel_c(uint8_t *input, uint32_t input_offset,
 
         input += input_stride;
         recon += recon_stride;
-        ++row_index;
     }
     return spatial_distortion;
 }

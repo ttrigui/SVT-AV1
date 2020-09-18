@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbCabacContextModel.h"
@@ -856,62 +852,62 @@ static const AomCdfProb default_switchable_interp_cdf[SWITCHABLE_FILTER_CONTEXTS
                             {AOM_CDF3(14969, 21398)}};
 
 void init_mode_probs(FRAME_CONTEXT *fc) {
-    av1_copy(fc->palette_y_size_cdf, default_palette_y_size_cdf);
-    av1_copy(fc->palette_uv_size_cdf, default_palette_uv_size_cdf);
-    av1_copy(fc->palette_y_color_index_cdf, default_palette_y_color_index_cdf);
-    av1_copy(fc->palette_uv_color_index_cdf, default_palette_uv_color_index_cdf);
-    av1_copy(fc->kf_y_cdf, default_kf_y_mode_cdf);
-    av1_copy(fc->angle_delta_cdf, default_angle_delta_cdf);
-    av1_copy(fc->comp_inter_cdf, default_comp_inter_cdf);
-    av1_copy(fc->comp_ref_type_cdf, default_comp_ref_type_cdf);
-    av1_copy(fc->uni_comp_ref_cdf, default_uni_comp_ref_cdf);
-    av1_copy(fc->palette_y_mode_cdf, default_palette_y_mode_cdf);
-    av1_copy(fc->palette_uv_mode_cdf, default_palette_uv_mode_cdf);
-    av1_copy(fc->comp_ref_cdf, default_comp_ref_cdf);
-    av1_copy(fc->comp_bwdref_cdf, default_comp_bwdref_cdf);
-    av1_copy(fc->single_ref_cdf, default_single_ref_cdf);
-    av1_copy(fc->txfm_partition_cdf, default_txfm_partition_cdf);
-    av1_copy(fc->compound_index_cdf, default_compound_idx_cdfs);
-    av1_copy(fc->comp_group_idx_cdf, default_comp_group_idx_cdfs);
-    av1_copy(fc->newmv_cdf, default_newmv_cdf);
-    av1_copy(fc->zeromv_cdf, default_zeromv_cdf);
-    av1_copy(fc->refmv_cdf, default_refmv_cdf);
-    av1_copy(fc->drl_cdf, default_drl_cdf);
-    av1_copy(fc->motion_mode_cdf, default_motion_mode_cdf);
-    av1_copy(fc->obmc_cdf, default_obmc_cdf);
-    av1_copy(fc->inter_compound_mode_cdf, default_inter_compound_mode_cdf);
-    av1_copy(fc->compound_type_cdf, default_compound_type_cdf);
-    av1_copy(fc->wedge_idx_cdf, default_wedge_idx_cdf);
-    av1_copy(fc->interintra_cdf, default_interintra_cdf);
-    av1_copy(fc->wedge_interintra_cdf, default_wedge_interintra_cdf);
-    av1_copy(fc->interintra_mode_cdf, default_interintra_mode_cdf);
-    av1_copy(fc->seg.pred_cdf, default_segment_pred_cdf);
-    av1_copy(fc->seg.tree_cdf, default_seg_tree_cdf);
-    av1_copy(fc->filter_intra_cdfs, default_filter_intra_cdfs);
-    av1_copy(fc->filter_intra_mode_cdf, default_filter_intra_mode_cdf);
-    av1_copy(fc->switchable_restore_cdf, default_switchable_restore_cdf);
-    av1_copy(fc->wiener_restore_cdf, default_wiener_restore_cdf);
-    av1_copy(fc->sgrproj_restore_cdf, default_sgrproj_restore_cdf);
-    av1_copy(fc->y_mode_cdf, default_if_y_mode_cdf);
-    av1_copy(fc->uv_mode_cdf, default_uv_mode_cdf);
+    eb_memcpy(fc->palette_y_size_cdf, default_palette_y_size_cdf, sizeof(default_palette_y_size_cdf));
+    eb_memcpy(fc->palette_uv_size_cdf, default_palette_uv_size_cdf, sizeof(default_palette_uv_size_cdf));
+    eb_memcpy(fc->palette_y_color_index_cdf, default_palette_y_color_index_cdf, sizeof(default_palette_y_color_index_cdf));
+    eb_memcpy(fc->palette_uv_color_index_cdf, default_palette_uv_color_index_cdf, sizeof(default_palette_uv_color_index_cdf));
+    eb_memcpy(fc->kf_y_cdf, default_kf_y_mode_cdf, sizeof(default_kf_y_mode_cdf));
+    eb_memcpy(fc->angle_delta_cdf, default_angle_delta_cdf, sizeof(default_angle_delta_cdf));
+    eb_memcpy(fc->comp_inter_cdf, default_comp_inter_cdf, sizeof(default_comp_inter_cdf));
+    eb_memcpy(fc->comp_ref_type_cdf, default_comp_ref_type_cdf, sizeof(default_comp_ref_type_cdf));
+    eb_memcpy(fc->uni_comp_ref_cdf, default_uni_comp_ref_cdf, sizeof(default_uni_comp_ref_cdf));
+    eb_memcpy(fc->palette_y_mode_cdf, default_palette_y_mode_cdf, sizeof(default_palette_y_mode_cdf));
+    eb_memcpy(fc->palette_uv_mode_cdf, default_palette_uv_mode_cdf, sizeof(default_palette_uv_mode_cdf));
+    eb_memcpy(fc->comp_ref_cdf, default_comp_ref_cdf, sizeof(default_comp_ref_cdf));
+    eb_memcpy(fc->comp_bwdref_cdf, default_comp_bwdref_cdf, sizeof(default_comp_bwdref_cdf));
+    eb_memcpy(fc->single_ref_cdf, default_single_ref_cdf, sizeof(default_single_ref_cdf));
+    eb_memcpy(fc->txfm_partition_cdf, default_txfm_partition_cdf, sizeof(default_txfm_partition_cdf));
+    eb_memcpy(fc->compound_index_cdf, default_compound_idx_cdfs, sizeof(default_compound_idx_cdfs));
+    eb_memcpy(fc->comp_group_idx_cdf, default_comp_group_idx_cdfs, sizeof(default_comp_group_idx_cdfs));
+    eb_memcpy(fc->newmv_cdf, default_newmv_cdf, sizeof(default_newmv_cdf));
+    eb_memcpy(fc->zeromv_cdf, default_zeromv_cdf, sizeof(default_zeromv_cdf));
+    eb_memcpy(fc->refmv_cdf, default_refmv_cdf, sizeof(default_refmv_cdf));
+    eb_memcpy(fc->drl_cdf, default_drl_cdf, sizeof(default_drl_cdf));
+    eb_memcpy(fc->motion_mode_cdf, default_motion_mode_cdf, sizeof(default_motion_mode_cdf));
+    eb_memcpy(fc->obmc_cdf, default_obmc_cdf, sizeof(default_obmc_cdf));
+    eb_memcpy(fc->inter_compound_mode_cdf, default_inter_compound_mode_cdf, sizeof(default_inter_compound_mode_cdf));
+    eb_memcpy(fc->compound_type_cdf, default_compound_type_cdf, sizeof(default_compound_type_cdf));
+    eb_memcpy(fc->wedge_idx_cdf, default_wedge_idx_cdf, sizeof(default_wedge_idx_cdf));
+    eb_memcpy(fc->interintra_cdf, default_interintra_cdf, sizeof(default_interintra_cdf));
+    eb_memcpy(fc->wedge_interintra_cdf, default_wedge_interintra_cdf, sizeof(default_wedge_interintra_cdf));
+    eb_memcpy(fc->interintra_mode_cdf, default_interintra_mode_cdf, sizeof(default_interintra_mode_cdf));
+    eb_memcpy(fc->seg.pred_cdf, default_segment_pred_cdf, sizeof(default_segment_pred_cdf));
+    eb_memcpy(fc->seg.tree_cdf, default_seg_tree_cdf, sizeof(default_seg_tree_cdf));
+    eb_memcpy(fc->filter_intra_cdfs, default_filter_intra_cdfs, sizeof(default_filter_intra_cdfs));
+    eb_memcpy(fc->filter_intra_mode_cdf, default_filter_intra_mode_cdf, sizeof(default_filter_intra_mode_cdf));
+    eb_memcpy(fc->switchable_restore_cdf, default_switchable_restore_cdf, sizeof(default_switchable_restore_cdf));
+    eb_memcpy(fc->wiener_restore_cdf, default_wiener_restore_cdf, sizeof(default_wiener_restore_cdf));
+    eb_memcpy(fc->sgrproj_restore_cdf, default_sgrproj_restore_cdf, sizeof(default_sgrproj_restore_cdf));
+    eb_memcpy(fc->y_mode_cdf, default_if_y_mode_cdf, sizeof(default_if_y_mode_cdf));
+    eb_memcpy(fc->uv_mode_cdf, default_uv_mode_cdf, sizeof(default_uv_mode_cdf));
 
-    av1_copy(fc->switchable_interp_cdf, default_switchable_interp_cdf);
+    eb_memcpy(fc->switchable_interp_cdf, default_switchable_interp_cdf, sizeof(default_switchable_interp_cdf));
 
-    av1_copy(fc->partition_cdf, default_partition_cdf);
-    av1_copy(fc->intra_ext_tx_cdf, default_intra_ext_tx_cdf);
-    av1_copy(fc->inter_ext_tx_cdf, default_inter_ext_tx_cdf);
-    av1_copy(fc->skip_mode_cdfs, default_skip_mode_cdfs);
-    av1_copy(fc->skip_cdfs, default_skip_cdfs);
-    av1_copy(fc->intra_inter_cdf, default_intra_inter_cdf);
+    eb_memcpy(fc->partition_cdf, default_partition_cdf, sizeof(default_partition_cdf));
+    eb_memcpy(fc->intra_ext_tx_cdf, default_intra_ext_tx_cdf, sizeof(default_intra_ext_tx_cdf));
+    eb_memcpy(fc->inter_ext_tx_cdf, default_inter_ext_tx_cdf, sizeof(default_inter_ext_tx_cdf));
+    eb_memcpy(fc->skip_mode_cdfs, default_skip_mode_cdfs, sizeof(default_skip_mode_cdfs));
+    eb_memcpy(fc->skip_cdfs, default_skip_cdfs, sizeof(default_skip_cdfs));
+    eb_memcpy(fc->intra_inter_cdf, default_intra_inter_cdf, sizeof(default_intra_inter_cdf));
     for (uint32_t i = 0; i < SPATIAL_PREDICTION_PROBS; i++)
-        av1_copy(fc->seg.spatial_pred_seg_cdf[i], default_spatial_pred_seg_tree_cdf[i]);
-    av1_copy(fc->tx_size_cdf, default_tx_size_cdf);
-    av1_copy(fc->delta_q_cdf, default_delta_q_cdf);
-    av1_copy(fc->delta_lf_cdf, default_delta_lf_cdf);
-    av1_copy(fc->delta_lf_multi_cdf, default_delta_lf_multi_cdf);
-    av1_copy(fc->cfl_sign_cdf, default_cfl_sign_cdf);
-    av1_copy(fc->cfl_alpha_cdf, default_cfl_alpha_cdf);
-    av1_copy(fc->intrabc_cdf, default_intrabc_cdf);
+        eb_memcpy(fc->seg.spatial_pred_seg_cdf[i], default_spatial_pred_seg_tree_cdf[i], sizeof(default_spatial_pred_seg_tree_cdf[i]));
+    eb_memcpy(fc->tx_size_cdf, default_tx_size_cdf, sizeof(default_tx_size_cdf));
+    eb_memcpy(fc->delta_q_cdf, default_delta_q_cdf, sizeof(default_delta_q_cdf));
+    eb_memcpy(fc->delta_lf_cdf, default_delta_lf_cdf, sizeof(default_delta_lf_cdf));
+    eb_memcpy(fc->delta_lf_multi_cdf, default_delta_lf_multi_cdf, sizeof(default_delta_lf_multi_cdf));
+    eb_memcpy(fc->cfl_sign_cdf, default_cfl_sign_cdf, sizeof(default_cfl_sign_cdf));
+    eb_memcpy(fc->cfl_alpha_cdf, default_cfl_alpha_cdf, sizeof(default_cfl_alpha_cdf));
+    eb_memcpy(fc->intrabc_cdf, default_intrabc_cdf, sizeof(default_intrabc_cdf));
 
     fc->nmvc = default_nmv_context;
     fc->ndvc = default_nmv_context;
@@ -3044,20 +3040,38 @@ void eb_av1_default_coef_probs(FRAME_CONTEXT *fc, int32_t base_qindex) {
 #if CONFIG_ENTROPY_STATS
     cm->coef_cdf_category = index;
 #endif
-
-    av1_copy(fc->txb_skip_cdf, av1_default_txb_skip_cdfs[index]);
-    av1_copy(fc->eob_extra_cdf, av1_default_eob_extra_cdfs[index]);
-    av1_copy(fc->dc_sign_cdf, av1_default_dc_sign_cdfs[index]);
-    av1_copy(fc->coeff_br_cdf, av1_default_coeff_lps_multi_cdfs[index]);
-    av1_copy(fc->coeff_base_cdf, av1_default_coeff_base_multi_cdfs[index]);
-    av1_copy(fc->coeff_base_eob_cdf, av1_default_coeff_base_eob_multi_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf16, av1_default_eob_multi16_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf32, av1_default_eob_multi32_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf64, av1_default_eob_multi64_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf128, av1_default_eob_multi128_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf256, av1_default_eob_multi256_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf512, av1_default_eob_multi512_cdfs[index]);
-    av1_copy(fc->eob_flag_cdf1024, av1_default_eob_multi1024_cdfs[index]);
+    if (eb_memcpy != NULL)
+    {
+        eb_memcpy(fc->txb_skip_cdf, av1_default_txb_skip_cdfs[index], sizeof(av1_default_txb_skip_cdfs[index]));
+        eb_memcpy(fc->eob_extra_cdf, av1_default_eob_extra_cdfs[index], sizeof(av1_default_eob_extra_cdfs[index]));
+        eb_memcpy(fc->dc_sign_cdf, av1_default_dc_sign_cdfs[index], sizeof(av1_default_dc_sign_cdfs[index]));
+        eb_memcpy(fc->coeff_br_cdf, av1_default_coeff_lps_multi_cdfs[index], sizeof(av1_default_coeff_lps_multi_cdfs[index]));
+        eb_memcpy(fc->coeff_base_cdf, av1_default_coeff_base_multi_cdfs[index], sizeof(av1_default_coeff_base_multi_cdfs[index]));
+        eb_memcpy(fc->coeff_base_eob_cdf, av1_default_coeff_base_eob_multi_cdfs[index], sizeof(av1_default_coeff_base_eob_multi_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf16, av1_default_eob_multi16_cdfs[index], sizeof(av1_default_eob_multi16_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf32, av1_default_eob_multi32_cdfs[index], sizeof(av1_default_eob_multi32_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf64, av1_default_eob_multi64_cdfs[index], sizeof(av1_default_eob_multi64_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf128, av1_default_eob_multi128_cdfs[index], sizeof(av1_default_eob_multi128_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf256, av1_default_eob_multi256_cdfs[index], sizeof(av1_default_eob_multi256_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf512, av1_default_eob_multi512_cdfs[index], sizeof(av1_default_eob_multi512_cdfs[index]));
+        eb_memcpy(fc->eob_flag_cdf1024, av1_default_eob_multi1024_cdfs[index], sizeof(av1_default_eob_multi1024_cdfs[index]));
+    }
+    else
+    {
+        eb_memcpy_c(fc->txb_skip_cdf, av1_default_txb_skip_cdfs[index], sizeof(av1_default_txb_skip_cdfs[index]));
+        eb_memcpy_c(fc->eob_extra_cdf, av1_default_eob_extra_cdfs[index], sizeof(av1_default_eob_extra_cdfs[index]));
+        eb_memcpy_c(fc->dc_sign_cdf, av1_default_dc_sign_cdfs[index], sizeof(av1_default_dc_sign_cdfs[index]));
+        eb_memcpy_c(fc->coeff_br_cdf, av1_default_coeff_lps_multi_cdfs[index], sizeof(av1_default_coeff_lps_multi_cdfs[index]));
+        eb_memcpy_c(fc->coeff_base_cdf, av1_default_coeff_base_multi_cdfs[index], sizeof(av1_default_coeff_base_multi_cdfs[index]));
+        eb_memcpy_c(fc->coeff_base_eob_cdf, av1_default_coeff_base_eob_multi_cdfs[index], sizeof(av1_default_coeff_base_eob_multi_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf16, av1_default_eob_multi16_cdfs[index], sizeof(av1_default_eob_multi16_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf32, av1_default_eob_multi32_cdfs[index], sizeof(av1_default_eob_multi32_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf64, av1_default_eob_multi64_cdfs[index], sizeof(av1_default_eob_multi64_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf128, av1_default_eob_multi128_cdfs[index], sizeof(av1_default_eob_multi128_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf256, av1_default_eob_multi256_cdfs[index], sizeof(av1_default_eob_multi256_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf512, av1_default_eob_multi512_cdfs[index], sizeof(av1_default_eob_multi512_cdfs[index]));
+        eb_memcpy_c(fc->eob_flag_cdf1024, av1_default_eob_multi1024_cdfs[index], sizeof(av1_default_eob_multi1024_cdfs[index]));
+    }
 }
 
 static void reset_cdf_symbol_counter(AomCdfProb *cdf_ptr, int32_t num_cdfs, int32_t cdf_stride,
@@ -3188,71 +3202,50 @@ int palette_color_index_context_lookup[MAX_COLOR_CONTEXT_HASH + 1] = {
         -1, -1, 0, -1, -1, 4, 3, 2, 1};
 
 #define NUM_PALETTE_NEIGHBORS 3 // left, top-left and top.
-int av1_get_palette_color_index_context(const uint8_t *color_map, int stride, int r, int c,
-                                        int palette_size, uint8_t *color_order, int *color_idx) {
+int av1_get_palette_color_index_context_optimized(const uint8_t *color_map, int stride, int r,
+                                                  int c, int palette_size, int *color_idx) {
     assert(palette_size <= PALETTE_MAX_SIZE);
     assert(r > 0 || c > 0);
 
-    // Get color indices of neighbors.
-    int color_neighbors[NUM_PALETTE_NEIGHBORS];
-    color_neighbors[0] = (c - 1 >= 0) ? color_map[r * stride + c - 1] : -1;
-    color_neighbors[1] = (c - 1 >= 0 && r - 1 >= 0) ? color_map[(r - 1) * stride + c - 1] : -1;
-    color_neighbors[2] = (r - 1 >= 0) ? color_map[(r - 1) * stride + c] : -1;
+    uint8_t scores[PALETTE_MAX_SIZE]              = {0};
+    uint8_t inverse_color_order[PALETTE_MAX_SIZE] = {0, 1, 2, 3, 4, 5, 6, 7};
+    uint8_t color_order[PALETTE_MAX_SIZE] = {0, 1, 2, 3, 4, 5, 6, 7};
+    int8_t i;
 
-    // The +10 below should not be needed. But we get a warning "array subscript
-    // is above array bounds [-Werror=array-bounds]" without it, possibly due to
-    // this (or similar) bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59124
-    int              scores[PALETTE_MAX_SIZE + 10] = {0};
-    int              i;
-    static const int weights[NUM_PALETTE_NEIGHBORS] = {2, 1, 2};
-    for (i = 0; i < NUM_PALETTE_NEIGHBORS; ++i) {
-        if (color_neighbors[i] >= 0) { scores[color_neighbors[i]] += weights[i]; }
-    }
-
-    int inverse_color_order[PALETTE_MAX_SIZE];
-    for (i = 0; i < PALETTE_MAX_SIZE; ++i) {
-        color_order[i]         = i;
-        inverse_color_order[i] = i;
-    }
+    if (c - 1 >= 0) scores[color_map[r * stride + c - 1]] = 2;
+    if (c - 1 >= 0 && r - 1 >= 0) scores[color_map[(r - 1) * stride + c - 1]] += 1;
+    if (r - 1 >= 0) scores[color_map[(r - 1) * stride + c]] += 2;
 
     // Get the top NUM_PALETTE_NEIGHBORS scores (sorted from large to small).
     for (i = 0; i < NUM_PALETTE_NEIGHBORS; ++i) {
-        int max     = scores[i];
-        int max_idx = i;
-        for (int j = i + 1; j < palette_size; ++j) {
+        uint8_t max     = scores[i];
+        int8_t  max_idx = i;
+        for (int8_t j = i + 1; j < palette_size; ++j) {
             if (scores[j] > max) {
                 max     = scores[j];
                 max_idx = j;
             }
         }
         if (max_idx != i) {
-            // Move the score at index 'max_idx' to index 'i', and shift the scores
-            // from 'i' to 'max_idx - 1' by 1.
-            const int     max_score       = scores[max_idx];
             const uint8_t max_color_order = color_order[max_idx];
-            for (int k = max_idx; k > i; --k) {
+            for (int8_t k = max_idx; k > i; --k) {
                 scores[k]                           = scores[k - 1];
                 color_order[k]                      = color_order[k - 1];
                 inverse_color_order[color_order[k]] = k;
             }
-            scores[i]                           = max_score;
-            color_order[i]                      = max_color_order;
-            inverse_color_order[color_order[i]] = i;
+            scores[i]                            = max;
+            color_order[i]                       = max_color_order;
+            inverse_color_order[max_color_order] = i;
         }
     }
 
     if (color_idx != NULL) *color_idx = inverse_color_order[color_map[r * stride + c]];
 
-    // Get hash value of context.
-    int              color_index_ctx_hash                    = 0;
-    static const int hash_multipliers[NUM_PALETTE_NEIGHBORS] = {1, 2, 2};
-    for (i = 0; i < NUM_PALETTE_NEIGHBORS; ++i) {
-        color_index_ctx_hash += scores[i] * hash_multipliers[i];
-    }
+    int color_index_ctx_hash = scores[0] + scores[1] * 2 + scores[2] * 2;
+
     assert(color_index_ctx_hash > 0);
     assert(color_index_ctx_hash <= MAX_COLOR_CONTEXT_HASH);
 
-    // Lookup context from hash.
     const int color_index_ctx = palette_color_index_context_lookup[color_index_ctx_hash];
     assert(color_index_ctx >= 0);
     assert(color_index_ctx < PALETTE_COLOR_INDEX_CONTEXTS);

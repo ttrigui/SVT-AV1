@@ -4,14 +4,13 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #include <math.h>
 
 #include "global_motion.h"
@@ -29,12 +28,10 @@
 // Border over which to compute the global motion
 #define ERRORADV_BORDER 0
 
-// TODO(sarahparker) These need to be retuned for speed 0 and 1 to
-// maximize gains from segmented error metric
 static const double erroradv_tr[]      = {0.65, 0.60, 0.65};
 static const double erroradv_prod_tr[] = {20000, 18000, 16000};
 
-int av1_is_enough_erroradvantage(double best_erroradvantage, int params_cost, int erroradv_type) {
+int svt_av1_is_enough_erroradvantage(double best_erroradvantage, int params_cost, int erroradv_type) {
     assert(erroradv_type < GM_ERRORADV_TR_TYPES);
     return best_erroradvantage < erroradv_tr[erroradv_type] &&
            best_erroradvantage * params_cost < erroradv_prod_tr[erroradv_type];
@@ -81,7 +78,7 @@ static INLINE TransformationType get_wmtype(const EbWarpedMotionParams *gm) {
         return AFFINE;
 }
 
-void av1_convert_model_to_params(const double *params, EbWarpedMotionParams *model) {
+void svt_av1_convert_model_to_params(const double *params, EbWarpedMotionParams *model) {
     convert_to_params(params, model->wmmat);
     model->wmtype  = get_wmtype(model);
     model->invalid = 0;
@@ -134,7 +131,7 @@ static void force_wmtype(EbWarpedMotionParams *wm, TransformationType wmtype) {
     wm->wmtype = wmtype;
 }
 
-int64_t av1_refine_integerized_param(EbWarpedMotionParams *wm, TransformationType wmtype,
+int64_t svt_av1_refine_integerized_param(EbWarpedMotionParams *wm, TransformationType wmtype,
                                      int use_hbd, int bd, uint8_t *ref, int r_width, int r_height,
                                      int r_stride, uint8_t *dst, int d_width, int d_height,
                                      int d_stride, int n_refinements, int64_t best_frame_error) {
@@ -268,7 +265,7 @@ static void get_inliers_from_indices(MotionModel *params, int *correspondences) 
         inliers_tmp[2 * i]     = correspondences[4 * index];
         inliers_tmp[2 * i + 1] = correspondences[4 * index + 1];
     }
-    memcpy(params->inliers, inliers_tmp, sizeof(*inliers_tmp) * 2 * MAX_CORNERS);
+    eb_memcpy(params->inliers, inliers_tmp, sizeof(*inliers_tmp) * 2 * MAX_CORNERS);
     eb_aom_free(inliers_tmp);
 }
 
@@ -286,14 +283,14 @@ static int compute_global_motion_feature_based(TransformationType type, unsigned
     int *          correspondences;
     int            ref_corners[2 * MAX_CORNERS];
     unsigned char *ref_buffer = ref;
-    RansacFunc     ransac     = av1_get_ransac_type(type);
+    RansacFunc     ransac     = svt_av1_get_ransac_type(type);
 
-    num_ref_corners = av1_fast_corner_detect(
+    num_ref_corners = svt_av1_fast_corner_detect(
         ref_buffer, frm_width, frm_height, ref_stride, ref_corners, MAX_CORNERS);
 
     // find correspondences between the two images
     correspondences     = (int *)malloc(num_frm_corners * 4 * sizeof(*correspondences));
-    num_correspondences = av1_determine_correspondence(frm_buffer,
+    num_correspondences = svt_av1_determine_correspondence(frm_buffer,
                                                        (int *)frm_corners,
                                                        num_frm_corners,
                                                        ref_buffer,
@@ -327,7 +324,7 @@ static int compute_global_motion_feature_based(TransformationType type, unsigned
     return 0;
 }
 
-int av1_compute_global_motion(TransformationType type, unsigned char *frm_buffer, int frm_width,
+int svt_av1_compute_global_motion(TransformationType type, unsigned char *frm_buffer, int frm_width,
                               int frm_height, int frm_stride, int *frm_corners, int num_frm_corners,
                               uint8_t *ref, int ref_stride, int bit_depth,
                               GlobalMotionEstimationType gm_estimation_type,

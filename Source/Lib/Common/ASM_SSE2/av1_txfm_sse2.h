@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 #ifndef AV1_COMMON_X86_AV1_TXFM_SSE2_H_
 #define AV1_COMMON_X86_AV1_TXFM_SSE2_H_
@@ -75,12 +75,12 @@ static INLINE void btf_16_w4_sse2(const __m128i *const w0, const __m128i *const 
     }
 
 static INLINE __m128i load_32bit_to_16bit(const int32_t *a) {
-    const __m128i a_low = _mm_load_si128((const __m128i *)a);
+    const __m128i a_low = _mm_loadu_si128((const __m128i *)a);
     return _mm_packs_epi32(a_low, *(const __m128i *)(a + 4));
 }
 
 static INLINE __m128i load_32bit_to_16bit_w4(const int32_t *a) {
-    const __m128i a_low = _mm_load_si128((const __m128i *)a);
+    const __m128i a_low = _mm_loadu_si128((const __m128i *)a);
     return _mm_packs_epi32(a_low, a_low);
 }
 

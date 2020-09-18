@@ -1,25 +1,22 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
-
 #include "EbAvcStyleMcp_SSE2.h"
 #include "EbMcp_SSE2.h" // THIS SHOULD BE _SSE2 in the future
-#include "emmintrin.h"
+#include <emmintrin.h>
+#include "common_dsp_rtcd.h"
 void avc_style_copy_sse2(EbByte ref_pic, uint32_t src_stride, EbByte dst, uint32_t dst_stride,
-                         uint32_t pu_width, uint32_t pu_height, EbByte temp_buf, EbBool skip,
+                         uint32_t pu_width, uint32_t pu_height, EbByte temp_buf,
                          uint32_t frac_pos) {
     (void)temp_buf;
     (void)frac_pos;
-    if (skip) {
-        //do the last row too.
-        EB_MEMCPY(
-            dst + (pu_height - 1) * dst_stride, ref_pic + (pu_height - 1) * src_stride, pu_width);
-
-        src_stride <<= 1;
-        dst_stride <<= 1;
-        pu_height >>= 1;
-    }
 
     picture_copy_kernel_sse2(ref_pic, src_stride, dst, dst_stride, pu_width, pu_height);
 }
@@ -30,12 +27,12 @@ void picture_average_kernel_sse2_intrin(EbByte src0, uint32_t src0_stride, EbByt
                                         uint32_t src1_stride, EbByte dst, uint32_t dst_stride,
                                         uint32_t area_width, uint32_t area_height) {
     __m128i  xmm_avg1, xmm_avg2;
-    uint32_t x, y;
+    uint32_t y;
     assert((area_width & 3) == 0);
     assert((area_height & 1) == 0);
 
     if (area_width >= 16) {
-        for (x = 0; x < area_height; ++x) {
+        for (uint32_t x = 0; x < area_height; ++x) {
             for (y = 0; y + 15 < area_width; y += 16) {
                 xmm_avg1 = _mm_avg_epu8(_mm_loadu_si128((__m128i *)(src0 + y)),
                                         _mm_loadu_si128((__m128i *)(src1 + y)));

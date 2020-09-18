@@ -1,7 +1,13 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Netflix, Inc.
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file wiener_convolve_test.cc
@@ -28,6 +34,7 @@
 #include "EbDefinitions.h"
 #include "EbRestoration.h"
 #include "EbTime.h"
+#include "EbUtility.h"
 #include "random.h"
 #include "util.h"
 
@@ -74,15 +81,26 @@ typedef std::tuple<BlkSize, HbdWienerConvolveFunc, int32_t>
     HbdWienerConvolveParam;
 
 static const BlkSize test_block_size_table[] = {BlkSize(96, 96),
+                                                BlkSize(96, 97),
                                                 BlkSize(88, 88),
+                                                BlkSize(88, 85),
                                                 BlkSize(80, 80),
+                                                BlkSize(80, 79),
                                                 BlkSize(72, 72),
+                                                BlkSize(72, 71),
                                                 BlkSize(64, 64),
+                                                BlkSize(64, 63),
                                                 BlkSize(56, 56),
+                                                BlkSize(56, 57),
                                                 BlkSize(48, 48),
+                                                BlkSize(48, 49),
                                                 BlkSize(32, 32),
+                                                BlkSize(32, 33),
                                                 BlkSize(24, 24),
+                                                BlkSize(24, 23),
                                                 BlkSize(16, 16),
+                                                BlkSize(16, 15),
+                                                BlkSize(8, 9),
                                                 BlkSize(8, 8)};
 
 static const int test_tap_table[] = {7, 5, 3};
@@ -112,40 +130,44 @@ class AV1WienerConvolveTest : public ::testing::TestWithParam<ParamType> {
         bd_ = 8;
     }
 
-    virtual ~AV1WienerConvolveTest() {
-        if (input_) {
-            delete[] input_;
-            input_ = nullptr;
-        }
-        if (output_) {
-            delete[] output_;
-            output_ = nullptr;
-        }
-        if (output_tst_) {
-            delete[] output_tst_;
-            output_tst_ = nullptr;
-        }
-        if (output_ref_) {
-            delete[] output_ref_;
-            output_ref_ = nullptr;
-        }
-        aom_clear_system_state();
-    }
-
     void SetUp() override {
         rnd_.reset();
         malloc_data();
     }
 
+    void TearDown() override {
+        if (input_) {
+            eb_aom_free(input_);
+            input_ = nullptr;
+        }
+        if (output_) {
+            eb_aom_free(output_);
+            output_ = nullptr;
+        }
+        if (output_tst_) {
+            eb_aom_free(output_tst_);
+            output_tst_ = nullptr;
+        }
+        if (output_ref_) {
+            eb_aom_free(output_ref_);
+            output_ref_ = nullptr;
+        }
+        aom_clear_system_state();
+    }
+
   protected:
     void malloc_data() {
-        input_ = new Sample[input_stride * h];
+        input_ = reinterpret_cast<Sample*>(
+            eb_aom_memalign(32, input_stride * h * sizeof(Sample)));
         ASSERT_NE(input_, nullptr) << "create input buffer failed!";
-        output_ = new Sample[output_stride * h];
+        output_ = reinterpret_cast<Sample*>(
+            eb_aom_memalign(32, output_stride * h * sizeof(Sample)));
         ASSERT_NE(output_, nullptr) << "create output buffer failed!";
-        output_tst_ = new Sample[output_stride * h];
+        output_tst_ = reinterpret_cast<Sample*>(
+            eb_aom_memalign(32, output_stride * h * sizeof(Sample)));
         ASSERT_NE(output_tst_, nullptr) << "create test output buffer failed!";
-        output_ref_ = new Sample[output_stride * h];
+        output_ref_ = reinterpret_cast<Sample*>(
+            eb_aom_memalign(32, output_stride * h * sizeof(Sample)));
         ASSERT_NE(output_ref_, nullptr) << "create ref output buffer failed!";
     }
 
@@ -175,7 +197,7 @@ class AV1WienerConvolveTest : public ::testing::TestWithParam<ParamType> {
             hkernel[0] = vkernel[0] = WIENER_FILT_TAP0_MAXV;
             hkernel[1] = vkernel[1] = WIENER_FILT_TAP1_MAXV;
             hkernel[2] = vkernel[2] = WIENER_FILT_TAP2_MAXV;
-        } else {
+        } else if (kernel_type == 2) {
             // Randomly generated values for filter coefficients
             hkernel[0] = WIENER_FILT_TAP0_MINV +
                          pseudo_uniform(WIENER_FILT_TAP0_MAXV + 1 -
@@ -196,6 +218,19 @@ class AV1WienerConvolveTest : public ::testing::TestWithParam<ParamType> {
             vkernel[2] = WIENER_FILT_TAP2_MINV +
                          pseudo_uniform(WIENER_FILT_TAP2_MAXV + 2 -
                                         WIENER_FILT_TAP2_MINV);
+        } else if (kernel_type == 3) {
+            // Check zerocoff path
+            hkernel[0] = vkernel[0] = 0;
+            hkernel[1] = vkernel[1] = 0;
+            hkernel[2] = vkernel[2] = 0;
+        } else if (kernel_type == 4) {
+            hkernel[0] = vkernel[0] = 0;
+            hkernel[1] = vkernel[1] = 0;
+            hkernel[2] = vkernel[2] = WIENER_FILT_TAP2_MAXV;
+        } else if (kernel_type == 5) {
+            hkernel[0] = vkernel[0] = 0;
+            hkernel[1] = vkernel[1] = WIENER_FILT_TAP1_MAXV;
+            hkernel[2] = vkernel[2] = WIENER_FILT_TAP2_MAXV;
         }
 
         if (tap <= 5) {
@@ -224,7 +259,8 @@ class AV1WienerConvolveTest : public ::testing::TestWithParam<ParamType> {
 
     virtual void speed_and_check(const InterpKernel& hkernel,
                                  const InterpKernel& vkernel,
-                                 const ConvolveParams& params, const int tap) = 0;
+                                 const ConvolveParams& params,
+                                 const int tap) = 0;
 
     virtual void run_random_test(const int test_times) {
         // Generate random filter kernels
@@ -238,7 +274,7 @@ class AV1WienerConvolveTest : public ::testing::TestWithParam<ParamType> {
         for (unsigned int tap_idx = 0;
              tap_idx < sizeof(test_tap_table) / sizeof(*test_tap_table);
              tap_idx++) {
-            for (int kernel_type = 0; kernel_type < 3; kernel_type++) {
+            for (int kernel_type = 0; kernel_type < 6; kernel_type++) {
                 generate_kernels(
                     hkernel, vkernel, test_tap_table[tap_idx], kernel_type);
                 for (int i = 0;
@@ -372,15 +408,15 @@ class AV1WienerConvolveLbdTest
 
         eb_start_time(&finish_time_seconds, &finish_time_useconds);
         eb_compute_overall_elapsed_time_ms(start_time_seconds,
-                                      start_time_useconds,
-                                      middle_time_seconds,
-                                      middle_time_useconds,
-                                      &time_c);
+                                           start_time_useconds,
+                                           middle_time_seconds,
+                                           middle_time_useconds,
+                                           &time_c);
         eb_compute_overall_elapsed_time_ms(middle_time_seconds,
-                                      middle_time_useconds,
-                                      finish_time_seconds,
-                                      finish_time_useconds,
-                                      &time_o);
+                                           middle_time_useconds,
+                                           finish_time_seconds,
+                                           finish_time_useconds,
+                                           &time_o);
 
         printf("convolve(%3dx%3d, tap %d): %6.2f\n",
                out_w_,

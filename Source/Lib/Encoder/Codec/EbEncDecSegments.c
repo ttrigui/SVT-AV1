@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -20,6 +26,11 @@ static void enc_dec_segments_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->valid_sb_count_array);
     EB_FREE_ARRAY(obj->dep_map.dependency_map);
     EB_FREE_ARRAY(obj->row_array);
+
+    EB_FREE_ARRAY(obj->dep_map.dependency_map);
+    EB_FREE_ARRAY(obj->valid_sb_count_array);
+    EB_FREE_ARRAY(obj->y_start_array);
+    EB_FREE_ARRAY(obj->x_start_array);
 }
 
 EbErrorType enc_dec_segments_ctor(EncDecSegments *segments_ptr, uint32_t segment_col_count,
@@ -60,15 +71,11 @@ EbErrorType enc_dec_segments_ctor(EncDecSegments *segments_ptr, uint32_t segment
 
 void enc_dec_segments_init(EncDecSegments *segments_ptr, uint32_t segColCount, uint32_t segRowCount,
                            uint32_t pic_width_sb, uint32_t pic_height_sb) {
-    unsigned x, y, y_last;
-    unsigned row_index, band_index, segment_index;
-#if TILES_PARALLEL
     segColCount = (segColCount < pic_width_sb) ? segColCount : pic_width_sb;
     segRowCount = (segRowCount < pic_height_sb) ? segRowCount : pic_height_sb;
     segRowCount = (segRowCount < segments_ptr->segment_max_row_count)
                       ? segRowCount
                       : segments_ptr->segment_max_row_count;
-#endif
 
     segments_ptr->sb_row_count       = pic_height_sb;
     segments_ptr->sb_band_count      = BAND_TOTAL_COUNT(pic_height_sb, pic_width_sb);
@@ -84,12 +91,14 @@ void enc_dec_segments_init(EncDecSegments *segments_ptr, uint32_t segColCount, u
     EB_MEMSET(segments_ptr->y_start_array, -1, sizeof(uint16_t) * segments_ptr->segment_ttl_count);
 
     // Initialize the per-SB input availability map & Start Arrays
-    for (y = 0; y < pic_height_sb; ++y) {
-        for (x = 0; x < pic_width_sb; ++x) {
-            band_index =
-                BAND_INDEX(x, y, segments_ptr->segment_band_count, segments_ptr->sb_band_count);
-            row_index = ROW_INDEX(y, segments_ptr->segment_row_count, segments_ptr->sb_row_count);
-            segment_index = SEGMENT_INDEX(row_index, band_index, segments_ptr->segment_band_count);
+    for (unsigned y = 0; y < pic_height_sb; ++y) {
+        for (unsigned x = 0; x < pic_width_sb; ++x) {
+            unsigned band_index = BAND_INDEX(
+                x, y, segments_ptr->segment_band_count, segments_ptr->sb_band_count);
+            unsigned row_index = ROW_INDEX(
+                y, segments_ptr->segment_row_count, segments_ptr->sb_row_count);
+            unsigned segment_index = SEGMENT_INDEX(
+                row_index, band_index, segments_ptr->segment_band_count);
 
             //++segments_ptr->inputMap.inputDependencyMap[segment_index];
             ++segments_ptr->valid_sb_count_array[segment_index];
@@ -105,15 +114,16 @@ void enc_dec_segments_init(EncDecSegments *segments_ptr, uint32_t segColCount, u
     }
 
     // Initialize the row-based controls
-    for (row_index = 0; row_index < segments_ptr->segment_row_count; ++row_index) {
-        y = ((row_index * segments_ptr->sb_row_count) + (segments_ptr->segment_row_count - 1)) /
+    for (unsigned row_index = 0; row_index < segments_ptr->segment_row_count; ++row_index) {
+        unsigned y = ((row_index * segments_ptr->sb_row_count) +
+                      (segments_ptr->segment_row_count - 1)) /
             segments_ptr->segment_row_count;
-        y_last = ((((row_index + 1) * segments_ptr->sb_row_count) +
-                   (segments_ptr->segment_row_count - 1)) /
-                  segments_ptr->segment_row_count) -
-                 1;
-        band_index =
-            BAND_INDEX(0, y, segments_ptr->segment_band_count, segments_ptr->sb_band_count);
+        unsigned y_last = ((((row_index + 1) * segments_ptr->sb_row_count) +
+                           (segments_ptr->segment_row_count - 1)) /
+                          segments_ptr->segment_row_count) -
+            1;
+        unsigned band_index = BAND_INDEX(
+            0, y, segments_ptr->segment_band_count, segments_ptr->sb_band_count);
 
         segments_ptr->row_array[row_index].starting_seg_index =
             (uint16_t)SEGMENT_INDEX(row_index, band_index, segments_ptr->segment_band_count);
@@ -130,8 +140,8 @@ void enc_dec_segments_init(EncDecSegments *segments_ptr, uint32_t segColCount, u
     // Initialize the per-segment dependency map
     EB_MEMSET(
         segments_ptr->dep_map.dependency_map, 0, sizeof(uint8_t) * segments_ptr->segment_ttl_count);
-    for (row_index = 0; row_index < segments_ptr->segment_row_count; ++row_index) {
-        for (segment_index = segments_ptr->row_array[row_index].starting_seg_index;
+    for (unsigned row_index = 0; row_index < segments_ptr->segment_row_count; ++row_index) {
+        for (unsigned segment_index = segments_ptr->row_array[row_index].starting_seg_index;
              segment_index <= segments_ptr->row_array[row_index].ending_seg_index;
              ++segment_index) {
             // Check that segment is valid

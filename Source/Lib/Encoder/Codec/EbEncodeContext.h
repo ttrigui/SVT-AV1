@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbEncodeContext_h
@@ -21,6 +27,8 @@
 #include "EbPredictionStructure.h"
 #include "EbRateControlTables.h"
 #include "EbObject.h"
+#include "encoder.h"
+#include "firstpass.h"
 
 // *Note - the queues are small for testing purposes.  They should be increased when they are done.
 #define PRE_ASSIGNMENT_MAX_DEPTH 128 // should be large enough to hold an entire prediction period
@@ -58,6 +66,13 @@ typedef struct DPBInfo {
     DpbDependentList dep_list0;
     DpbDependentList dep_list1;
 } DPBInfo;
+
+typedef struct FirstPassStatsOut {
+    FIRSTPASS_STATS* stat;
+    size_t size;
+    size_t capability;
+} FirstPassStatsOut;
+
 typedef struct EncodeContext {
     EbDctor dctor;
     // Callback Functions
@@ -79,11 +94,9 @@ typedef struct EncodeContext {
     // Picture Decision Reorder Queue
     PictureDecisionReorderEntry **picture_decision_reorder_queue;
     uint32_t                      picture_decision_reorder_queue_head_index;
-
-    // Picture Manager Reorder Queue
-    PictureManagerReorderEntry **picture_manager_reorder_queue;
-    uint32_t                     picture_manager_reorder_queue_head_index;
-
+    //hold undisplayed frame for show existing frame. It's ordered with pts Descend.
+    EbObjectWrapper              *picture_decision_undisplayed_queue[REF_FRAMES];
+    uint32_t                      picture_decision_undisplayed_queue_count;
     // Picture Manager Pre-Assignment Buffer
     uint32_t          pre_assignment_buffer_intra_count;
     uint32_t          pre_assignment_buffer_idr_count;
@@ -110,6 +123,9 @@ typedef struct EncodeContext {
     // Initial Rate Control Reorder Queue
     InitialRateControlReorderEntry **initial_rate_control_reorder_queue;
     uint32_t                         initial_rate_control_reorder_queue_head_index;
+    uint32_t        dep_q_head;
+    uint32_t        dep_q_tail;
+    PicQueueEntry **dep_cnt_picture_queue; //buffer to sotre all pictures needing dependent-count clean-up in PicMgr
 
     // High Level Rate Control Histogram Queue
     HlRateControlHistogramEntry **hl_rate_control_historgram_queue;
@@ -160,13 +176,31 @@ typedef struct EncodeContext {
     EbObjectWrapper *previous_picture_control_set_wrapper_ptr;
     EbHandle         shared_reference_mutex;
     uint64_t picture_number_alt; // The picture number overlay includes all the overlay frames
+
     EbHandle stat_file_mutex;
+
     //DPB list management
     DPBInfo dpb_list[REF_FRAMES];
     uint64_t display_picture_number;
     EbBool  is_mini_gop_changed;
     EbBool  is_i_slice_in_last_mini_gop;
     uint64_t i_slice_picture_number_in_last_mini_gop;
+    uint64_t poc_map_idx[MAX_TPL_LA_SW];
+    EbByte  mc_flow_rec_picture_buffer[MAX_TPL_LA_SW];
+    EbByte  mc_flow_rec_picture_buffer_saved;
+    FrameInfo      frame_info;
+    TwoPassCfg     two_pass_cfg; // two pass datarate control
+    RATE_CONTROL   rc;
+    RateControlCfg rc_cfg;
+    GF_GROUP       gf_group;
+    KeyFrameCfg    kf_cfg;
+    GFConfig       gf_cfg;
+    FIRSTPASS_STATS *frame_stats_buffer;
+    // Number of stats buffers required for look ahead
+    int num_lap_buffers;
+    STATS_BUFFER_CTX stats_buf_context;
+    SvtAv1FixedBuf rc_twopass_stats_in; // replaced oxcf->two_pass_cfg.stats_in in aom
+    FirstPassStatsOut stats_out;
 } EncodeContext;
 
 typedef struct EncodeContextInitData {

@@ -1,7 +1,13 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Netflix, Inc.
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file VarianceTest.cc
@@ -280,10 +286,6 @@ TEST_P(SumSquareTest, ConstTest) {
 TEST_P(SumSquareTest, MatchTest) {
     run_match_test();
 };
-
-extern "C" uint32_t eb_aom_get_mb_ss_sse2(const int16_t *src);
-INSTANTIATE_TEST_CASE_P(Variance, SumSquareTest,
-                        ::testing::Values(eb_aom_get_mb_ss_sse2));
 
 // Variance test
 using VARIANCE_NXM_FUNC = uint32_t (*)(const uint8_t *src_ptr,

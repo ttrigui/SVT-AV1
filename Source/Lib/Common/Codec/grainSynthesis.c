@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 /*!\file
@@ -364,7 +364,8 @@ static void dealloc_arrays(AomFilmGrain *params, int32_t ***pred_pos_luma,
                            int32_t **cb_line_buf, int32_t **cr_line_buf, int32_t **y_col_buf,
                            int32_t **cb_col_buf, int32_t **cr_col_buf) {
     int32_t num_pos_luma   = 2 * params->ar_coeff_lag * (params->ar_coeff_lag + 1);
-    int32_t num_pos_chroma = num_pos_luma + 1;
+    int32_t num_pos_chroma = num_pos_luma;
+    if (params->num_y_points > 0) ++num_pos_chroma;
 
     for (int32_t row = 0; row < num_pos_luma; row++) free((*pred_pos_luma)[row]);
     free(*pred_pos_luma);
@@ -466,7 +467,9 @@ static void generate_chroma_grain_blocks(
     if (params->num_y_points > 0) ++num_pos_chroma;
     int32_t rounding_offset = (1 << (params->ar_coeff_shift - 1));
 
-    if (params->num_cb_points) {
+    int chroma_grain_block_size = chroma_block_size_y * chroma_grain_stride;
+
+    if (params->num_cb_points || params->chroma_scaling_from_luma) {
         init_random_generator(7 << 5, params->random_seed);
 
         for (int32_t i = 0; i < chroma_block_size_y; i++)
@@ -475,8 +478,11 @@ static void generate_chroma_grain_blocks(
                     (gaussian_sequence[get_random_number(gauss_bits)] +
                      ((1 << gauss_sec_shift) >> 1)) >>
                     gauss_sec_shift;
+    } else {
+        memset(cb_grain_block, 0,
+            sizeof(*cb_grain_block) * chroma_grain_block_size);
     }
-    if (params->num_cr_points) {
+    if (params->num_cr_points || params->chroma_scaling_from_luma) {
         init_random_generator(11 << 5, params->random_seed);
 
         for (int32_t i = 0; i < chroma_block_size_y; i++)
@@ -485,6 +491,9 @@ static void generate_chroma_grain_blocks(
                     (gaussian_sequence[get_random_number(gauss_bits)] +
                      ((1 << gauss_sec_shift) >> 1)) >>
                     gauss_sec_shift;
+    } else {
+        memset(cr_grain_block, 0,
+            sizeof(*cr_grain_block) * chroma_grain_block_size);
     }
 
     for (int32_t i = top_pad; i < chroma_block_size_y - bottom_pad; i++)
@@ -524,13 +533,13 @@ static void generate_chroma_grain_blocks(
                     exit(1);
                 }
             }
-            if (params->num_cb_points)
+            if (params->num_cb_points || params->chroma_scaling_from_luma)
                 cb_grain_block[i * chroma_grain_stride + j] =
                     clamp(cb_grain_block[i * chroma_grain_stride + j] +
                               ((wsum_cb + rounding_offset) >> params->ar_coeff_shift),
                           grain_min,
                           grain_max);
-            if (params->num_cr_points)
+            if (params->num_cr_points || params->chroma_scaling_from_luma)
                 cr_grain_block[i * chroma_grain_stride + j] =
                     clamp(cr_grain_block[i * chroma_grain_stride + j] +
                               ((wsum_cr + rounding_offset) >> params->ar_coeff_shift),
@@ -592,8 +601,10 @@ static void add_noise_to_block(AomFilmGrain *params, uint8_t *luma, uint8_t *cb,
     int32_t rounding_offset = (1 << (params->scaling_shift - 1));
 
     int32_t apply_y  = params->num_y_points > 0 ? 1 : 0;
-    int32_t apply_cb = params->num_cb_points > 0 ? 1 : 0;
-    int32_t apply_cr = params->num_cr_points > 0 ? 1 : 0;
+    int32_t apply_cb = (params->num_cb_points > 0 ||
+                        params->chroma_scaling_from_luma) ? 1 : 0;
+    int32_t apply_cr = (params->num_cr_points > 0 ||
+                        params->chroma_scaling_from_luma) ? 1 : 0;
 
     if (params->chroma_scaling_from_luma) {
         cb_mult      = 0; // fixed scale
@@ -842,7 +853,7 @@ void fgn_copy_rect(uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_s
                    int32_t width, int32_t height, int32_t use_high_bit_depth) {
     int32_t hbd_coeff = use_high_bit_depth ? 2 : 1;
     while (height) {
-        memcpy(dst, src, width * sizeof(uint8_t) * hbd_coeff);
+        eb_memcpy(dst, src, width * sizeof(uint8_t) * hbd_coeff);
         src += src_stride * hbd_coeff;
         dst += dst_stride * hbd_coeff;
         --height;
@@ -853,7 +864,10 @@ void fgn_copy_rect(uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_s
 static void copy_area(int32_t *src, int32_t src_stride, int32_t *dst, int32_t dst_stride,
                       int32_t width, int32_t height) {
     while (height) {
-        memcpy(dst, src, width * sizeof(*src));
+        if (eb_memcpy != NULL)
+            eb_memcpy(dst, src, width * sizeof(*src));
+        else
+            eb_memcpy_c(dst, src, width * sizeof(*src));
         src += src_stride;
         dst += dst_stride;
         --height;
@@ -1027,8 +1041,8 @@ void eb_av1_add_film_grain_run(AomFilmGrain *params, uint8_t *luma, uint8_t *cb,
     init_scaling_function(params->scaling_points_y, params->num_y_points, scaling_lut_y);
 
     if (params->chroma_scaling_from_luma) {
-        memcpy(scaling_lut_cb, scaling_lut_y, sizeof(*scaling_lut_y) * 256);
-        memcpy(scaling_lut_cr, scaling_lut_y, sizeof(*scaling_lut_y) * 256);
+        eb_memcpy(scaling_lut_cb, scaling_lut_y, sizeof(*scaling_lut_y) * 256);
+        eb_memcpy(scaling_lut_cr, scaling_lut_y, sizeof(*scaling_lut_y) * 256);
     } else {
         init_scaling_function(params->scaling_points_cb, params->num_cb_points, scaling_lut_cb);
         init_scaling_function(params->scaling_points_cr, params->num_cr_points, scaling_lut_cr);

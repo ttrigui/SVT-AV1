@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbDecParseHelper_h
@@ -48,7 +54,7 @@ static INLINE int allow_palette(int allow_screen_content_tools, BlockSize sb_typ
 static INLINE int max_block_wide(PartitionInfo *part_info, int plane_bsize, int subx) {
     int max_blocks_wide = block_size_wide[plane_bsize];
     if (part_info->mb_to_right_edge < 0)
-        max_blocks_wide += part_info->mb_to_right_edge >> (3 + subx);
+        max_blocks_wide += gcc_right_shift(part_info->mb_to_right_edge, 3 + subx);
     //Scale width in the transform block unit.
     return max_blocks_wide >> tx_size_wide_log2[0];
 }
@@ -56,7 +62,7 @@ static INLINE int max_block_wide(PartitionInfo *part_info, int plane_bsize, int 
 static INLINE int max_block_high(PartitionInfo *part_info, int plane_bsize, int suby) {
     int max_blocks_high = block_size_high[plane_bsize];
     if (part_info->mb_to_bottom_edge < 0)
-        max_blocks_high += part_info->mb_to_bottom_edge >> (3 + suby);
+        max_blocks_high += gcc_right_shift(part_info->mb_to_bottom_edge, 3 + suby);
     // Scale the height in the transform block unit.
     return max_blocks_high >> tx_size_high_log2[0];
 }

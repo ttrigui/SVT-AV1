@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbSvtAv1_h
@@ -10,18 +16,19 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "stdint.h"
+#include <stdint.h>
 #include "EbSvtAv1Formats.h"
+#include "EbDebugMacros.h"
 
 // API Version
 #define SVT_VERSION_MAJOR 0
 #define SVT_VERSION_MINOR 8
-#define SVT_VERSION_PATCHLEVEL 1
+#define SVT_VERSION_PATCHLEVEL 5
 
 #ifdef _WIN32
 #define EB_API __declspec(dllexport)
 #else
-#define EB_API
+#define EB_API __attribute__ ((visibility ("default")))
 #endif
 
 #define EB_MAX_NUM_OPERATING_POINTS 32
@@ -78,9 +85,12 @@ typedef struct EbBufferHeaderType {
     uint32_t luma_sse;
     uint32_t cr_sse;
     uint32_t cb_sse;
-
     // pic flags
     uint32_t flags;
+
+    double luma_ssim;
+    double cr_ssim;
+    double cb_ssim;
 } EbBufferHeaderType;
 
 typedef struct EbComponentType {
@@ -106,6 +116,7 @@ typedef enum EbErrorType {
     EB_ErrorMutexUnresponsive      = (int32_t)0x80002031,
     EB_ErrorDestroyMutexFailed     = (int32_t)0x80002032,
     EB_NoErrorEmptyQueue           = (int32_t)0x80002033,
+    EB_NoErrorFifoShutdown         = (int32_t)0x80002034,
     EB_ErrorMax                    = 0x7FFFFFFF
 } EbErrorType;
 

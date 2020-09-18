@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbDefinitions.h"
@@ -35,6 +41,7 @@ void dec_bits_init(Bitstrm *bs, const uint8_t *data, size_t numbytes) {
 Bitstream offset and consumes the bits. Section: 4.10.2 -> f(n) */
 uint32_t dec_get_bits(Bitstrm *bs, uint32_t numbits) {
     uint32_t bits_read;
+    if (0 == numbits) return 0;
     GET_BITS(bits_read, bs->buf, bs->bit_ofst, bs->cur_word, bs->nxt_word, numbits);
     return bits_read;
 }
@@ -44,11 +51,9 @@ void dec_get_bits_leb128(Bitstrm *bs, size_t available, size_t *value, size_t *l
     (void)available;
     *value  = 0;
     *length = 0;
-    int      i;
-    uint32_t leb128_byte = 0;
 
-    for (i = 0; i < 8; i++) {
-        leb128_byte = dec_get_bits(bs, 8);
+    for (int i = 0; i < 8; i++) {
+        uint32_t leb128_byte = dec_get_bits(bs, 8);
         *value |= (((uint64_t)leb128_byte & 0x7f) << (i * 7));
         *length += 1;
         if (!(leb128_byte & 0x80)) break;
@@ -86,11 +91,9 @@ int32_t dec_get_bits_su(Bitstrm *bs, uint32_t n) {
 
 /* Unsigned little-endian n-byte number appearing directly in the Bitstream */
 uint32_t dec_get_bits_le(Bitstrm *bs, uint32_t n) {
-    uint32_t t = 0, byte;
-    for (uint32_t i = 0; i < n; i++) {
-        byte = dec_get_bits(bs, 8);
-        t += (byte << (i * 8));
-    }
+    uint32_t t = 0;
+    for (uint32_t i = 0; i < n; i++)
+        t += dec_get_bits(bs, 8) << (i * 8);
     return t;
 }
 

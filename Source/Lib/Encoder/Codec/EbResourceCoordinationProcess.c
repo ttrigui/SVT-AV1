@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -15,10 +21,10 @@
 #include "EbResourceCoordinationResults.h"
 #include "EbTransforms.h"
 #include "EbTime.h"
-#include "EbEntropyCoding.h"
 #include "EbObject.h"
 #include "EbLog.h"
-
+#include "pass2_strategy.h"
+#include "common_dsp_rtcd.h"
 typedef struct ResourceCoordinationContext {
     EbFifo *                       input_buffer_fifo_ptr;
     EbFifo *                       resource_coordination_results_output_fifo_ptr;
@@ -56,11 +62,6 @@ typedef struct ResourceCoordinationContext {
     uint64_t first_in_pic_arrived_timeu_seconds;
     EbBool   start_flag;
 } ResourceCoordinationContext;
-
-#if !TILES_PARALLEL
-//Jing: move to EncHandle, since we need to know the tile count to alloc resources in child pcs
-void set_tile_info(PictureParentControlSet *pcs_ptr);
-#endif
 
 static void resource_coordination_context_dctor(EbPtr p) {
     EbThreadContext *thread_contxt_ptr = (EbThreadContext *)p;
@@ -141,52 +142,52 @@ Output  : Pre-Analysis signal(s)
 EbErrorType signal_derivation_pre_analysis_oq(SequenceControlSet *     scs_ptr,
                                               PictureParentControlSet *pcs_ptr) {
     EbErrorType return_error     = EB_ErrorNone;
-    uint8_t     input_resolution = scs_ptr->input_resolution;
-
-    // HME Flags updated @ signal_derivation_multi_processes_oq
-    uint8_t hme_me_level =
-        scs_ptr->use_output_stat_file ? pcs_ptr->snd_pass_enc_mode : pcs_ptr->enc_mode;
     // Derive HME Flag
     if (scs_ptr->static_config.use_default_me_hme) {
-        pcs_ptr->enable_hme_flag = enable_hme_flag[0][input_resolution][hme_me_level] ||
-                                   enable_hme_flag[1][input_resolution][hme_me_level];
-        pcs_ptr->enable_hme_level0_flag =
-            enable_hme_level0_flag[0][input_resolution][hme_me_level] ||
-            enable_hme_level0_flag[1][input_resolution][hme_me_level];
-        pcs_ptr->enable_hme_level1_flag =
-            enable_hme_level1_flag[0][input_resolution][hme_me_level] ||
-            enable_hme_level1_flag[1][input_resolution][hme_me_level];
-        pcs_ptr->enable_hme_level2_flag =
-            enable_hme_level2_flag[0][input_resolution][hme_me_level] ||
-            enable_hme_level2_flag[1][input_resolution][hme_me_level];
+        // Set here to allocate resources for the downsampled pictures used in HME (generated in PictureAnalysis)
+        // Will be later updated for SC/NSC in PictureDecisionProcess
+        pcs_ptr->enable_hme_flag        = 1;
+        pcs_ptr->enable_hme_level0_flag = 1;
+        pcs_ptr->enable_hme_level1_flag = 1;
+        pcs_ptr->enable_hme_level2_flag = 1;
     } else {
         pcs_ptr->enable_hme_flag        = scs_ptr->static_config.enable_hme_flag;
         pcs_ptr->enable_hme_level0_flag = scs_ptr->static_config.enable_hme_level0_flag;
         pcs_ptr->enable_hme_level1_flag = scs_ptr->static_config.enable_hme_level1_flag;
         pcs_ptr->enable_hme_level2_flag = scs_ptr->static_config.enable_hme_level2_flag;
     }
-    pcs_ptr->tf_enable_hme_flag = tf_enable_hme_flag[0][input_resolution][hme_me_level] ||
-                                  tf_enable_hme_flag[1][input_resolution][hme_me_level];
-    pcs_ptr->tf_enable_hme_level0_flag =
-        tf_enable_hme_level0_flag[0][input_resolution][hme_me_level] ||
-        tf_enable_hme_level0_flag[1][input_resolution][hme_me_level];
-    pcs_ptr->tf_enable_hme_level1_flag =
-        tf_enable_hme_level1_flag[0][input_resolution][hme_me_level] ||
-        tf_enable_hme_level1_flag[1][input_resolution][hme_me_level];
-    pcs_ptr->tf_enable_hme_level2_flag =
-        tf_enable_hme_level2_flag[0][input_resolution][hme_me_level] ||
-        tf_enable_hme_level2_flag[1][input_resolution][hme_me_level];
+    // Set here to allocate resources for the downsampled pictures used in HME (generated in PictureAnalysis)
+    // Will be later updated for SC/NSC in PictureDecisionProcess
+    pcs_ptr->tf_enable_hme_flag        = 1;
+    pcs_ptr->tf_enable_hme_level0_flag = 1;
+    pcs_ptr->tf_enable_hme_level1_flag = 1;
+    pcs_ptr->tf_enable_hme_level2_flag = 1;
+    if (scs_ptr->static_config.enable_intra_edge_filter == DEFAULT)
+        scs_ptr->seq_header.enable_intra_edge_filter = 1;
+    else
+        scs_ptr->seq_header.enable_intra_edge_filter = (uint8_t)scs_ptr->static_config.enable_intra_edge_filter;
+
+    if (scs_ptr->static_config.pic_based_rate_est == DEFAULT)
+        scs_ptr->seq_header.pic_based_rate_est = 0;
+    else
+        scs_ptr->seq_header.pic_based_rate_est = (uint8_t)scs_ptr->static_config.pic_based_rate_est;
 
     if (scs_ptr->static_config.enable_restoration_filtering == DEFAULT) {
-        if (pcs_ptr->enc_mode >= ENC_M8)
-            scs_ptr->seq_header.enable_restoration = 0;
-        else
-            scs_ptr->seq_header.enable_restoration = 1;
+            scs_ptr->seq_header.enable_restoration = (pcs_ptr->enc_mode <= ENC_M6) ? 1 : 0;
     } else
         scs_ptr->seq_header.enable_restoration =
             (uint8_t)scs_ptr->static_config.enable_restoration_filtering;
 
-    scs_ptr->cdf_mode = (pcs_ptr->enc_mode <= ENC_M6) ? 0 : 1;
+    if (scs_ptr->static_config.cdef_level == DEFAULT)
+        scs_ptr->seq_header.cdef_level = 1;
+    else
+        scs_ptr->seq_header.cdef_level = (uint8_t)(scs_ptr->static_config.cdef_level > 0);
+
+    if (scs_ptr->static_config.enable_warped_motion == DEFAULT) {
+        scs_ptr->seq_header.enable_warped_motion = 1;
+    } else
+        scs_ptr->seq_header.enable_warped_motion = (uint8_t)scs_ptr->static_config.enable_warped_motion;
+
     return return_error;
 }
 
@@ -304,8 +305,7 @@ void speed_buffer_control(ResourceCoordinationContext *context_ptr,
 
         // if no change in the encoder mode and buffer is low enough and level is not increasing, switch to a slower encoder mode
         // If previous ChangeCond was the same, double the threshold2
-        if (encoder_mode_delta == 0 &&
-            scs_ptr->encode_context_ptr->sc_frame_in >
+        if (scs_ptr->encode_context_ptr->sc_frame_in >
                 context_ptr->previous_mode_change_frame_in + buffer_threshold_2 &&
             (context_ptr->prev_change_cond != 8 ||
              scs_ptr->encode_context_ptr->sc_frame_in >
@@ -501,7 +501,7 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
         //uint16_t     luma_height  = input_picture_ptr->max_height;
         // Y
         for (input_row_index = 0; input_row_index < luma_height; input_row_index++) {
-            EB_MEMCPY(
+            eb_memcpy(
                 (dst_picture_ptr->buffer_y + luma_buffer_offset + luma_stride * input_row_index),
                 (src_picture_ptr->buffer_y + luma_buffer_offset + luma_stride * input_row_index),
                 luma_width);
@@ -509,7 +509,7 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
 
         // U
         for (input_row_index = 0; input_row_index<(luma_height>> 1); input_row_index++) {
-            EB_MEMCPY((dst_picture_ptr->buffer_cb + chroma_buffer_offset +
+            eb_memcpy((dst_picture_ptr->buffer_cb + chroma_buffer_offset +
                        chroma_stride * input_row_index),
                       (src_picture_ptr->buffer_cb + chroma_buffer_offset +
                        chroma_stride * input_row_index),
@@ -518,13 +518,13 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
 
         // V
         for (input_row_index = 0; input_row_index<(luma_height>> 1); input_row_index++) {
-            EB_MEMCPY((dst_picture_ptr->buffer_cr + chroma_buffer_offset +
+            eb_memcpy((dst_picture_ptr->buffer_cr + chroma_buffer_offset +
                        chroma_stride * input_row_index),
                       (src_picture_ptr->buffer_cr + chroma_buffer_offset +
                        chroma_stride * input_row_index),
                       chroma_width);
         }
-    } else if (is_16bit_input && config->compressed_ten_bit_format == 1) {
+    } else if (config->compressed_ten_bit_format == 1) {
         {
             uint32_t luma_buffer_offset =
                 (dst_picture_ptr->stride_y * scs_ptr->top_padding + scs_ptr->left_padding);
@@ -540,7 +540,7 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
 
             // Y 8bit
             for (input_row_index = 0; input_row_index < luma_height; input_row_index++) {
-                EB_MEMCPY((dst_picture_ptr->buffer_y + luma_buffer_offset +
+                eb_memcpy((dst_picture_ptr->buffer_y + luma_buffer_offset +
                            luma_stride * input_row_index),
                           (src_picture_ptr->buffer_y + luma_buffer_offset +
                            luma_stride * input_row_index),
@@ -549,7 +549,7 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
 
             // U 8bit
             for (input_row_index = 0; input_row_index<(luma_height>> 1); input_row_index++) {
-                EB_MEMCPY((dst_picture_ptr->buffer_cb + chroma_buffer_offset +
+                eb_memcpy((dst_picture_ptr->buffer_cb + chroma_buffer_offset +
                            chroma_stride * input_row_index),
                           (src_picture_ptr->buffer_cb + chroma_buffer_offset +
                            chroma_stride * input_row_index),
@@ -558,7 +558,7 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
 
             // V 8bit
             for (input_row_index = 0; input_row_index<(luma_height>> 1); input_row_index++) {
-                EB_MEMCPY((dst_picture_ptr->buffer_cr + chroma_buffer_offset +
+                eb_memcpy((dst_picture_ptr->buffer_cr + chroma_buffer_offset +
                            chroma_stride * input_row_index),
                           (src_picture_ptr->buffer_cr + chroma_buffer_offset +
                            chroma_stride * input_row_index),
@@ -575,35 +575,35 @@ static EbErrorType copy_frame_buffer(SequenceControlSet *scs_ptr, uint8_t *dst, 
             //    uint16_t source_chroma_2bit_stride = source_luma_2bit_stride >> 1;
 
             //    for (input_row_index = 0; input_row_index < luma_height; input_row_index++) {
-            //        EB_MEMCPY(input_picture_ptr->buffer_bit_inc_y + luma_2bit_width * input_row_index, input_ptr->luma_ext + source_luma_2bit_stride * input_row_index, luma_2bit_width);
+            //        eb_memcpy(input_picture_ptr->buffer_bit_inc_y + luma_2bit_width * input_row_index, input_ptr->luma_ext + source_luma_2bit_stride * input_row_index, luma_2bit_width);
             //    }
             //    for (input_row_index = 0; input_row_index < luma_height >> 1; input_row_index++) {
-            //        EB_MEMCPY(input_picture_ptr->buffer_bit_inc_cb + (luma_2bit_width >> 1)*input_row_index, input_ptr->cb_ext + source_chroma_2bit_stride * input_row_index, luma_2bit_width >> 1);
+            //        eb_memcpy(input_picture_ptr->buffer_bit_inc_cb + (luma_2bit_width >> 1)*input_row_index, input_ptr->cb_ext + source_chroma_2bit_stride * input_row_index, luma_2bit_width >> 1);
             //    }
             //    for (input_row_index = 0; input_row_index < luma_height >> 1; input_row_index++) {
-            //        EB_MEMCPY(input_picture_ptr->buffer_bit_inc_cr + (luma_2bit_width >> 1)*input_row_index, input_ptr->cr_ext + source_chroma_2bit_stride * input_row_index, luma_2bit_width >> 1);
+            //        eb_memcpy(input_picture_ptr->buffer_bit_inc_cr + (luma_2bit_width >> 1)*input_row_index, input_ptr->cr_ext + source_chroma_2bit_stride * input_row_index, luma_2bit_width >> 1);
             //    }
             //}
         }
     } else { // 10bit packed
 
-        EB_MEMCPY(dst_picture_ptr->buffer_y, src_picture_ptr->buffer_y, src_picture_ptr->luma_size);
+        eb_memcpy(dst_picture_ptr->buffer_y, src_picture_ptr->buffer_y, src_picture_ptr->luma_size);
 
-        EB_MEMCPY(
+        eb_memcpy(
             dst_picture_ptr->buffer_cb, src_picture_ptr->buffer_cb, src_picture_ptr->chroma_size);
 
-        EB_MEMCPY(
+        eb_memcpy(
             dst_picture_ptr->buffer_cr, src_picture_ptr->buffer_cr, src_picture_ptr->chroma_size);
 
-        EB_MEMCPY(dst_picture_ptr->buffer_bit_inc_y,
+        eb_memcpy(dst_picture_ptr->buffer_bit_inc_y,
                   src_picture_ptr->buffer_bit_inc_y,
                   src_picture_ptr->luma_size);
 
-        EB_MEMCPY(dst_picture_ptr->buffer_bit_inc_cb,
+        eb_memcpy(dst_picture_ptr->buffer_bit_inc_cb,
                   src_picture_ptr->buffer_bit_inc_cb,
                   src_picture_ptr->chroma_size);
 
-        EB_MEMCPY(dst_picture_ptr->buffer_bit_inc_cr,
+        eb_memcpy(dst_picture_ptr->buffer_bit_inc_cr,
                   src_picture_ptr->buffer_bit_inc_cr,
                   src_picture_ptr->chroma_size);
     }
@@ -624,46 +624,48 @@ static void copy_input_buffer(SequenceControlSet *sequenceControlSet, EbBufferHe
     // Copy the picture buffer
     if (src->p_buffer != NULL) copy_frame_buffer(sequenceControlSet, dst->p_buffer, src->p_buffer);
 }
+
 /******************************************************
  * Read Stat from File
- * reads StatStruct per frame from the file and stores under pcs_ptr
  ******************************************************/
-static void read_stat_from_file(PictureParentControlSet *pcs_ptr, SequenceControlSet *scs_ptr) {
-    eb_block_on_mutex(scs_ptr->encode_context_ptr->stat_file_mutex);
+static void read_stat(SequenceControlSet *scs_ptr) {
+    EncodeContext *encode_context_ptr = scs_ptr->encode_context_ptr;
 
-    int32_t fseek_return_value = fseek(scs_ptr->static_config.input_stat_file,
-                                       (long)pcs_ptr->picture_number * sizeof(StatStruct),
-                                       SEEK_SET);
-
-    if (fseek_return_value != 0) {
-        SVT_LOG("Error in fseek  returnVal %i\n", (int)fseek_return_value);
-    }
-    size_t fread_return_value = fread(&pcs_ptr->stat_struct,
-                                      (size_t)1,
-                                      sizeof(StatStruct),
-                                      scs_ptr->static_config.input_stat_file);
-    if (fread_return_value != sizeof(StatStruct)) {
-        SVT_LOG("Error in freed  returnVal %i\n", (int)fread_return_value);
-    }
-
-    uint64_t referenced_area_avg          = 0;
-    uint64_t referenced_area_has_non_zero = 0;
-    for (int sb_addr = 0; sb_addr < scs_ptr->sb_total_count; ++sb_addr) {
-        referenced_area_avg +=
-            (pcs_ptr->stat_struct.referenced_area[sb_addr] /
-             pcs_ptr->sb_params_array[sb_addr].width / pcs_ptr->sb_params_array[sb_addr].height);
-        referenced_area_has_non_zero += pcs_ptr->stat_struct.referenced_area[sb_addr];
-    }
-    referenced_area_avg /= scs_ptr->sb_total_count;
-    // adjust the reference area based on the intra refresh
-    if (scs_ptr->intra_period_length && scs_ptr->intra_period_length < TWO_PASS_IR_THRSHLD)
-        referenced_area_avg =
-            referenced_area_avg * (scs_ptr->intra_period_length + 1) / TWO_PASS_IR_THRSHLD;
-    pcs_ptr->referenced_area_avg          = referenced_area_avg;
-    pcs_ptr->referenced_area_has_non_zero = referenced_area_has_non_zero ? 1 : 0;
-    eb_release_mutex(scs_ptr->encode_context_ptr->stat_file_mutex);
+    encode_context_ptr->rc_twopass_stats_in = scs_ptr->static_config.rc_twopass_stats_in;
 }
 
+static void setup_two_pass(SequenceControlSet *scs_ptr) {
+
+    EncodeContext *encode_context_ptr = scs_ptr->encode_context_ptr;
+
+    int num_lap_buffers = 0;
+    int size = get_stats_buf_size(num_lap_buffers, MAX_LAG_BUFFERS);
+    for (int i = 0; i < size; i++)
+        scs_ptr->twopass.frame_stats_arr[i] = &encode_context_ptr->frame_stats_buffer[i];
+
+    scs_ptr->twopass.stats_buf_ctx = &encode_context_ptr->stats_buf_context;
+    scs_ptr->twopass.stats_in = scs_ptr->twopass.stats_buf_ctx->stats_in_start;
+    if (use_input_stat(scs_ptr)) {
+        const size_t packet_sz = sizeof(FIRSTPASS_STATS);
+        const int packets = (int)(encode_context_ptr->rc_twopass_stats_in.sz / packet_sz);
+
+        if (!scs_ptr->lap_enabled)
+        {
+            /*Re-initialize to stats buffer, populated by application in the case of
+                * two pass*/
+            scs_ptr->twopass.stats_buf_ctx->stats_in_start =
+                encode_context_ptr->rc_twopass_stats_in.buf;
+            scs_ptr->twopass.stats_in = scs_ptr->twopass.stats_buf_ctx->stats_in_start;
+            scs_ptr->twopass.stats_buf_ctx->stats_in_end =
+                &scs_ptr->twopass.stats_buf_ctx->stats_in_start[packets - 1];
+            svt_av1_init_second_pass(scs_ptr);
+        }
+    }
+
+}
+
+extern EbErrorType first_pass_signal_derivation_pre_analysis(SequenceControlSet *     scs_ptr,
+    PictureParentControlSet *pcs_ptr);
 
 /* Resource Coordination Kernel */
 /*********************************************************************************
@@ -713,7 +715,6 @@ void *resource_coordination_kernel(void *input_ptr) {
     EbObjectWrapper *input_picture_wrapper_ptr;
     EbObjectWrapper *reference_picture_wrapper_ptr;
 
-    uint32_t instance_index;
     EbBool   end_of_sequence_flag = EB_FALSE;
 
     uint32_t         input_size           = 0;
@@ -721,12 +722,12 @@ void *resource_coordination_kernel(void *input_ptr) {
 
     for (;;) {
         // Tie instance_index to zero for now...
-        instance_index = 0;
+        uint32_t instance_index = 0;
 
         // Get the Next svt Input Buffer [BLOCKING]
-        eb_get_full_object(context_ptr->input_buffer_fifo_ptr, &eb_input_wrapper_ptr);
+        EB_GET_FULL_OBJECT(context_ptr->input_buffer_fifo_ptr, &eb_input_wrapper_ptr);
+
         eb_input_ptr = (EbBufferHeaderType *)eb_input_wrapper_ptr->object_ptr;
-        scs_ptr      = context_ptr->scs_instance_array[instance_index]->scs_ptr;
 
         // If config changes occured since the last picture began encoding, then
         //   prepare a new scs_ptr containing the new changes and update the state
@@ -734,46 +735,25 @@ void *resource_coordination_kernel(void *input_ptr) {
         eb_block_on_mutex(context_ptr->scs_instance_array[instance_index]->config_mutex);
         if (context_ptr->scs_instance_array[instance_index]->encode_context_ptr->initial_picture) {
             // Update picture width, picture height, cropping right offset, cropping bottom offset, and conformance windows
-            if (context_ptr->scs_instance_array[instance_index]
-                    ->encode_context_ptr->initial_picture)
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->seq_header.max_frame_width =
+                context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_width;
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->seq_header.max_frame_height =
+                context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_height;
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->chroma_width =
+                (context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_width >>
+                 1);
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->chroma_height =
+                (context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_height >>
+                 1);
 
-            {
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_right =
+                context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_pad_right;
+            context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_bottom =
+                context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_pad_bottom;
+            input_size = context_ptr->scs_instance_array[instance_index]
+                             ->scs_ptr->seq_header.max_frame_width *
                 context_ptr->scs_instance_array[instance_index]
-                    ->scs_ptr->seq_header.max_frame_width =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_width;
-                context_ptr->scs_instance_array[instance_index]
-                    ->scs_ptr->seq_header.max_frame_height =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_luma_height;
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->chroma_width =
-                    (context_ptr->scs_instance_array[instance_index]
-                         ->scs_ptr->max_input_luma_width >>
-                     1);
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->chroma_height =
-                    (context_ptr->scs_instance_array[instance_index]
-                         ->scs_ptr->max_input_luma_height >>
-                     1);
-
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_right =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_pad_right;
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->cropping_right_offset =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_right;
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_bottom =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->max_input_pad_bottom;
-                context_ptr->scs_instance_array[instance_index]->scs_ptr->cropping_bottom_offset =
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_bottom;
-
-                if (context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_right != 0 ||
-                    context_ptr->scs_instance_array[instance_index]->scs_ptr->pad_bottom != 0)
-                    context_ptr->scs_instance_array[instance_index]
-                        ->scs_ptr->conformance_window_flag = 1;
-                else
-                    context_ptr->scs_instance_array[instance_index]
-                        ->scs_ptr->conformance_window_flag = 0;
-                input_size = context_ptr->scs_instance_array[instance_index]
-                                 ->scs_ptr->seq_header.max_frame_width *
-                             context_ptr->scs_instance_array[instance_index]
-                                 ->scs_ptr->seq_header.max_frame_height;
-            }
+                    ->scs_ptr->seq_header.max_frame_height;
 
             // Copy previous Active SequenceControlSetPtr to a place holder
             prev_scs_wrapper_ptr = context_ptr->sequence_control_set_active_array[instance_index];
@@ -792,7 +772,7 @@ void *resource_coordination_kernel(void *input_ptr) {
             eb_object_release_disable(
                 context_ptr->sequence_control_set_active_array[instance_index]);
 
-            if (prev_scs_wrapper_ptr != EB_NULL) {
+            if (prev_scs_wrapper_ptr != NULL) {
                 // Enable releaseFlag of old SequenceControlSet
                 eb_object_release_enable(prev_scs_wrapper_ptr);
 
@@ -818,7 +798,7 @@ void *resource_coordination_kernel(void *input_ptr) {
 
             sb_params_init(scs_ptr);
             sb_geom_init(scs_ptr);
-            scs_ptr->enable_altrefs = scs_ptr->static_config.enable_altrefs ? EB_TRUE : EB_FALSE;
+            scs_ptr->tf_level = scs_ptr->static_config.tf_level ? 1 : 0;
 
             // initialize sequence level enable_superres
             scs_ptr->seq_header.enable_superres = 0;
@@ -828,31 +808,31 @@ void *resource_coordination_kernel(void *input_ptr) {
                 // 0                 OFF
                 // 1                 ON
                 scs_ptr->seq_header.enable_interintra_compound =
-                    MR_MODE || (scs_ptr->static_config.enc_mode <= ENC_M1 &&
-                                scs_ptr->static_config.screen_content_mode != 1)
-                        ? 1
-                        : 0;
+                (scs_ptr->static_config.enc_mode <= ENC_M3) ? 1 : 0;
 
             } else
                 scs_ptr->seq_header.enable_interintra_compound =
                     scs_ptr->static_config.inter_intra_compound;
-            // Set filter intra mode      Settings
-            // 0                 OFF
-            // 1                 ON
-            if (scs_ptr->static_config.enable_filter_intra)
-                scs_ptr->seq_header.enable_filter_intra =
-                    (scs_ptr->static_config.enc_mode <= ENC_M4) ? 1 : 0;
+            // Enable/Disable Filter Intra
+            // seq_header.filter_intra_level | Settings
+            // 0                             | Disable
+            // 1                             | Enable
+            if (scs_ptr->static_config.filter_intra_level == DEFAULT)
+                scs_ptr->seq_header.filter_intra_level =
+                (scs_ptr->static_config.enc_mode <= ENC_M6) ? 1 : 0;
             else
-                scs_ptr->seq_header.enable_filter_intra = 0;
-
+                scs_ptr->seq_header.filter_intra_level = (scs_ptr->static_config.filter_intra_level == 0) ? 0 : 1;
             // Set compound mode      Settings
             // 0                 OFF: No compond mode search : AVG only
             // 1                 ON: full
             if (scs_ptr->static_config.compound_level == DEFAULT) {
-                scs_ptr->compound_mode = (scs_ptr->static_config.enc_mode <= ENC_M4) ? 1 : 0;
+                scs_ptr->compound_mode = (scs_ptr->static_config.enc_mode <= ENC_M9) ? 1 : 0;
             } else
                 scs_ptr->compound_mode = scs_ptr->static_config.compound_level;
 
+#if M8_NEW_REF
+                scs_ptr->compound_mode = 1 ;
+#endif
             if (scs_ptr->compound_mode) {
                 scs_ptr->seq_header.order_hint_info.enable_jnt_comp = 1; //DISTANCE
                 scs_ptr->seq_header.enable_masked_compound          = 1; //DIFF+WEDGE
@@ -963,19 +943,11 @@ void *resource_coordination_kernel(void *input_ptr) {
             pcs_ptr->scene_change_flag = EB_FALSE;
             pcs_ptr->qp_on_the_fly     = EB_FALSE;
             pcs_ptr->sb_total_count    = scs_ptr->sb_total_count;
-            pcs_ptr->eos_coming =
-                (eb_input_ptr->flags & (EB_BUFFERFLAG_EOS << 1)) ? EB_TRUE : EB_FALSE;
-
             if (scs_ptr->static_config.speed_control_flag) {
                 speed_buffer_control(context_ptr, pcs_ptr, scs_ptr);
             } else
                 pcs_ptr->enc_mode = (EbEncMode)scs_ptr->static_config.enc_mode;
             //  If the mode of the second pass is not set from CLI, it is set to enc_mode
-            pcs_ptr->snd_pass_enc_mode =
-                (scs_ptr->use_output_stat_file &&
-                 scs_ptr->static_config.snd_pass_enc_mode != MAX_ENC_PRESET + 1)
-                    ? (EbEncMode)scs_ptr->static_config.snd_pass_enc_mode
-                    : pcs_ptr->enc_mode;
 
             // Set the SCD Mode
             scs_ptr->scd_mode =
@@ -985,7 +957,10 @@ void *resource_coordination_kernel(void *input_ptr) {
             scs_ptr->block_mean_calc_prec = BLOCK_MEAN_PREC_SUB;
 
             // Pre-Analysis Signal(s) derivation
-            signal_derivation_pre_analysis_oq(scs_ptr, pcs_ptr);
+            if(use_output_stat(scs_ptr))
+                first_pass_signal_derivation_pre_analysis(scs_ptr, pcs_ptr);
+            else
+                signal_derivation_pre_analysis_oq(scs_ptr, pcs_ptr);
             pcs_ptr->filtered_sse    = 0;
             pcs_ptr->filtered_sse_uv = 0;
             // Rate Control
@@ -1005,7 +980,6 @@ void *resource_coordination_kernel(void *input_ptr) {
                 if (pcs_ptr->input_ptr->qp > MAX_QP_VALUE) {
                     SVT_LOG("SVT [WARNING]: INPUT QP OUTSIDE OF RANGE\n");
                     pcs_ptr->qp_on_the_fly = EB_FALSE;
-                    pcs_ptr->picture_qp    = (uint8_t)scs_ptr->static_config.qp;
                 }
                 pcs_ptr->picture_qp = (uint8_t)pcs_ptr->input_ptr->qp;
             } else {
@@ -1019,11 +993,13 @@ void *resource_coordination_kernel(void *input_ptr) {
             else
                 pcs_ptr->picture_number = context_ptr->picture_number_array[instance_index];
             reset_pcs_av1(pcs_ptr);
-            if (scs_ptr->use_input_stat_file && !end_of_sequence_flag)
-                read_stat_from_file(pcs_ptr, scs_ptr);
-            else {
-                memset(&pcs_ptr->stat_struct, 0, sizeof(StatStruct));
+            if (pcs_ptr->picture_number == 0) {
+                if (use_input_stat(scs_ptr))
+                    read_stat(scs_ptr);
+                if (use_input_stat(scs_ptr) || use_output_stat(scs_ptr))
+                    setup_two_pass(scs_ptr);
             }
+            pcs_ptr->ts_duration = (int64_t)10000000*(1<<16) / scs_ptr->frame_rate;
             scs_ptr->encode_context_ptr->initial_picture = EB_FALSE;
 
             // Get Empty Reference Picture Object
@@ -1037,9 +1013,6 @@ void *resource_coordination_kernel(void *input_ptr) {
                 eb_object_inc_live_count(pcs_ptr->pa_reference_picture_wrapper_ptr, 1);
             else
                 eb_object_inc_live_count(pcs_ptr->pa_reference_picture_wrapper_ptr, 2);
-#if !TILES_PARALLEL
-            set_tile_info(pcs_ptr);
-#endif
             if (scs_ptr->static_config.unrestricted_motion_vector == 0) {
                 struct PictureParentControlSet *ppcs_ptr = pcs_ptr;
                 Av1Common *const                cm       = ppcs_ptr->av1_cm;
@@ -1105,5 +1078,5 @@ void *resource_coordination_kernel(void *input_ptr) {
         }
     }
 
-    return EB_NULL;
+    return NULL;
 }

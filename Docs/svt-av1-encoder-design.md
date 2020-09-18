@@ -66,7 +66,6 @@
   * [Entropy Coding Process](#entropy-coding-process)
   * [Packetization Process](#packetization-process)
 - [Detailed Feature Implementation Design Appendices](#detailed-feature-implementation-design-appendices)
-- [Legal Disclaimer](#legal-disclaimer)
 
 ## List of Figures
 - [Figure 1](#figure-1): Five-layer prediction structure used in the SVT-AV1 encoder with one reference picture in each direction.
@@ -1286,10 +1285,5 @@ The following appendices highlight the design and implementation of features in 
 - [Restoration Filter Appendix](Appendix-Restoration-Filter.md)
 - [Subpel Interpolation in the Open Loop Motion Estimation Appendix](Appendix-Subpel-Interpolation-Open-Loop-ME.md)
 - [Transform Search Appendix](Appendix-TX-Search.md)
+- [Variance Based Adaptive Quantization Appendix](Appendix-Variance-Based-Adaptive-Quantization.md)
 
-## References
-
-
-## Legal Disclaimer
-
-The notices and disclaimers can be found [here](Notices).

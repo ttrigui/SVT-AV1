@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <stdio.h>
@@ -417,9 +417,6 @@ static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize b
         const int dy = pts2[i * 2 + 1] - duy;
         const int sx = pts1[i * 2] - sux;
         const int sy = pts1[i * 2 + 1] - suy;
-        // (TODO)yunqing: This comparison wouldn't be necessary if the sample
-        // selection is done in find_samples(). Also, global offset can be removed
-        // while collecting samples.
         if (abs(sx - dx) < LS_MV_MAX && abs(sy - dy) < LS_MV_MAX) {
             A[0][0] += LS_SQUARE(sx);
             A[0][1] += LS_PRODUCT1(sx, sy);
@@ -526,7 +523,6 @@ EbBool eb_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, int mvy
    are set appropriately (if using a ROTZOOM model), and that alpha, beta,
    gamma, delta are all in range.
 
-   TODO(david.barker): Maybe support scaled references?
 */
 /* A note on hardware implementation:
     The warp filter is intended to be implementable using the same hardware as
@@ -696,10 +692,10 @@ void eb_av1_warp_affine_c(const int32_t *mat, const uint8_t *ref, int width, int
     }
 }
 
-void warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int width, int height,
-                       int stride, uint8_t *pred, int p_col, int p_row, int p_width, int p_height,
-                       int p_stride, int subsampling_x, int subsampling_y,
-                       ConvolveParams *conv_params) {
+void eb_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int width, int height,
+                   int stride, uint8_t *pred, int p_col, int p_row, int p_width, int p_height,
+                   int p_stride, int subsampling_x, int subsampling_y,
+                   ConvolveParams *conv_params) {
     assert(wm->wmtype <= AFFINE);
     if (wm->wmtype == ROTZOOM) {
         wm->wmmat[5] = wm->wmmat[2];
@@ -847,10 +843,10 @@ void eb_av1_highbd_warp_affine_c(const int32_t *mat, const uint16_t *ref, int wi
     }
 }
 
-void highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, int width,
-                              int height, int stride, const uint8_t *const pred8, int p_col,
-                              int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
-                              int subsampling_y, int bd, ConvolveParams *conv_params) {
+void eb_highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, int width,
+                          int height, int stride, const uint8_t *const pred8, int p_col,
+                          int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
+                          int subsampling_y, int bd, ConvolveParams *conv_params) {
     assert(wm->wmtype <= AFFINE);
     if (wm->wmtype == ROTZOOM) {
         wm->wmmat[5] = wm->wmmat[2];
@@ -891,36 +887,36 @@ void eb_av1_warp_plane(EbWarpedMotionParams *wm, int use_hbd, int bd, const uint
                        int p_height, int p_stride, int subsampling_x, int subsampling_y,
                        ConvolveParams *conv_params) {
     if (use_hbd)
-        highbd_warp_plane(wm,
-                          ref,
-                          width,
-                          height,
-                          stride,
-                          pred,
-                          p_col,
-                          p_row,
-                          p_width,
-                          p_height,
-                          p_stride,
-                          subsampling_x,
-                          subsampling_y,
-                          bd,
-                          conv_params);
+        eb_highbd_warp_plane(wm,
+                             ref,
+                             width,
+                             height,
+                             stride,
+                             pred,
+                             p_col,
+                             p_row,
+                             p_width,
+                             p_height,
+                             p_stride,
+                             subsampling_x,
+                             subsampling_y,
+                             bd,
+                             conv_params);
     else
-        warp_plane(wm,
-                   ref,
-                   width,
-                   height,
-                   stride,
-                   pred,
-                   p_col,
-                   p_row,
-                   p_width,
-                   p_height,
-                   p_stride,
-                   subsampling_x,
-                   subsampling_y,
-                   conv_params);
+        eb_warp_plane(wm,
+                      ref,
+                      width,
+                      height,
+                      stride,
+                      pred,
+                      p_col,
+                      p_row,
+                      p_width,
+                      p_height,
+                      p_stride,
+                      subsampling_x,
+                      subsampling_y,
+                      conv_params);
 }
 
 

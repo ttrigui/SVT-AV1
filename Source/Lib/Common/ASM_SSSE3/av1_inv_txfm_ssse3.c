@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include "EbDefinitions.h"
@@ -16,8 +16,6 @@
 #include "av1_inv_txfm_ssse3.h"
 #include "av1_txfm_sse2.h"
 #include "transpose_sse2.h"
-
-// TODO(binpengsmail@gmail.com): replace some for loop with do {} while
 
 // Sqrt2, Sqrt2^2, Sqrt2^3, Sqrt2^4, Sqrt2^5
 static int32_t new_sqrt2list[TX_SIZES] = {5793, 2 * 4096, 2 * 5793, 4 * 4096, 4 * 5793};
@@ -1309,7 +1307,6 @@ static void idct64_low8_new_ssse3(const __m128i *input, __m128i *output, int8_t 
     x[6] = x[1];
     x[5] = x[2];
     x[4] = x[3];
-    x[9] = x[9];
     btf_16_sse2(cospi_m32_p32, cospi_p32_p32, x[10], x[13], x[10], x[13]);
     btf_16_sse2(cospi_m32_p32, cospi_p32_p32, x[11], x[12], x[11], x[12]);
     idct64_stage8_high48_sse2(x, cospi, __rounding, cos_bit);
@@ -1643,9 +1640,6 @@ static void iadst4_new_sse2(const __m128i *input, __m128i *output, int8_t cos_bi
     }
 }
 
-// TODO(binpengsmail@gmail.com):
-// To explore the reuse of VP9 versions of corresponding SSE2 functions and
-// evaluate whether there is a possibility for further speedup.
 static void iadst4_w4_new_sse2(const __m128i *input, __m128i *output, int8_t cos_bit) {
     (void)cos_bit;
     const int32_t *sinpi         = sinpi_arr(INV_COS_BIT);
@@ -2200,8 +2194,8 @@ static void iadst16_w4_new_sse2(const __m128i *input, __m128i *output, int8_t co
 
 static void iidentity4_new_ssse3(const __m128i *input, __m128i *output, int8_t cos_bit) {
     (void)cos_bit;
-    const int16_t scale_fractional = (new_sqrt2 - (1 << new_sqrt2_bits));
-    const __m128i scale            = _mm_set1_epi16(scale_fractional << (15 - new_sqrt2_bits));
+    const int16_t scale_fractional = (new_sqrt2 - (1 << new_sqrt2_bits)) << (15 - new_sqrt2_bits);
+    const __m128i scale            = _mm_set1_epi16(scale_fractional);
     for (int32_t i = 0; i < 4; ++i) {
         __m128i x = _mm_mulhrs_epi16(input[i], scale);
         output[i] = _mm_adds_epi16(x, input[i]);
@@ -2215,8 +2209,9 @@ static void iidentity8_new_sse2(const __m128i *input, __m128i *output, int8_t co
 
 static void iidentity16_new_ssse3(const __m128i *input, __m128i *output, int8_t cos_bit) {
     (void)cos_bit;
-    const int16_t scale_fractional = 2 * (new_sqrt2 - (1 << new_sqrt2_bits));
-    const __m128i scale            = _mm_set1_epi16(scale_fractional << (15 - new_sqrt2_bits));
+    const int16_t scale_fractional = (2 * (new_sqrt2 - (1 << new_sqrt2_bits)))
+        << (15 - new_sqrt2_bits);
+    const __m128i scale = _mm_set1_epi16(scale_fractional);
     for (int32_t i = 0; i < 16; ++i) {
         __m128i x     = _mm_mulhrs_epi16(input[i], scale);
         __m128i srcx2 = _mm_adds_epi16(input[i], input[i]);
@@ -2773,8 +2768,23 @@ static void lowbd_inv_txfm2d_add_4x16_ssse3(const int32_t *input, uint8_t *outpu
         __m128i *      buf_cur   = buf + i * row_one_loop;
         load_buffer_32bit_to_16bit_w4(input_cur, txfm_size_col, buf_cur, row_one_loop);
         transpose_16bit_4x8(buf_cur, buf_cur);
-        row_txfm(buf_cur, buf_cur, cos_bit_row);
-        round_shift_16bit_ssse3(buf_cur, row_one_loop, shift[0]);
+        if (row_txfm == iidentity4_new_ssse3) {
+            const __m128i scale = pair_set_epi16(new_sqrt2, 3 << (new_sqrt2_bits - 1));
+            const __m128i ones = _mm_set1_epi16(1);
+            for (int j = 0; j < 4; ++j) {
+                const __m128i buf_lo = _mm_unpacklo_epi16(buf_cur[j], ones);
+                const __m128i buf_hi = _mm_unpackhi_epi16(buf_cur[j], ones);
+                const __m128i buf_32_lo =
+                    _mm_srai_epi32(_mm_madd_epi16(buf_lo, scale), (new_sqrt2_bits + 1));
+                const __m128i buf_32_hi =
+                    _mm_srai_epi32(_mm_madd_epi16(buf_hi, scale), (new_sqrt2_bits + 1));
+                buf_cur[j] = _mm_packs_epi32(buf_32_lo, buf_32_hi);
+            }
+        }
+        else {
+            row_txfm(buf_cur, buf_cur, cos_bit_row);
+            round_shift_16bit_ssse3(buf_cur, row_one_loop, shift[0]);
+        }
         if (lr_flip) {
             __m128i temp[8];
             flip_buf_sse2(buf_cur, temp, txfm_size_col);
@@ -2810,14 +2820,30 @@ static void lowbd_inv_txfm2d_add_16x4_ssse3(const int32_t *input, uint8_t *outpu
     int32_t ud_flip, lr_flip;
     get_flip_cfg(tx_type, &ud_flip, &lr_flip);
     const int32_t row_one_loop = 8;
+    assert(buf_size_w_div8 > 0);
     for (int32_t i = 0; i < buf_size_w_div8; ++i) {
         const int32_t *input_cur = input + i * row_one_loop;
         __m128i *      buf_cur   = buf + i * row_one_loop;
         load_buffer_32bit_to_16bit(input_cur, txfm_size_col, buf_cur, txfm_size_row);
         transpose_16bit_8x4(buf_cur, buf_cur);
     }
-    row_txfm(buf, buf, cos_bit_row);
-    round_shift_16bit_ssse3(buf, txfm_size_col, shift[0]);
+    if (row_txfm == iidentity16_new_ssse3) {
+        const __m128i scale = pair_set_epi16(2 * new_sqrt2, 3 << (new_sqrt2_bits - 1));
+        const __m128i ones = _mm_set1_epi16(1);
+        for (int j = 0; j < 16; ++j) {
+            const __m128i buf_lo = _mm_unpacklo_epi16(buf[j], ones);
+            const __m128i buf_hi = _mm_unpackhi_epi16(buf[j], ones);
+            const __m128i buf_32_lo =
+                _mm_srai_epi32(_mm_madd_epi16(buf_lo, scale), (new_sqrt2_bits + 1));
+            const __m128i buf_32_hi =
+                _mm_srai_epi32(_mm_madd_epi16(buf_hi, scale), (new_sqrt2_bits + 1));
+            buf[j] = _mm_packs_epi32(buf_32_lo, buf_32_hi);
+        }
+    }
+    else {
+        row_txfm(buf, buf, cos_bit_row);
+        round_shift_16bit_ssse3(buf, txfm_size_col, shift[0]);
+    }
     if (lr_flip) {
         __m128i temp[16];
         flip_buf_sse2(buf, temp, 16);

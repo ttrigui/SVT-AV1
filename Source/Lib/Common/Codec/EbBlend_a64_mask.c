@@ -1,17 +1,13 @@
 /*
-* Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
+ * Copyright(c) 2019 Intel Corporation
  * Copyright (c) 2016, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <assert.h>
@@ -35,7 +31,7 @@
 // In contrast, the output of the non-d16 functions will not be further rounded,
 // so we *should* use ROUND_POWER_OF_TWO there.
 
-void aom_lowbd_blend_a64_d16_mask_c(uint8_t *dst, uint32_t dst_stride, const CONV_BUF_TYPE *src0,
+void eb_aom_lowbd_blend_a64_d16_mask_c(uint8_t *dst, uint32_t dst_stride, const CONV_BUF_TYPE *src0,
                                     uint32_t src0_stride, const CONV_BUF_TYPE *src1,
                                     uint32_t src1_stride, const uint8_t *mask, uint32_t mask_stride,
                                     int w, int h, int subw, int subh, ConvolveParams *conv_params) {
@@ -110,7 +106,7 @@ void aom_lowbd_blend_a64_d16_mask_c(uint8_t *dst, uint32_t dst_stride, const CON
     }
 }
 
-void aom_highbd_blend_a64_d16_mask_c(uint8_t *dst_8, uint32_t dst_stride, const CONV_BUF_TYPE *src0,
+void eb_aom_highbd_blend_a64_d16_mask_c(uint8_t *dst_8, uint32_t dst_stride, const CONV_BUF_TYPE *src0,
                                      uint32_t src0_stride, const CONV_BUF_TYPE *src1,
                                      uint32_t src1_stride, const uint8_t *mask,
                                      uint32_t mask_stride, int w, int h, int subw, int subh,
@@ -213,7 +209,7 @@ void aom_highbd_blend_a64_d16_mask_c(uint8_t *dst_8, uint32_t dst_stride, const 
 // as described for AOM_BLEND_A64 in aom_dsp/blend.h. src0 or src1 can
 // be the same as dst, or dst can be different from both sources.
 
-void aom_blend_a64_mask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+void eb_aom_blend_a64_mask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
                           uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
                           const uint8_t *mask, uint32_t mask_stride, int w, int h, int subw,
                           int subh) {
@@ -268,7 +264,7 @@ void aom_blend_a64_mask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0
     }
 }
 
-void aom_highbd_blend_a64_mask_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
+void eb_aom_highbd_blend_a64_mask_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
                                  uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
                                  const uint8_t *mask, uint32_t mask_stride, int w, int h, int subw,
                                  int subh, int bd) {
@@ -330,7 +326,7 @@ void aom_highbd_blend_a64_mask_c(uint8_t *dst_8, uint32_t dst_stride, const uint
 }
 
 /*Vertical mask related blend functions*/
-void aom_blend_a64_vmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+void eb_aom_blend_a64_vmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
                            uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
                            const uint8_t *mask, int w, int h) {
     int i, j;
@@ -352,9 +348,10 @@ void aom_blend_a64_vmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src
     }
 }
 
-void aom_highbd_blend_a64_vmask_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                  uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                  const uint8_t *mask, int w, int h, int bd) {
+void eb_aom_highbd_blend_a64_vmask_c_8bit(uint8_t *dst_8, uint32_t dst_stride,
+                                          const uint8_t *src0_8, uint32_t src0_stride,
+                                          const uint8_t *src1_8, uint32_t src1_stride,
+                                          const uint8_t *mask, int w, int h, int bd) {
     int             i, j;
     uint16_t *      dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
     const uint16_t *src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);
@@ -381,7 +378,7 @@ void aom_highbd_blend_a64_vmask_c(uint8_t *dst_8, uint32_t dst_stride, const uin
 }
 
 /*Horizontal mask related blend functions*/
-void aom_blend_a64_hmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
+void eb_aom_blend_a64_hmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0,
                            uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride,
                            const uint8_t *mask, int w, int h) {
     int i, j;
@@ -402,9 +399,10 @@ void aom_blend_a64_hmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src
     }
 }
 
-void aom_highbd_blend_a64_hmask_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                  uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                  const uint8_t *mask, int w, int h, int bd) {
+void eb_aom_highbd_blend_a64_hmask_c_8bit(uint8_t *dst_8, uint32_t dst_stride,
+                                          const uint8_t *src0_8, uint32_t src0_stride,
+                                          const uint8_t *src1_8, uint32_t src1_stride,
+                                          const uint8_t *mask, int w, int h, int bd) {
     int             i, j;
     uint16_t *      dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
     const uint16_t *src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);

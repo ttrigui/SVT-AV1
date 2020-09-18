@@ -1,36 +1,19 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbSegmentation.h"
 #include "EbSegmentationParams.h"
 #include "EbMotionEstimationContext.h"
-
-
-static const uint8_t q_index_to_quantizer[] = {
-    0,  0,  0,  0,  1,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,  5,
-    6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  8,  9,  9,  9,  9,  10, 10, 10, 10, 11, 11, 11, 11,
-    12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17,
-    18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 22, 22, 22, 22, 23, 23, 23, 23,
-    24, 24, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 29, 29,
-    30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32, 33, 33, 33, 33, 34, 34, 34, 34, 35, 35, 35, 35,
-    36, 36, 36, 36, 37, 37, 37, 37, 38, 38, 38, 38, 39, 39, 39, 39, 40, 40, 40, 40, 41, 41, 41, 41,
-    42, 42, 42, 42, 43, 43, 43, 43, 44, 44, 44, 44, 45, 45, 45, 45, 46, 46, 46, 46, 47, 47, 47, 47,
-    48, 48, 48, 48, 49, 49, 49, 49, 50, 50, 50, 50, 51, 51, 51, 51, 52, 52, 52, 52, 53, 53, 53, 53,
-    54, 54, 54, 54, 55, 55, 55, 55, 56, 56, 56, 56, 57, 57, 57, 57, 58, 58, 58, 58, 59, 59, 59, 59,
-    60, 60, 60, 60, 61, 61, 61, 61, 61, 62, 62, 62, 62, 62, 62, 63};
+#include "common_dsp_rtcd.h"
 
 uint16_t get_variance_for_cu(const BlockGeom *blk_geom, uint16_t *variance_ptr) {
     int index0, index1;
@@ -109,7 +92,7 @@ void apply_segmentation_based_quantization(const BlockGeom *blk_geom, PictureCon
     int32_t q_index = pcs_ptr->parent_pcs_ptr->frm_hdr.quantization_params.base_q_idx +
                       pcs_ptr->parent_pcs_ptr->frm_hdr.segmentation_params
                           .feature_data[blk_ptr->segment_id][SEG_LVL_ALT_Q];
-    blk_ptr->qp = q_index_to_quantizer[q_index];
+    blk_ptr->qindex = q_index;
 }
 
 void setup_segmentation(PictureControlSet *pcs_ptr, SequenceControlSet *scs_ptr,
@@ -149,13 +132,12 @@ void calculate_segmentation_data(SegmentationParams *segmentation_params) {
 void find_segment_qps(SegmentationParams *segmentation_params,
                       PictureControlSet * pcs_ptr) { //QP needs to be specified as qpindex, not qp.
 
-    uint16_t *variance_ptr;
     uint16_t  min_var = UINT16_MAX, max_var = MIN_UNSIGNED_VALUE, avg_var = 0;
-    float     strength = 2; //to tune
+    const float strength = 2; //to tune
 
     // get range of variance
     for (uint32_t sb_idx = 0; sb_idx < pcs_ptr->sb_total_count; ++sb_idx) {
-        variance_ptr = pcs_ptr->parent_pcs_ptr->variance[sb_idx];
+        uint16_t *variance_ptr = pcs_ptr->parent_pcs_ptr->variance[sb_idx];
         uint32_t var_index, local_avg = 0;
         // Loop over all 8x8s in a 64x64
         for (var_index = ME_TIER_ZERO_PU_8x8_0; var_index <= ME_TIER_ZERO_PU_8x8_63; var_index++) {
@@ -166,11 +148,11 @@ void find_segment_qps(SegmentationParams *segmentation_params,
         avg_var += (local_avg >> 6);
     }
     avg_var /= pcs_ptr->sb_total_count;
-    avg_var = Log2f(avg_var);
+    avg_var = eb_log2f(avg_var);
 
     //get variance bin edges & QPs
-    uint16_t min_var_log = Log2f(MAX(1, min_var));
-    uint16_t max_var_log = Log2f(MAX(1, max_var));
+    uint16_t min_var_log = eb_log2f(MAX(1, min_var));
+    uint16_t max_var_log = eb_log2f(MAX(1, max_var));
     uint16_t step_size   = (uint16_t)(max_var_log - min_var_log) <= MAX_SEGMENTS
                              ? 1
                              : ROUND(((max_var_log - min_var_log)) / MAX_SEGMENTS);

@@ -1,7 +1,13 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Netflix, Inc.
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file Convolve2dTest.cc
@@ -421,6 +427,8 @@ class AV1Convolve2DTest : public ::testing::TestWithParam<Convolve2DParam> {
 
         // fill the input data with random
         prepare_data(input_w, input_h);
+
+        setup_common_rtcd_internal(get_cpu_flags_to_use());
 
         // loop the filter type and subpixel position
         const int output_w = block_size_wide[block_idx];

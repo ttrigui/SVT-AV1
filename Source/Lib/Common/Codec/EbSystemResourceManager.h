@@ -1,6 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+* Copyright (c) 2019, Alliance for Open Media. All rights reserved
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbSystemResource_h
@@ -71,6 +78,9 @@ typedef struct EbFifo {
 
     // last_ptr - pointer to the tail of the Fifo
     EbObjectWrapper *last_ptr;
+
+    // quit_signal - a flag that main thread sets to break out from kernels
+    EbBool quit_signal;
 
     // queue_ptr - pointer to MuxingQueue that the EbFifo is
     //   associated with.
@@ -297,6 +307,23 @@ extern EbErrorType eb_get_full_object_non_blocking(EbFifo *          full_fifo_p
      *      pointer to EbObjectWrapper to be released.
      *********************************************************************/
 extern EbErrorType eb_release_object(EbObjectWrapper *object_ptr);
+
+/*********************************************************************
+     * eb_shutdown_process
+     *   Notify shut down signal to consumer of EbSystemResource.
+     *   So that the consumer process can break the loop and quit running.
+     *
+     *   resource_ptr
+     *      pointer to the SystemResource.
+     *********************************************************************/
+extern EbErrorType eb_shutdown_process(const EbSystemResource *resource_ptr);
+
+#define EB_GET_FULL_OBJECT(full_fifo_ptr, wrapper_dbl_ptr)                           \
+     do {                                                                            \
+          EbErrorType err = eb_get_full_object(full_fifo_ptr, wrapper_dbl_ptr);      \
+          if (err == EB_NoErrorFifoShutdown)  return NULL;                           \
+     } while (0)
+
 #ifdef __cplusplus
 }
 #endif

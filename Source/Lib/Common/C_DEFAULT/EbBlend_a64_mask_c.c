@@ -1,13 +1,19 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 //#include "EbUtility.h"
 #include "EbDefinitions.h"
 
 
-void eb_aom_highbd_blend_a64_vmask_c(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+void eb_aom_highbd_blend_a64_vmask_c_16bit(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
                                      uint32_t src0_stride, const uint16_t *src1,
                                      uint32_t src1_stride, const uint8_t *mask, int w, int h,
                                      int bd) {

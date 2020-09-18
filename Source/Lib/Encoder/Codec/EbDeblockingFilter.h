@@ -1,27 +1,23 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
-#include "EbDeblockingFilter_SSE2.h"
+//#include "EbDeblockingFilter_SSE2.h"
 
 #include "EbPredictionUnit.h"
 #include "EbNeighborArrays.h"
 #include "EbEncDecProcess.h"
 #include "EbDlfProcess.h"
 #include "EbDeblockingCommon.h"
-
+#include "common_dsp_rtcd.h"
 #ifndef EbDeblockingFilter_h
 #define EbDeblockingFilter_h
 #ifdef __cplusplus
@@ -76,8 +72,6 @@ typedef struct LoopFilterWorkerData {
     EbPictureBufferDesc *   frame_buffer; //reconpicture,
     PictureControlSet *     pcs_ptr;
     struct MacroblockdPlane planes[MAX_MB_PLANE];
-    // TODO(Ranjit): When the filter functions are modified to use xd->lossless
-    // add lossless as a member here.
     MacroBlockD *xd;
 } LFWorkerData;
 

@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbThreads_h
@@ -9,7 +15,7 @@
 #include "EbDefinitions.h"
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #ifdef __cplusplus
@@ -52,9 +58,6 @@ extern EbMemoryMapEntry *memory_map; // library Memory table
 extern uint32_t *        memory_map_index; // library memory index
 extern uint64_t *        total_lib_memory; // library Memory malloc'd
 #ifdef _WIN32
-extern GROUP_AFFINITY group_affinity;
-extern uint8_t        num_groups;
-extern EbBool         alternate_groups;
 
 #define EB_CREATE_THREAD(pointer, thread_function, thread_context)   \
     do {                                                             \
@@ -78,7 +81,6 @@ extern EbBool         alternate_groups;
 #endif
 #include <sched.h>
 #include <pthread.h>
-extern cpu_set_t group_affinity;
 #define EB_CREATE_THREAD(pointer, thread_function, thread_context)                           \
     do {                                                                                     \
         pointer = eb_create_thread(thread_function, thread_context);                         \

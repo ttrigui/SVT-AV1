@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbPictureControlSet.h"
@@ -9,7 +15,9 @@
 #include "EbSourceBasedOperationsProcess.h"
 #include "EbInitialRateControlResults.h"
 #include "EbPictureDemuxResults.h"
-#include "emmintrin.h"
+#ifdef ARCH_X86
+#include <emmintrin.h>
+#endif
 #include "EbEncHandle.h"
 #include "EbUtility.h"
 
@@ -63,10 +71,8 @@ void derive_picture_activity_statistics(PictureParentControlSet *pcs_ptr)
     uint32_t complete_sb_count    = 0;
     uint32_t non_moving_sb_count  = 0;
     uint32_t sb_total_count       = pcs_ptr->sb_total_count;
-    uint32_t tot_nmv_idx          = 0;
 
-    uint32_t sb_index;
-    for (sb_index = 0; sb_index < sb_total_count; ++sb_index) {
+    for (uint32_t sb_index = 0; sb_index < sb_total_count; ++sb_index) {
         SbParams *sb_params = &pcs_ptr->sb_params_array[sb_index];
         if (sb_params->is_complete_sb) {
             non_moving_index_min = pcs_ptr->non_moving_index_array[sb_index] < non_moving_index_min
@@ -81,8 +87,6 @@ void derive_picture_activity_statistics(PictureParentControlSet *pcs_ptr)
             complete_sb_count++;
 
             non_moving_index_sum += pcs_ptr->non_moving_index_array[sb_index];
-
-            if (pcs_ptr->non_moving_index_array[sb_index] < NON_MOVING_SCORE_1) tot_nmv_idx++;
         }
     }
 
@@ -110,16 +114,14 @@ void *source_based_operations_kernel(void *input_ptr) {
     EbObjectWrapper *          in_results_wrapper_ptr;
     InitialRateControlResults *in_results_ptr;
     EbObjectWrapper *          out_results_wrapper_ptr;
-    PictureDemuxResults *      out_results_ptr;
 
     for (;;) {
         // Get Input Full Object
-        eb_get_full_object(context_ptr->initial_rate_control_results_input_fifo_ptr,
+        EB_GET_FULL_OBJECT(context_ptr->initial_rate_control_results_input_fifo_ptr,
                            &in_results_wrapper_ptr);
 
         in_results_ptr = (InitialRateControlResults *)in_results_wrapper_ptr->object_ptr;
         pcs_ptr        = (PictureParentControlSet *)in_results_ptr->pcs_wrapper_ptr->object_ptr;
-        pcs_ptr->dark_back_groundlight_fore_ground = EB_FALSE;
         context_ptr->complete_sb_count             = 0;
         uint32_t sb_total_count                    = pcs_ptr->sb_total_count;
         uint32_t sb_index;
@@ -129,14 +131,15 @@ void *source_based_operations_kernel(void *input_ptr) {
             SbParams *sb_params      = &pcs_ptr->sb_params_array[sb_index];
             EbBool    is_complete_sb = sb_params->is_complete_sb;
             uint8_t * y_mean_ptr     = pcs_ptr->y_mean[sb_index];
-
+#ifdef ARCH_X86
             _mm_prefetch((const char *)y_mean_ptr, _MM_HINT_T0);
+#endif
             uint8_t *cr_mean_ptr = pcs_ptr->cr_mean[sb_index];
             uint8_t *cb_mean_ptr = pcs_ptr->cb_mean[sb_index];
-
+#ifdef ARCH_X86
             _mm_prefetch((const char *)cr_mean_ptr, _MM_HINT_T0);
             _mm_prefetch((const char *)cb_mean_ptr, _MM_HINT_T0);
-
+#endif
             context_ptr->y_mean_ptr  = y_mean_ptr;
             context_ptr->cr_mean_ptr = cr_mean_ptr;
             context_ptr->cb_mean_ptr = cb_mean_ptr;
@@ -152,7 +155,8 @@ void *source_based_operations_kernel(void *input_ptr) {
         eb_get_empty_object(context_ptr->picture_demux_results_output_fifo_ptr,
                             &out_results_wrapper_ptr);
 
-        out_results_ptr = (PictureDemuxResults *)out_results_wrapper_ptr->object_ptr;
+        PictureDemuxResults *out_results_ptr = (PictureDemuxResults *)
+                                                   out_results_wrapper_ptr->object_ptr;
         out_results_ptr->pcs_wrapper_ptr = in_results_ptr->pcs_wrapper_ptr;
         out_results_ptr->picture_type    = EB_PIC_INPUT;
 
@@ -162,5 +166,5 @@ void *source_based_operations_kernel(void *input_ptr) {
         // Post the Full Results Object
         eb_post_full_object(out_results_wrapper_ptr);
     }
-    return EB_NULL;
+    return NULL;
 }

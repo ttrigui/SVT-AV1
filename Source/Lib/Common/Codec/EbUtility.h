@@ -1,16 +1,23 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbUtility_h
 #define EbUtility_h
 
 #include "EbDefinitions.h"
-
+#include "common_dsp_rtcd.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <limits.h>
 /****************************
      * UTILITY FUNCTIONS
      ****************************/
@@ -118,8 +125,8 @@ typedef struct CodedBlockStats {
     uint8_t  depth;
     uint8_t  size;
     uint8_t  size_log2;
-    uint16_t origin_x;
-    uint16_t origin_y;
+    uint8_t origin_x;
+    uint8_t origin_y;
     uint8_t  cu_num_in_depth;
     uint8_t  parent32x32_index;
 } CodedBlockStats;
@@ -139,29 +146,17 @@ extern const CodedBlockStats* get_coded_blk_stats(const uint32_t cu_idx);
 #define TU_ORIGIN_ADJUST(cu_origin, cu_size, offset) ((((cu_size) * (offset)) >> 2) + (cu_origin))
 #define TU_SIZE_ADJUST(cu_size, tuDepth) ((cu_size) >> (tuDepth))
 
-extern uint32_t Log2f(uint32_t x);
-extern uint64_t log2f_64(uint64_t x);
-
 /****************************
      * MACROS
      ****************************/
 
-#ifdef _MSC_VER
 #define MULTI_LINE_MACRO_BEGIN do {
-#define MULTI_LINE_MACRO_END                                  \
-    __pragma(warning(push)) __pragma(warning(disable : 4127)) \
-    }                                                         \
-    while (0) __pragma(warning(pop))
-#else
-#define MULTI_LINE_MACRO_BEGIN do {
-#define MULTI_LINE_MACRO_END \
-    }                        \
-    while (0)
-#endif
+#define MULTI_LINE_MACRO_END } while (0)
 
 //**************************************************
 // MACROS
 //**************************************************
+#define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MEDIAN(a, b, c)                   ((a)>(b)?(a)>?(b)>?(b)::(a):(b)>?(a)>?(a)::(b))
@@ -212,11 +207,6 @@ extern uint64_t log2f_64(uint64_t x);
     (x) |= ((x) >> 16);             \
     (x) += 1;                       \
     MULTI_LINE_MACRO_END
-
-// Calculates the Log2 floor of the integer 'x'
-//   Intended to only be used for macro definitions
-#define LOG2F Log2f_SSE2
-
 #define LOG2F_8(x)               \
     (((x) < 0x0002u)             \
          ? 0u                    \
@@ -286,6 +276,19 @@ typedef enum MinigopIndex {
     L3_6_INDEX = 13,
     L3_7_INDEX = 14
 } MinigopIndex;
+
+// Right shift that replicates gcc's implementation
+
+static inline int gcc_right_shift(int a, unsigned shift) {
+    if (!a)
+        return 0;
+    if (a > 0)
+        return a >> shift;
+    static const unsigned sbit = 1u << (sizeof(sbit) * CHAR_BIT - 1);
+    a                          = (unsigned)a >> shift;
+    while (shift) a |= sbit >> shift--;
+    return a ^ sbit;
+}
 
 #ifdef __cplusplus
 }

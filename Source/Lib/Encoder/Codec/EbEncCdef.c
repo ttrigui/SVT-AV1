@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include "EbEncCdef.h"
-#include "stdint.h"
+#include <stdint.h>
 #include "aom_dsp_rtcd.h"
 #include "EbLog.h"
 
@@ -219,13 +219,12 @@ uint64_t compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, const ui
 }
 
 
-
-int32_t get_cdef_gi_step(int8_t cdef_filter_mode) {
-    int32_t gi_step = cdef_filter_mode == 1
-                          ? 1
-                          : cdef_filter_mode == 2
+int32_t get_cdef_gi_step(int8_t cdef_level) {
+    int32_t gi_step = cdef_level == 5
+                        ? 1
+                        : cdef_level == 4
                                 ? 4
-                                : cdef_filter_mode == 3 ? 8 : cdef_filter_mode == 4 ? 16 : 64;
+                                : cdef_level == 3 ? 8 : cdef_level == 2 ? 16 : 64;
     return gi_step;
 }
 
@@ -447,7 +446,7 @@ void eb_av1_cdef_frame(EncDecContext *context_ptr, SequenceControlSet *scs_ptr,
                 int32_t coffset;
                 int32_t rend, cend;
                 int32_t pri_damping = frm_hdr->cdef_params.cdef_damping;
-                int32_t sec_damping = frm_hdr->cdef_params.cdef_damping;
+                int32_t sec_damping = pri_damping;
                 int32_t hsize       = nhb << mi_wide_l2[pli];
                 int32_t vsize       = nvb << mi_high_l2[pli];
 
@@ -817,7 +816,7 @@ void av1_cdef_frame16bit(EncDecContext *context_ptr, SequenceControlSet *scs_ptr
                 int32_t coffset;
                 int32_t rend, cend;
                 int32_t pri_damping = frm_hdr->cdef_params.cdef_damping;
-                int32_t sec_damping = frm_hdr->cdef_params.cdef_damping;
+                int32_t sec_damping = pri_damping;
                 int32_t hsize       = nhb << mi_wide_l2[pli];
                 int32_t vsize       = nvb << mi_high_l2[pli];
 
@@ -1040,14 +1039,11 @@ void av1_cdef_frame16bit(EncDecContext *context_ptr, SequenceControlSet *scs_ptr
 
 ///-------search
 
-static int32_t priconv[REDUCED_PRI_STRENGTHS] = {0, 1, 2, 3, 5, 7, 10, 13};
-
 /* Search for the best strength to add as an option, knowing we
 already selected nb_strengths options. */
 static uint64_t search_one(int32_t *lev, int32_t nb_strengths, uint64_t mse[][TOTAL_STRENGTHS],
-                           int32_t sb_count, int32_t fast, int32_t start_gi, int32_t end_gi) {
+                           int32_t sb_count, int32_t start_gi, int32_t end_gi) {
     uint64_t tot_mse[TOTAL_STRENGTHS];
-    (void)fast;
     const int32_t total_strengths = end_gi;
     int32_t       i, j;
     uint64_t      best_tot_mse = (uint64_t)1 << 63;
@@ -1081,14 +1077,13 @@ static uint64_t search_one(int32_t *lev, int32_t nb_strengths, uint64_t mse[][TO
 /* Search for the best luma+chroma strength to add as an option, knowing we
 already selected nb_strengths options. */
 uint64_t search_one_dual_c(int *lev0, int *lev1, int nb_strengths,
-                           uint64_t (**mse)[TOTAL_STRENGTHS], int sb_count, int fast, int start_gi,
+                           uint64_t (**mse)[TOTAL_STRENGTHS], int sb_count, int start_gi,
                            int end_gi) {
     uint64_t tot_mse[TOTAL_STRENGTHS][TOTAL_STRENGTHS];
     int32_t  i, j;
     uint64_t best_tot_mse = (uint64_t)1 << 63;
     int32_t  best_id0     = 0;
     int32_t  best_id1     = 0;
-    (void)fast;
     const int32_t total_strengths = end_gi;
     memset(tot_mse, 0, sizeof(tot_mse));
     for (i = 0; i < sb_count; i++) {
@@ -1131,22 +1126,20 @@ uint64_t search_one_dual_c(int *lev0, int *lev1, int nb_strengths,
 /* Search for the set of strengths that minimizes mse. */
 static uint64_t joint_strength_search(int32_t *best_lev, int32_t nb_strengths,
                                       uint64_t mse[][TOTAL_STRENGTHS], int32_t sb_count,
-                                      int32_t fast, int32_t start_gi, int32_t end_gi) {
+                                      int32_t start_gi, int32_t end_gi) {
     uint64_t best_tot_mse;
     int32_t  i;
     best_tot_mse = (uint64_t)1 << 63;
     /* Greedy search: add one strength options at a time. */
     for (i = 0; i < nb_strengths; i++)
-        best_tot_mse = search_one(best_lev, i, mse, sb_count, fast, start_gi, end_gi);
+        best_tot_mse = search_one(best_lev, i, mse, sb_count, start_gi, end_gi);
     /* Trying to refine the greedy search by reconsidering each
     already-selected option. */
-    if (!fast) {
-        for (i = 0; i < 4 * nb_strengths; i++) {
-            int32_t j;
-            for (j = 0; j < nb_strengths - 1; j++) best_lev[j] = best_lev[j + 1];
-            best_tot_mse =
-                search_one(best_lev, nb_strengths - 1, mse, sb_count, fast, start_gi, end_gi);
-        }
+    for (i = 0; i < 4 * nb_strengths; i++) {
+        int32_t j;
+        for (j = 0; j < nb_strengths - 1; j++) best_lev[j] = best_lev[j + 1];
+        best_tot_mse =
+            search_one(best_lev, nb_strengths - 1, mse, sb_count, start_gi, end_gi);
     }
     return best_tot_mse;
 }
@@ -1154,7 +1147,7 @@ static uint64_t joint_strength_search(int32_t *best_lev, int32_t nb_strengths,
 /* Search for the set of luma+chroma strengths that minimizes mse. */
 static uint64_t joint_strength_search_dual(int32_t *best_lev0, int32_t *best_lev1,
                                            int32_t nb_strengths, uint64_t (**mse)[TOTAL_STRENGTHS],
-                                           int32_t sb_count, int32_t fast, int32_t start_gi,
+                                           int32_t sb_count, int32_t start_gi,
                                            int32_t end_gi) {
     uint64_t best_tot_mse;
     int32_t  i;
@@ -1162,7 +1155,7 @@ static uint64_t joint_strength_search_dual(int32_t *best_lev0, int32_t *best_lev
     /* Greedy search: add one strength options at a time. */
     for (i = 0; i < nb_strengths; i++)
         best_tot_mse =
-            search_one_dual(best_lev0, best_lev1, i, mse, sb_count, fast, start_gi, end_gi);
+            search_one_dual(best_lev0, best_lev1, i, mse, sb_count, start_gi, end_gi);
     /* Trying to refine the greedy search by reconsidering each
     already-selected option. */
     for (i = 0; i < 4 * nb_strengths; i++) {
@@ -1172,7 +1165,7 @@ static uint64_t joint_strength_search_dual(int32_t *best_lev0, int32_t *best_lev
             best_lev1[j] = best_lev1[j + 1];
         }
         best_tot_mse = search_one_dual(
-            best_lev0, best_lev1, nb_strengths - 1, mse, sb_count, fast, start_gi, end_gi);
+            best_lev0, best_lev1, nb_strengths - 1, mse, sb_count, start_gi, end_gi);
     }
     return best_tot_mse;
 }
@@ -1180,7 +1173,6 @@ static uint64_t joint_strength_search_dual(int32_t *best_lev0, int32_t *best_lev
 void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
                         int32_t selected_strength_cnt[64]) {
     (void)context_ptr;
-    int32_t                         fast    = 0;
     struct PictureParentControlSet *ppcs    = pcs_ptr->parent_pcs_ptr;
     FrameHeader *                   frm_hdr = &ppcs->frm_hdr;
     Av1Common *                     cm      = ppcs->av1_cm;
@@ -1192,14 +1184,13 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
     int32_t pli;
 
     uint64_t      best_tot_mse = (uint64_t)1 << 63;
-    uint64_t      tot_mse;
     int32_t       sb_count;
     int32_t       nvfb              = (mi_rows + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t       nhfb              = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     int32_t *     sb_index          = (int32_t *)malloc(nvfb * nhfb * sizeof(*sb_index));
     int32_t *     selected_strength = (int32_t *)malloc(nvfb * nhfb * sizeof(*sb_index));
     int32_t       best_frame_gi_cnt = 0;
-    const int32_t total_strengths   = fast ? REDUCED_TOTAL_STRENGTHS : TOTAL_STRENGTHS;
+    const int32_t total_strengths   = TOTAL_STRENGTHS;
     int32_t       gi_step;
     int32_t       mid_gi;
     int32_t       start_gi;
@@ -1208,14 +1199,14 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
     assert(sb_index != NULL);
     assert(selected_strength != NULL);
 
-    gi_step = get_cdef_gi_step(ppcs->cdef_filter_mode);
+    gi_step = get_cdef_gi_step(ppcs->cdef_level);
 
-    mid_gi   = ppcs->cdf_ref_frame_strenght;
-    start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_filter_mode == 1
-                   ? (AOMMAX(0, mid_gi - gi_step))
-                   : 0;
+    mid_gi = ppcs->cdf_ref_frame_strength;
+    start_gi = ppcs->use_ref_frame_cdef_strength && ppcs->cdef_level == 5
+                    ? (AOMMAX(0, mid_gi - gi_step))
+                    : 0;
     end_gi = ppcs->use_ref_frame_cdef_strength ? AOMMIN(total_strengths, mid_gi + gi_step)
-                                               : ppcs->cdef_filter_mode == 1 ? 8 : total_strengths;
+                                               : ppcs->cdef_level == 5 ? 8 : total_strengths;
 
     uint64_t(*mse[2])[TOTAL_STRENGTHS];
     int32_t       pri_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
@@ -1225,15 +1216,14 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
     uint64_t      lambda;
     const int32_t num_planes = 3; // av1_num_planes(cm);
     uint16_t qp_index = (uint8_t)pcs_ptr->parent_pcs_ptr->frm_hdr.quantization_params.base_q_idx;
-    uint32_t fast_lambda, full_lambda, fast_chroma_lambda, full_chroma_lambda;
+    uint32_t fast_lambda, full_lambda = 0;
     (*av1_lambda_assignment_function_table[pcs_ptr->parent_pcs_ptr->pred_structure])(
+        pcs_ptr,
         &fast_lambda,
         &full_lambda,
-        &fast_chroma_lambda,
-        &full_chroma_lambda,
         (uint8_t)pcs_ptr->parent_pcs_ptr->enhanced_picture_ptr->bit_depth,
         qp_index,
-        pcs_ptr->hbd_mode_decision);
+        EB_FALSE);
     lambda = full_lambda;
 
     mse[0] = (uint64_t(*)[64])malloc(sizeof(**mse) * nvfb * nhfb);
@@ -1258,11 +1248,11 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
 
             for (pli = 0; pli < num_planes; pli++) {
                 if (pli == 0)
-                    memcpy(mse[0][sb_count],
+                    eb_memcpy(mse[0][sb_count],
                            pcs_ptr->mse_seg[0][fbr * nhfb + fbc],
                            TOTAL_STRENGTHS * sizeof(uint64_t));
                 if (pli == 2)
-                    memcpy(mse[1][sb_count],
+                    eb_memcpy(mse[1][sb_count],
                            pcs_ptr->mse_seg[1][fbr * nhfb + fbc],
                            TOTAL_STRENGTHS * sizeof(uint64_t));
                 sb_index[sb_count] = MI_SIZE_64X64 * fbr * pcs_ptr->mi_stride + MI_SIZE_64X64 * fbc;
@@ -1274,26 +1264,22 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
     nb_strength_bits = 0;
     /* Search for different number of signalling bits. */
     for (i = 0; i <= 3; i++) {
-        int32_t j;
         int32_t best_lev0[CDEF_MAX_STRENGTHS];
         int32_t best_lev1[CDEF_MAX_STRENGTHS] = {0};
         nb_strengths                          = 1 << i;
-        if (num_planes >= 3)
-            tot_mse = joint_strength_search_dual(
-                best_lev0, best_lev1, nb_strengths, mse, sb_count, fast, start_gi, end_gi);
-        else
-            tot_mse = joint_strength_search(
-                best_lev0, nb_strengths, mse[0], sb_count, fast, start_gi, end_gi);
+        uint64_t tot_mse                      = joint_strength_search_dual(
+            best_lev0, best_lev1, nb_strengths, mse, sb_count, start_gi, end_gi);
+        (void)joint_strength_search;
         /* Count superblock signalling cost. */
         const int total_bits =
-            sb_count * i + nb_strengths * CDEF_STRENGTH_BITS * (num_planes > 1 ? 2 : 1);
+            sb_count * i + nb_strengths * CDEF_STRENGTH_BITS * 2;
         const int      rate_cost = av1_cost_literal(total_bits);
         const uint64_t dist      = tot_mse * 16;
         tot_mse                  = RDCOST(lambda, rate_cost, dist);
         if (tot_mse < best_tot_mse) {
             best_tot_mse     = tot_mse;
             nb_strength_bits = i;
-            for (j = 0; j < 1 << nb_strength_bits; j++) {
+            for (int32_t j = 0; j < 1 << nb_strength_bits; j++) {
                 frm_hdr->cdef_params.cdef_y_strength[j]  = best_lev0[j];
                 frm_hdr->cdef_params.cdef_uv_strength[j] = best_lev1[j];
             }
@@ -1310,7 +1296,7 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
         best_gi           = 0;
         for (gi = 0; gi < ppcs->nb_cdef_strengths; gi++) {
             uint64_t curr = mse[0][i][frm_hdr->cdef_params.cdef_y_strength[gi]];
-            if (num_planes >= 3) curr += mse[1][i][frm_hdr->cdef_params.cdef_uv_strength[gi]];
+            curr += mse[1][i][frm_hdr->cdef_params.cdef_uv_strength[gi]];
             if (curr < best_mse) {
                 best_gi  = gi;
                 best_mse = curr;
@@ -1345,21 +1331,9 @@ void finish_cdef_search(EncDecContext *context_ptr, PictureControlSet *pcs_ptr,
         }
     }
 
-    if (fast) {
-        for (int32_t j = 0; j < nb_strengths; j++) {
-            frm_hdr->cdef_params.cdef_y_strength[j] =
-                priconv[frm_hdr->cdef_params.cdef_y_strength[j] / CDEF_SEC_STRENGTHS] *
-                    CDEF_SEC_STRENGTHS +
-                (frm_hdr->cdef_params.cdef_y_strength[j] % CDEF_SEC_STRENGTHS);
-            frm_hdr->cdef_params.cdef_uv_strength[j] =
-                priconv[frm_hdr->cdef_params.cdef_uv_strength[j] / CDEF_SEC_STRENGTHS] *
-                    CDEF_SEC_STRENGTHS +
-                (frm_hdr->cdef_params.cdef_uv_strength[j] % CDEF_SEC_STRENGTHS);
-        }
-    }
     //cdef_pri_damping & cdef_sec_damping consolidated to cdef_damping
     frm_hdr->cdef_params.cdef_damping = pri_damping;
-    for (int i = 0; i < total_strengths; i++)
+    for (i = 0; i < total_strengths; i++)
         best_frame_gi_cnt += selected_strength_cnt[i] > best_frame_gi_cnt ? 1 : 0;
     ppcs->cdef_frame_strength = ((best_frame_gi_cnt + 4) / 4) * 4;
 

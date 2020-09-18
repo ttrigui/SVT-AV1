@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbPredictionStructure_h
@@ -172,13 +178,14 @@ typedef struct PredictionStructureGroup {
     EbDctor               dctor;
     PredictionStructure **prediction_structure_ptr_array;
     uint32_t              prediction_structure_count;
+    void*                 priv; /* private member*/
 } PredictionStructureGroup;
 
 /************************************************
      * Declarations
      ************************************************/
 extern EbErrorType prediction_structure_group_ctor(PredictionStructureGroup *pred_struct_group_ptr,
-                                                   uint8_t                   enc_mode,
+                                                   EbEncMode                 enc_mode,
                                                    EbSvtAv1EncConfiguration *config);
 
 extern PredictionStructure *get_prediction_structure(

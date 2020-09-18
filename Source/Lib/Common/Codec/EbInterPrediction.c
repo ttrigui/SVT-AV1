@@ -1,17 +1,13 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include <stdlib.h>
@@ -50,16 +46,15 @@ int is_masked_compound_type(COMPOUND_TYPE type) {
 }
 
 
-void aom_highbd_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
+void eb_aom_highbd_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
                                  const uint8_t *src8, ptrdiff_t src_stride, const uint8_t *pred8,
                                  ptrdiff_t pred_stride, int bd) {
-    int       r, c;
     uint16_t *src  = (uint16_t *)(src8);
     uint16_t *pred = (uint16_t *)(pred8);
     (void)bd;
 
-    for (r = 0; r < rows; r++) {
-        for (c = 0; c < cols; c++) { diff[c] = src[c] - pred[c]; }
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) { diff[c] = src[c] - pred[c]; }
 
         diff += diff_stride;
         pred += pred_stride;
@@ -67,13 +62,12 @@ void aom_highbd_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t di
     }
 }
 
-void aom_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
+void eb_aom_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_stride,
                           const uint8_t *src, ptrdiff_t src_stride, const uint8_t *pred,
                           ptrdiff_t pred_stride) {
-    int r, c;
 
-    for (r = 0; r < rows; r++) {
-        for (c = 0; c < cols; c++) diff[c] = src[c] - pred[c];
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) diff[c] = src[c] - pred[c];
 
         diff += diff_stride;
         pred += pred_stride;
@@ -83,11 +77,10 @@ void aom_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_stri
 
 static void diffwtd_mask(uint8_t *mask, int which_inverse, int mask_base, const uint8_t *src0,
                          int src0_stride, const uint8_t *src1, int src1_stride, int h, int w) {
-    int i, j, m, diff;
-    for (i = 0; i < h; ++i) {
-        for (j = 0; j < w; ++j) {
-            diff            = abs((int)src0[i * src0_stride + j] - (int)src1[i * src1_stride + j]);
-            m               = clamp(mask_base + (diff / DIFF_FACTOR), 0, AOM_BLEND_A64_MAX_ALPHA);
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w; ++j) {
+            int diff        = abs((int)src0[i * src0_stride + j] - (int)src1[i * src1_stride + j]);
+            int m           = clamp(mask_base + (diff / DIFF_FACTOR), 0, AOM_BLEND_A64_MAX_ALPHA);
             mask[i * w + j] = which_inverse ? AOM_BLEND_A64_MAX_ALPHA - m : m;
         }
     }
@@ -152,10 +145,10 @@ static AOM_FORCE_INLINE void diffwtd_mask_highbd(uint8_t *mask, int which_invers
         }
     }
 }
-void av1_build_compound_diffwtd_mask_highbd_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type,
-                                              const uint8_t *src0, int src0_stride,
-                                              const uint8_t *src1, int src1_stride, int h, int w,
-                                              int bd) {
+void eb_av1_build_compound_diffwtd_mask_highbd_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type,
+                                                 const uint8_t *src0, int src0_stride,
+                                                 const uint8_t *src1, int src1_stride, int h, int w,
+                                                 int bd) {
     switch (mask_type) {
         case DIFFWTD_38:
             diffwtd_mask_highbd(
@@ -169,9 +162,9 @@ void av1_build_compound_diffwtd_mask_highbd_c(uint8_t *mask, DIFFWTD_MASK_TYPE m
     }
 }
 
-void av1_build_compound_diffwtd_mask_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type,
-                                       const uint8_t *src0, int src0_stride, const uint8_t *src1,
-                                       int src1_stride, int h, int w) {
+void eb_av1_build_compound_diffwtd_mask_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type,
+                                          const uint8_t *src0, int src0_stride, const uint8_t *src1,
+                                          int src1_stride, int h, int w) {
     switch (mask_type) {
         case DIFFWTD_38: diffwtd_mask(mask, 0, 38, src0, src0_stride, src1, src1_stride, h, w); break;
         case DIFFWTD_38_INV:
@@ -182,7 +175,6 @@ void av1_build_compound_diffwtd_mask_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_typ
 }
 
 
-/* TODO: Add scaling of reference frame support later */
 // Note: Expect val to be in q4 precision
 static INLINE int32_t scaled_x(int32_t val, const ScaleFactors *sf) {
     const int     off  = (sf->x_scale_fp - (1 << REF_SCALE_SHIFT)) * (1 << (SUBPEL_BITS - 1));
@@ -217,7 +209,7 @@ static int32_t fixed_point_scale_to_coarse_point_scale(int32_t scale_fp) {
 }
 
 // Note: x and y are integer precision, mvq4 is q4 precision.
-MV32 av1_scale_mv(const MV *mvq4, int x, int y, const ScaleFactors *sf) {
+MV32 eb_av1_scale_mv(const MV *mvq4, int x, int y, const ScaleFactors *sf) {
     const int  x_off_q4 = scaled_x(x << SUBPEL_BITS, sf);
     const int  y_off_q4 = scaled_y(y << SUBPEL_BITS, sf);
     const MV32 res      = {scaled_y((y << SUBPEL_BITS) + mvq4->row, sf) - y_off_q4,
@@ -225,8 +217,8 @@ MV32 av1_scale_mv(const MV *mvq4, int x, int y, const ScaleFactors *sf) {
     return res;
 }
 
-void av1_setup_scale_factors_for_frame(ScaleFactors *sf, int other_w, int other_h, int this_w,
-                                       int this_h) {
+void eb_av1_setup_scale_factors_for_frame(ScaleFactors *sf, int other_w, int other_h, int this_w,
+                                          int this_h) {
     if (!valid_ref_frame_size(other_w, other_h, this_w, this_h)) {
         sf->x_scale_fp = REF_INVALID_SCALE;
         sf->y_scale_fp = REF_INVALID_SCALE;
@@ -314,10 +306,10 @@ static const int quant_dist_lookup_table[2][4][2] = {
     {{7, 9}, {5, 11}, {4, 12}, {3, 13}},
 };
 
-void av1_dist_wtd_comp_weight_assign(SeqHeader *seq_header, int cur_frame_index,
-                                     int bck_frame_index, int fwd_frame_index, int compound_idx,
-                                     int order_idx, int *fwd_offset, int *bck_offset,
-                                     int *use_dist_wtd_comp_avg, int is_compound) {
+void eb_av1_dist_wtd_comp_weight_assign(SeqHeader *seq_header, int cur_frame_index,
+                                        int bck_frame_index, int fwd_frame_index, int compound_idx,
+                                        int order_idx, int *fwd_offset, int *bck_offset,
+                                        int *use_dist_wtd_comp_avg, int is_compound) {
     assert(fwd_offset != NULL && bck_offset != NULL);
     if (!is_compound || compound_idx) {
         *use_dist_wtd_comp_avg = 0;
@@ -1094,7 +1086,6 @@ void eb_av1_highbd_jnt_convolve_2d_c(const uint16_t *src, int32_t src_stride, ui
                                      ConvolveParams *conv_params, int32_t bd)
 
 {
-    int32_t       x, y, k;
     int16_t       im_block[(MAX_SB_SIZE + MAX_FILTER_TAP - 1) * MAX_SB_SIZE];
     ConvBufType * dst        = conv_params->dst;
     int32_t       dst_stride = conv_params->dst_stride;
@@ -1110,10 +1101,10 @@ void eb_av1_highbd_jnt_convolve_2d_c(const uint16_t *src, int32_t src_stride, ui
     const uint16_t *src_horiz = src - fo_vert * src_stride;
     const int16_t * x_filter =
         av1_get_interp_filter_subpel_kernel(*filter_params_x, subpel_x_q4 & SUBPEL_MASK);
-    for (y = 0; y < im_h; ++y) {
-        for (x = 0; x < w; ++x) {
+    for (int y = 0; y < im_h; ++y) {
+        for (int x = 0; x < w; ++x) {
             int32_t sum = (1 << (bd + FILTER_BITS - 1));
-            for (k = 0; k < filter_params_x->taps; ++k)
+            for (int k = 0; k < filter_params_x->taps; ++k)
                 sum += x_filter[k] * src_horiz[y * src_stride + x - fo_horiz + k];
             assert(0 <= sum && sum < (1 << (bd + FILTER_BITS + 1)));
             (void)bd;
@@ -1126,10 +1117,10 @@ void eb_av1_highbd_jnt_convolve_2d_c(const uint16_t *src, int32_t src_stride, ui
     const int32_t  offset_bits = bd + 2 * FILTER_BITS - conv_params->round_0;
     const int16_t *y_filter =
         av1_get_interp_filter_subpel_kernel(*filter_params_y, subpel_y_q4 & SUBPEL_MASK);
-    for (y = 0; y < h; ++y) {
-        for (x = 0; x < w; ++x) {
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
             int32_t sum = 1 << offset_bits;
-            for (k = 0; k < filter_params_y->taps; ++k)
+            for (int k = 0; k < filter_params_y->taps; ++k)
                 sum += y_filter[k] * src_vert[(y - fo_vert + k) * im_stride + x];
             assert(0 <= sum && sum < (1 << (offset_bits + 2)));
             ConvBufType res = (ConvBufType)ROUND_POWER_OF_TWO(sum, conv_params->round_1);
@@ -1256,15 +1247,10 @@ DECLARE_ALIGNED(256, const InterpKernel, sub_pel_filters_4smooth[SUBPEL_SHIFTS])
     {0, 0, 4, 40, 62, 22, 0, 0},
     {0, 0, 4, 36, 62, 26, 0, 0},
     {0, 0, 2, 34, 62, 30, 0, 0}};
-static const InterpFilterParams av1_interp_filter_params_list[SWITCHABLE_FILTERS + 1] = {
-    {(const int16_t *)sub_pel_filters_8, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_REGULAR},
-    {(const int16_t *)sub_pel_filters_8smooth, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_SMOOTH},
-    {(const int16_t *)sub_pel_filters_8sharp, SUBPEL_TAPS, SUBPEL_SHIFTS, MULTITAP_SHARP},
-    {(const int16_t *)bilinear_filters, SUBPEL_TAPS, SUBPEL_SHIFTS, BILINEAR}};
+
 static const InterpFilterParams av1_interp_4tap[2] = {
     {(const int16_t *)sub_pel_filters_4, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_REGULAR},
-    {(const int16_t *)sub_pel_filters_4smooth, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_SMOOTH},
-};
+    {(const int16_t *)sub_pel_filters_4smooth, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_SMOOTH},};
 InterpFilterParams av1_get_interp_filter_params_with_block_size(const InterpFilter interp_filter,
                                                                 const int32_t      w) {
     if (w <= 4 && (interp_filter == MULTITAP_SHARP || interp_filter == EIGHTTAP_REGULAR))
@@ -1641,18 +1627,17 @@ const uint8_t *av1_get_contiguous_soft_mask(int wedge_index, int wedge_sign,
     return wedge_params_lookup[sb_type].masks[wedge_sign][wedge_index];
 }
 
-void aom_convolve_copy_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
-                         ptrdiff_t dst_stride, const int16_t *filter_x, int filter_x_stride,
-                         const int16_t *filter_y, int filter_y_stride, int w, int h) {
-    int r;
+static void aom_convolve_copy_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+                                ptrdiff_t dst_stride, const int16_t *filter_x, int filter_x_stride,
+                                const int16_t *filter_y, int filter_y_stride, int w, int h) {
 
     (void)filter_x;
     (void)filter_x_stride;
     (void)filter_y;
     (void)filter_y_stride;
 
-    for (r = h; r > 0; --r) {
-        memcpy(dst, src, w);
+    for (int r = h; r > 0; --r) {
+        eb_memcpy(dst, src, w);
         src += src_stride;
         dst += dst_stride;
     }
@@ -1660,11 +1645,11 @@ void aom_convolve_copy_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
 
 static void shift_copy(const uint8_t *src, uint8_t *dst, int shift, int width) {
     if (shift >= 0) {
-        memcpy(dst + shift, src, width - shift);
+        eb_memcpy(dst + shift, src, width - shift);
         memset(dst, src[0], shift);
     } else {
         shift = -shift;
-        memcpy(dst, src + shift, width - shift);
+        eb_memcpy(dst, src + shift, width - shift);
         memset(dst + width - shift, src[width - 1], shift);
     }
 }
@@ -1685,7 +1670,6 @@ DECLARE_ALIGNED(16, static uint8_t,
 DECLARE_ALIGNED(16, static uint8_t, wedge_mask_buf[2 * MAX_WEDGE_TYPES * 4 * MAX_WEDGE_SQUARE]);
 
 static void init_wedge_master_masks() {
-    int       i, j;
     const int w      = MASK_MASTER_SIZE;
     const int h      = MASK_MASTER_SIZE;
     const int stride = MASK_MASTER_STRIDE;
@@ -1693,7 +1677,7 @@ static void init_wedge_master_masks() {
 #if USE_PRECOMPUTED_WEDGE_MASK
     // Generate prototype by shifting the masters
     int shift = h / 4;
-    for (i = 0; i < h; i += 2) {
+    for (int i = 0; i < h; i += 2) {
         shift_copy(wedge_master_oblique_even,
                    &wedge_mask_obl[0][WEDGE_OBLIQUE63][i * stride],
                    shift,
@@ -1703,19 +1687,19 @@ static void init_wedge_master_masks() {
                    &wedge_mask_obl[0][WEDGE_OBLIQUE63][(i + 1) * stride],
                    shift,
                    MASK_MASTER_SIZE);
-        memcpy(&wedge_mask_obl[0][WEDGE_VERTICAL][i * stride],
-               wedge_master_vertical,
+        eb_memcpy(&wedge_mask_obl[0][WEDGE_VERTICAL][i * stride],
+                wedge_master_vertical,
                MASK_MASTER_SIZE * sizeof(wedge_master_vertical[0]));
-        memcpy(&wedge_mask_obl[0][WEDGE_VERTICAL][(i + 1) * stride],
-               wedge_master_vertical,
+        eb_memcpy(&wedge_mask_obl[0][WEDGE_VERTICAL][(i + 1) * stride],
+                wedge_master_vertical,
                MASK_MASTER_SIZE * sizeof(wedge_master_vertical[0]));
     }
 #else
     static const double smoother_param = 2.85;
     const int           a[2]           = {2, 1};
     const double        asqrt          = sqrt(a[0] * a[0] + a[1] * a[1]);
-    for (i = 0; i < h; i++) {
-        for (j = 0; j < w; ++j) {
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; ++j) {
             int       x   = (2 * j + 1 - w);
             int       y   = (2 * i + 1 - h);
             double    d   = (a[0] * x + a[1] * y) / asqrt;
@@ -1726,8 +1710,8 @@ static void init_wedge_master_masks() {
         }
     }
 #endif // USE_PRECOMPUTED_WEDGE_MASK
-    for (i = 0; i < h; ++i) {
-        for (j = 0; j < w; ++j) {
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w; ++j) {
             const int msk = wedge_mask_obl[0][WEDGE_OBLIQUE63][i * stride + j];
             wedge_mask_obl[0][WEDGE_OBLIQUE27][j * stride + i] = msk;
             wedge_mask_obl[0][WEDGE_OBLIQUE117][i * stride + w - 1 - j] =
@@ -1751,22 +1735,21 @@ static void init_wedge_master_masks() {
 // inconsistent flip the sign flag. Do it only once for every
 // wedge codebook.
 static void init_wedge_signs() {
-    BLOCK_SIZE sb_type;
     memset(wedge_signflip_lookup, 0, sizeof(wedge_signflip_lookup));
-    for (sb_type = BLOCK_4X4; sb_type < BLOCK_SIZES_ALL; ++sb_type) {
+    for (BLOCK_SIZE sb_type = BLOCK_4X4; sb_type < BLOCK_SIZES_ALL; ++sb_type) {
         const int               bw           = block_size_wide[sb_type];
         const int               bh           = block_size_high[sb_type];
         const wedge_params_type wedge_params = wedge_params_lookup[sb_type];
         const int               wbits        = wedge_params.bits;
         const int               wtypes       = 1 << wbits;
-        int                     i, w;
+
         if (wbits) {
-            for (w = 0; w < wtypes; ++w) {
+            for (int w = 0; w < wtypes; ++w) {
                 // Get the mask master, i.e. index [0]
                 const uint8_t *mask = get_wedge_mask_inplace(w, 0, sb_type);
                 int            avg  = 0;
-                for (i = 0; i < bw; ++i) avg += mask[i];
-                for (i = 1; i < bh; ++i) avg += mask[i * MASK_MASTER_STRIDE];
+                for (int i = 0; i < bw; ++i) avg += mask[i];
+                for (int i = 1; i < bh; ++i) avg += mask[i * MASK_MASTER_STRIDE];
                 avg = (avg + (bw + bh - 1) / 2) / (bw + bh - 1);
                 // Default sign of this wedge is 1 if the average < 32, 0 otherwise.
                 // If default sign is 1:
@@ -1788,11 +1771,12 @@ static const uint8_t *get_wedge_mask_inplace(int wedge_index, int neg, BlockSize
     const uint8_t *      master;
     const int            bh = block_size_high[sb_type];
     const int            bw = block_size_wide[sb_type];
+
+    assert(wedge_index >= 0 && wedge_index < (1 << get_wedge_bits_lookup(sb_type)));
     const WedgeCodeType *a  = wedge_params_lookup[sb_type].codebook + wedge_index;
     int                  woff, hoff;
     const uint8_t        wsignflip = wedge_params_lookup[sb_type].signflip[wedge_index];
 
-    assert(wedge_index >= 0 && wedge_index < (1 << get_wedge_bits_lookup(sb_type)));
     woff   = (a->x_offset * bw) >> 3;
     hoff   = (a->y_offset * bh) >> 3;
     master = wedge_mask_obl[neg ^ wsignflip][a->direction] +
@@ -1802,18 +1786,16 @@ static const uint8_t *get_wedge_mask_inplace(int wedge_index, int neg, BlockSize
 
 static void init_wedge_masks() {
     uint8_t * dst = wedge_mask_buf;
-    BlockSize bsize;
     memset(wedge_masks, 0, sizeof(wedge_masks));
-    for (bsize = BLOCK_4X4; bsize < BlockSizeS_ALL; ++bsize) {
-        const uint8_t *        mask;
+    for (BlockSize bsize = BLOCK_4X4; bsize < BlockSizeS_ALL; ++bsize) {
         const int              bw           = block_size_wide[bsize];
         const int              bh           = block_size_high[bsize];
         const WedgeParamsType *wedge_params = &wedge_params_lookup[bsize];
         const int              wbits        = wedge_params->bits;
         const int              wtypes       = 1 << wbits;
-        int                    w;
         if (wbits == 0) continue;
-        for (w = 0; w < wtypes; ++w) {
+        for (int w = 0; w < wtypes; ++w) {
+            const uint8_t *mask;
             mask = get_wedge_mask_inplace(w, 0, bsize);
             aom_convolve_copy_c(mask, MASK_MASTER_STRIDE, dst, bw, NULL, 0, NULL, 0, bw, bh);
             wedge_params->masks[0][w] = dst;
@@ -1829,7 +1811,7 @@ static void init_wedge_masks() {
 }
 
 // Equation of line: f(x, y) = a[0]*(x - a[2]*w/8) + a[1]*(y - a[3]*h/8) = 0
-void av1_init_wedge_masks(void) {
+void eb_av1_init_wedge_masks(void) {
     init_wedge_master_masks();
 #if !USE_PRECOMPUTED_WEDGE_SIGN
     init_wedge_signs();
@@ -1858,36 +1840,35 @@ static uint8_t ii_size_scales[BlockSizeS_ALL] = {
 
 void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize,
                                   InterIntraMode mode) {
-    int       i, j;
     const int bw         = block_size_wide[plane_bsize];
     const int bh         = block_size_high[plane_bsize];
     const int size_scale = ii_size_scales[plane_bsize];
 
     switch (mode) {
         case II_V_PRED:
-            for (i = 0; i < bh; ++i) {
+            for (int i = 0; i < bh; ++i) {
                 memset(mask, ii_weights1d[i * size_scale], bw * sizeof(mask[0]));
                 mask += stride;
             }
             break;
 
         case II_H_PRED:
-            for (i = 0; i < bh; ++i) {
-                for (j = 0; j < bw; ++j) mask[j] = ii_weights1d[j * size_scale];
+            for (int i = 0; i < bh; ++i) {
+                for (int j = 0; j < bw; ++j) mask[j] = ii_weights1d[j * size_scale];
                 mask += stride;
             }
             break;
 
         case II_SMOOTH_PRED:
-            for (i = 0; i < bh; ++i) {
-                for (j = 0; j < bw; ++j) mask[j] = ii_weights1d[(i < j ? i : j) * size_scale];
+            for (int i = 0; i < bh; ++i) {
+                for (int j = 0; j < bw; ++j) mask[j] = ii_weights1d[(i < j ? i : j) * size_scale];
                 mask += stride;
             }
             break;
 
         case II_DC_PRED:
         default:
-            for (i = 0; i < bh; ++i) {
+            for (int i = 0; i < bh; ++i) {
                 memset(mask, 32, bw * sizeof(mask[0]));
                 mask += stride;
             }
@@ -1908,42 +1889,42 @@ void combine_interintra_highbd(InterIntraMode mode, uint8_t use_wedge_interintra
             const uint8_t *mask = av1_get_contiguous_soft_mask(wedge_index, wedge_sign, bsize);
             const int      subh = 2 * mi_size_high[bsize] == bh;
             const int      subw = 2 * mi_size_wide[bsize] == bw;
-            aom_highbd_blend_a64_mask(comppred8,
-                                      compstride,
-                                      intrapred8,
-                                      intrastride,
-                                      interpred8,
-                                      interstride,
-                                      mask,
-                                      block_size_wide[bsize],
-                                      bw,
-                                      bh,
-                                      subw,
-                                      subh,
-                                      bd);
+            eb_aom_highbd_blend_a64_mask(comppred8,
+                                         compstride,
+                                         intrapred8,
+                                         intrastride,
+                                         interpred8,
+                                         interstride,
+                                         mask,
+                                         block_size_wide[bsize],
+                                         bw,
+                                         bh,
+                                         subw,
+                                         subh,
+                                         bd);
         }
         return;
     }
 
     uint8_t mask[MAX_SB_SQUARE];
     build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
-    aom_highbd_blend_a64_mask(comppred8,
-                              compstride,
-                              intrapred8,
-                              intrastride,
-                              interpred8,
-                              interstride,
-                              mask,
-                              bw,
-                              bw,
-                              bh,
-                              0,
-                              0,
-                              bd);
+    eb_aom_highbd_blend_a64_mask(comppred8,
+                                 compstride,
+                                 intrapred8,
+                                 intrastride,
+                                 interpred8,
+                                 interstride,
+                                 mask,
+                                 bw,
+                                 bw,
+                                 bh,
+                                 0,
+                                 0,
+                                 bd);
 }
 
-const uint8_t *av1_get_compound_type_mask(const InterInterCompoundData *const comp_data,
-                                          uint8_t *seg_mask, BlockSize sb_type) {
+static const uint8_t *av1_get_compound_type_mask(const InterInterCompoundData *const comp_data,
+                                                 uint8_t *seg_mask, BlockSize sb_type) {
     assert(is_masked_compound_type(comp_data->type));
     (void)sb_type;
     switch (comp_data->type) {
@@ -1958,42 +1939,42 @@ void build_masked_compound_no_round(uint8_t *dst, int dst_stride, const CONV_BUF
                                     int src0_stride, const CONV_BUF_TYPE *src1, int src1_stride,
                                     const InterInterCompoundData *const comp_data,
                                     uint8_t *seg_mask, BlockSize sb_type, int h, int w,
-                                    ConvolveParams *conv_params, uint8_t bit_depth) {
+                                    ConvolveParams *conv_params, uint8_t bit_depth, EbBool is_16bit) {
     // Derive subsampling from h and w passed in. May be refactored to
     // pass in subsampling factors directly.
     const int      subh = (2 << mi_size_high_log2[sb_type]) == h;
     const int      subw = (2 << mi_size_wide_log2[sb_type]) == w;
     const uint8_t *mask = av1_get_compound_type_mask(comp_data, seg_mask, sb_type);
 
-    if (bit_depth > EB_8BIT) {
-        aom_highbd_blend_a64_d16_mask(dst,
-                                      dst_stride,
-                                      src0,
-                                      src0_stride,
-                                      src1,
-                                      src1_stride,
-                                      mask,
-                                      block_size_wide[sb_type],
-                                      w,
-                                      h,
-                                      subw,
-                                      subh,
-                                      conv_params,
-                                      bit_depth);
+    if (is_16bit) {
+        eb_aom_highbd_blend_a64_d16_mask(dst,
+                                         dst_stride,
+                                         src0,
+                                         src0_stride,
+                                         src1,
+                                         src1_stride,
+                                         mask,
+                                         block_size_wide[sb_type],
+                                         w,
+                                         h,
+                                         subw,
+                                         subh,
+                                         conv_params,
+                                         bit_depth);
     } else {
-        aom_lowbd_blend_a64_d16_mask(dst,
-                                     dst_stride,
-                                     src0,
-                                     src0_stride,
-                                     src1,
-                                     src1_stride,
-                                     mask,
-                                     block_size_wide[sb_type],
-                                     w,
-                                     h,
-                                     subw,
-                                     subh,
-                                     conv_params);
+        eb_aom_lowbd_blend_a64_d16_mask(dst,
+                                        dst_stride,
+                                        src0,
+                                        src0_stride,
+                                        src1,
+                                        src1_stride,
+                                        mask,
+                                        block_size_wide[sb_type],
+                                        w,
+                                        h,
+                                        subw,
+                                        subh,
+                                        conv_params);
     }
 }
 
@@ -2111,7 +2092,7 @@ void av1_set_ref_frame(MvReferenceFrame *rf, int8_t ref_frame_type) {
     }
 }
 
-int av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y) {
+int eb_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y) {
     assert(is_motion_variation_allowed_bsize(bsize));
 
     const BlockSize bsize_plane = get_plane_block_size(bsize, subsampling_x, subsampling_y);
@@ -2159,12 +2140,11 @@ int av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int 
  * holds for 8 bit input, and on real input, it should hold practically always,
  * as residuals are expected to be small.
  */
-uint64_t av1_wedge_sse_from_residuals_c(const int16_t *r1, const int16_t *d, const uint8_t *m,
+uint64_t eb_av1_wedge_sse_from_residuals_c(const int16_t *r1, const int16_t *d, const uint8_t *m,
                                         int N) {
     uint64_t csse = 0;
-    int      i;
 
-    for (i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         int32_t t = MAX_MASK_VALUE * r1[i] + m[i] * d[i];
         t         = clamp(t, INT16_MIN, INT16_MAX);
         csse += t * t;
@@ -2185,44 +2165,43 @@ void combine_interintra(InterIntraMode mode, int8_t use_wedge_interintra, int we
             const uint8_t *mask = av1_get_contiguous_soft_mask(wedge_index, wedge_sign, bsize);
             const int      subw = 2 * mi_size_wide[bsize] == bw;
             const int      subh = 2 * mi_size_high[bsize] == bh;
-            aom_blend_a64_mask(comppred,
-                               compstride,
-                               intrapred,
-                               intrastride,
-                               interpred,
-                               interstride,
-                               mask,
-                               block_size_wide[bsize],
-                               bw,
-                               bh,
-                               subw,
-                               subh);
+            eb_aom_blend_a64_mask(comppred,
+                                  compstride,
+                                  intrapred,
+                                  intrastride,
+                                  interpred,
+                                  interstride,
+                                  mask,
+                                  block_size_wide[bsize],
+                                  bw,
+                                  bh,
+                                  subw,
+                                  subh);
         }
         return;
     } else {
         uint8_t mask[MAX_SB_SQUARE];
         build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
-        aom_blend_a64_mask(comppred,
-                           compstride,
-                           intrapred,
-                           intrastride,
-                           interpred,
-                           interstride,
-                           mask,
-                           bw,
-                           bw,
-                           bh,
-                           0,
-                           0);
+        eb_aom_blend_a64_mask(comppred,
+                              compstride,
+                              intrapred,
+                              intrastride,
+                              interpred,
+                              interstride,
+                              mask,
+                              bw,
+                              bw,
+                              bh,
+                              0,
+                              0);
     }
 }
 
-void eb_aom_highbd_blend_a64_hmask_c(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+void eb_aom_highbd_blend_a64_hmask_c_16bit(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
                                      uint32_t src0_stride, const uint16_t *src1,
                                      uint32_t src1_stride, const uint8_t *mask, int w, int h,
                                      int bd) {
     (void)bd;
-    int i, j;
 
     assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
     assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
@@ -2234,15 +2213,15 @@ void eb_aom_highbd_blend_a64_hmask_c(uint16_t *dst, uint32_t dst_stride, const u
 
     assert(bd == 8 || bd == 10 || bd == 12);
 
-    for (i = 0; i < h; ++i) {
-        for (j = 0; j < w; ++j) {
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w; ++j) {
             dst[i * dst_stride + j] =
                     AOM_BLEND_A64(mask[j], src0[i * src0_stride + j], src1[i * src1_stride + j]);
         }
     }
 }
 
-uint64_t aom_sum_squares_i16_c(const int16_t *src, uint32_t n) {
+uint64_t eb_aom_sum_squares_i16_c(const int16_t *src, uint32_t n) {
     uint64_t ss = 0;
     do {
         const int16_t v = *src++;
@@ -2273,7 +2252,7 @@ static const uint8_t obmc_mask_64[64] = {
         61, 62, 62, 62, 62, 62, 63, 63, 63, 63, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
 };
 
-const uint8_t *av1_get_obmc_mask(int length) {
+const uint8_t *eb_av1_get_obmc_mask(int length) {
     switch (length) {
         case 1: return obmc_mask_1;
         case 2: return obmc_mask_2;
@@ -2285,5 +2264,3 @@ const uint8_t *av1_get_obmc_mask(int length) {
         default: assert(0); return NULL;
     }
 }
-
-

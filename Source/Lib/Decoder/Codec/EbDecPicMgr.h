@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Netflix, Inc.
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbDecPicMgr_h
@@ -29,8 +35,7 @@ typedef struct RefFrameInfo {
 
 EbErrorType dec_pic_mgr_init(EbDecHandle *dec_handle_ptr);
 
-EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecPicMgr *ps_pic_mgr, SeqHeader *seq_header,
-                                     FrameHeader *frame_info, EbColorFormat color_format);
+EbDecPicBuf *dec_pic_mgr_get_cur_pic(EbDecHandle *dec_handle_ptr);
 
 void dec_pic_mgr_update_ref_pic(EbDecHandle *dec_handle_ptr, int32_t frame_decoded,
                                 int32_t refresh_frame_flags);
@@ -41,6 +46,8 @@ EbDecPicBuf *get_ref_frame_buf(EbDecHandle *dec_handle_ptr, const MvReferenceFra
 void         svt_setup_frame_buf_refs(EbDecHandle *dec_handle_ptr);
 
 ScaleFactors *get_ref_scale_factors(EbDecHandle *dec_handle_ptr, const MvReferenceFrame ref_frame);
+
+EbDecPicBuf *get_primary_ref_frame_buf(EbDecHandle *dec_handle_ptr);
 
 void svt_set_frame_refs(EbDecHandle *dec_handle_ptr, int32_t lst_map_idx, int32_t gld_map_idx);
 

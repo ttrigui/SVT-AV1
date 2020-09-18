@@ -1,14 +1,20 @@
 /*
- * Copyright(c) 2019 Netflix, Inc.
- * SPDX - License - Identifier: BSD - 2 - Clause - Patent
- */
+* Copyright(c) 2019 Netflix, Inc.
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
+*/
 
 /******************************************************************************
  * @file PaletteModeUtilTest.cc
  *
  * @brief Unit test for util functions in palette mode:
  * - eb_av1_count_colors
- * - av1_count_colors_highbd
+ * - eb_av1_count_colors_highbd
  * - av1_k_means_dim1
  * - av1_k_means_dim2
  *
@@ -40,13 +46,13 @@ namespace {
 
 extern "C" int eb_av1_count_colors(const uint8_t *src, int stride, int rows,
                                    int cols, int *val_count);
-extern "C" int av1_count_colors_highbd(uint16_t *src, int stride, int rows,
-                                       int cols, int bit_depth, int *val_count);
+extern "C" int eb_av1_count_colors_highbd(uint16_t *src, int stride, int rows,
+                                          int cols, int bit_depth, int *val_count);
 
 /**
  * @brief Unit test for counting colors:
  * - eb_av1_count_colors
- * - av1_count_colors_highbd
+ * - eb_av1_count_colors_highbd
  *
  * Test strategy:
  * Feeds the random value both into test function and the vector without
@@ -137,7 +143,7 @@ class ColorCountHbdTest : public ColorCountTest<uint16_t> {
     unsigned int count_color() override {
         const int max_colors = (1 << bd_);
         memset(val_count_, 0, max_colors * sizeof(int));
-        unsigned int colors = (unsigned int)av1_count_colors_highbd(
+        unsigned int colors = (unsigned int)eb_av1_count_colors_highbd(
             input_, 64, 64, 64, bd_, val_count_);
         return colors;
     }
@@ -197,6 +203,7 @@ class KMeansTest : public ::testing::TestWithParam<int> {
     int prepare_data(const int max_colors) {
         memset(data_, 0, MAX_PALETTE_SQUARE * sizeof(int));
         uint8_t *palette = new uint8_t[max_colors];
+        assert(max_colors > 0);
         for (int i = 0; i < max_colors; i++)
             palette[i] = rnd_.random();
         uint8_t tmp[MAX_PALETTE_SQUARE] = {0};
@@ -252,7 +259,7 @@ class KMeansTest : public ::testing::TestWithParam<int> {
         vector<uint16_t>::iterator it =
             std::unique(val_vec.begin(), val_vec.end());
         val_vec.erase(it, val_vec.end());
-        return (const int)val_vec.size();
+        return (int)val_vec.size();
     }
 
     void run_test_2d(size_t times) {
@@ -407,15 +414,15 @@ class Av1KMeansDim : public ::testing::WithParamInterface<Av1KMeansDimParam>,
         if (rnd8_)
             delete rnd8_;
         if (data_)
-            delete data_;
+            delete[] data_;
         if (centroids_ref_)
-            delete centroids_ref_;
+            delete[] centroids_ref_;
         if (centroids_tst_)
-            delete centroids_tst_;
+            delete[] centroids_tst_;
         if (indices_ref_)
-            delete indices_ref_;
+            delete[] indices_ref_;
         if (indices_tst_)
-            delete indices_tst_;
+            delete[] indices_tst_;
     }
 
   protected:

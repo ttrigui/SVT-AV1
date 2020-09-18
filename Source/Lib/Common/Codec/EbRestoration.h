@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #ifndef AV1_COMMON_RESTORATION_H_
@@ -84,8 +84,6 @@ void eb_apply_selfguided_restoration_c(const uint8_t *dat8, int32_t width, int32
 #define RESTORATION_UNITPELS_MAX (RESTORATION_UNITPELS_HORZ_MAX * RESTORATION_UNITPELS_VERT_MAX)
 
 // Two 32-bit buffers needed for the restored versions from two filters
-// TODO(debargha, rupert): Refactor to not need the large tilesize to be stored
-// on the decoder side.
 #define SGRPROJ_TMPBUF_SIZE (RESTORATION_UNITPELS_MAX * 2 * sizeof(int32_t))
 
 #define SGRPROJ_EXTBUF_SIZE (0)
@@ -211,8 +209,8 @@ typedef struct RestorationLineBuffers {
     uint16_t tmp_save_below[RESTORATION_BORDER][RESTORATION_LINEBUFFER_WIDTH];
 
     // Temporary buffers to save/restore 4 column left/right of a processing unit.
-    uint16_t tmp_save_cdef[MAX_SB_SIZE][RESTORATION_EXTRA_HORZ];
-    uint16_t tmp_save_lr[MAX_SB_SIZE][RESTORATION_EXTRA_HORZ];
+    uint16_t tmp_save_cdef[MAX_SB_SIZE + RESTORATION_UNIT_OFFSET][RESTORATION_EXTRA_HORZ];
+    uint16_t tmp_save_lr[MAX_SB_SIZE + RESTORATION_UNIT_OFFSET][RESTORATION_EXTRA_HORZ];
 } RestorationLineBuffers;
 
 typedef struct RestorationStripeBoundaries {

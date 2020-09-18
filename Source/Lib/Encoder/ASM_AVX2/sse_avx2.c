@@ -4,16 +4,15 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 #include "EbDefinitions.h"
 #include "aom_dsp_rtcd.h"
 #include <tmmintrin.h>
 #include "synonyms.h"
 #include "convolve_avx2.h"
-#include "EbBlend_sse4.h"
 
 static INLINE int64_t summary_all_avx2(const __m256i *sum_all) {
     int64_t       sum;
@@ -76,7 +75,7 @@ static INLINE void highbd_sse_w8x2_avx2(__m256i *sum, const uint16_t *a, int a_s
     const __m256i v_d_w = _mm256_sub_epi16(v_a_w, v_b_w);
     *sum                = _mm256_add_epi32(*sum, _mm256_madd_epi16(v_d_w, v_d_w));
 }
-int64_t aom_highbd_sse_avx2(const uint8_t *a8, int a_stride, const uint8_t *b8, int b_stride,
+int64_t eb_aom_highbd_sse_avx2(const uint8_t *a8, int a_stride, const uint8_t *b8, int b_stride,
                             int width, int height) {
     int32_t   y   = 0;
     int64_t   sse = 0;

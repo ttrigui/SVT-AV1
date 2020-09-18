@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #include "EbAppString.h"
@@ -23,6 +29,13 @@ char *copy_until_char_or_newline(char *src, char *dst, char chr) {
     EB_STRNCPY(dst, YFM_HEADER_MAX, src_init, count);
 
     return src;
+}
+/* only reads the y4m header, needed when we reach end of the file and loop to the beginning */
+int32_t read_and_skip_y4m_header(EbConfig *cfg) {
+    char  buffer[YFM_HEADER_MAX];
+    char *fresult = fgets(buffer, sizeof(buffer), cfg->input_file);
+    if (fresult == NULL) return EB_ErrorBadParameter;
+    return EB_ErrorNone;
 }
 
 /* reads the y4m header and parses the input parameters */
@@ -58,12 +71,12 @@ int32_t read_y4m_header(EbConfig *cfg) {
         switch (*tokstart++) {
         case 'W': /* width, required. */
             width = (uint32_t)strtol(tokstart, &tokend, 10);
-            if (PRINT_HEADER) fprintf(stderr, "width = %d\n", width);
+            if (PRINT_HEADER) fprintf(stderr, "width = %u\n", width);
             tokstart = tokend;
             break;
         case 'H': /* height, required. */
             height = (uint32_t)strtol(tokstart, &tokend, 10);
-            if (PRINT_HEADER) fprintf(stderr, "height = %d\n", height);
+            if (PRINT_HEADER) fprintf(stderr, "height = %u\n", height);
             tokstart = tokend;
             break;
         case 'I': /* scan type, not required, default: 'p' */
@@ -168,7 +181,7 @@ int32_t read_y4m_header(EbConfig *cfg) {
                 fprintf(cfg->error_log_file, "chroma format not supported\n");
                 return EB_ErrorBadParameter;
             }
-            if (PRINT_HEADER) fprintf(stderr, "chroma = %s, bitdepth = %d\n", chroma, bitdepth);
+            if (PRINT_HEADER) fprintf(stderr, "chroma = %s, bitdepth = %u\n", chroma, bitdepth);
             break;
         case 'F': /* frame rate, required */
             tokstart = copy_until_char_or_newline(tokstart, format_str, ':');
@@ -176,10 +189,8 @@ int32_t read_y4m_header(EbConfig *cfg) {
             tokstart++;
             tokstart = copy_until_char_or_newline(tokstart, format_str, 0x20);
             fr_d     = (uint32_t)strtol(format_str, (char **)NULL, 10);
-            if (PRINT_HEADER) {
-                fprintf(stderr, "framerate_n = %d\n", fr_n);
-                fprintf(stderr, "framerate_d = %d\n", fr_d);
-            }
+            if (PRINT_HEADER)
+                fprintf(stderr, "framerate_n = %u\nframerate_d = %u\n", fr_n, fr_d);
             break;
         case 'A': /* aspect ratio, not required */
             tokstart = copy_until_char_or_newline(tokstart, format_str, ':');
@@ -187,10 +198,8 @@ int32_t read_y4m_header(EbConfig *cfg) {
             tokstart++;
             tokstart = copy_until_char_or_newline(tokstart, format_str, 0x20);
             aspect_d = (uint32_t)strtol(format_str, (char **)NULL, 10);
-            if (PRINT_HEADER) {
-                fprintf(stderr, "aspect_n = %d\n", aspect_n);
-                fprintf(stderr, "aspect_d = %d\n", aspect_d);
-            }
+            if (PRINT_HEADER)
+                fprintf(stderr, "aspect_n = %u\naspect_d = %u\n", aspect_n, aspect_d);
             break;
         default:
             /* Unknown section: skip it */

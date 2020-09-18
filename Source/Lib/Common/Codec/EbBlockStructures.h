@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbBlockStructures_h
@@ -32,6 +38,40 @@ typedef struct mv32 {
     int32_t col;
 } MV32;
 
+#define GET_MV_RAWPEL(x) (((x) + 3 + ((x) >= 0)) >> 3)
+#define GET_MV_SUBPEL(x) ((x)*8)
+
+// The motion vector in units of full pixel
+typedef struct fullpel_mv {
+  int16_t row;
+  int16_t col;
+} FULLPEL_MV;
+static const MV kZeroMv = { 0, 0 };
+static const FULLPEL_MV kZeroFullMv = { 0, 0 };
+static INLINE int is_zero_mv(const MV *mv) {
+    return *((const uint32_t *)mv) == 0;
+}
+
+static INLINE int is_equal_mv(const MV *a, const MV *b) {
+    return *((const uint32_t *)a) == *((const uint32_t *)b);
+}
+
+static AOM_INLINE FULLPEL_MV get_fullmv_from_mv(const MV *subpel_mv) {
+  const FULLPEL_MV full_mv = { (int16_t)GET_MV_RAWPEL(subpel_mv->row),
+                               (int16_t)GET_MV_RAWPEL(subpel_mv->col) };
+  return full_mv;
+}
+
+static AOM_INLINE MV get_mv_from_fullmv(const FULLPEL_MV *full_mv) {
+  const MV subpel_mv = { (int16_t)GET_MV_SUBPEL(full_mv->row),
+                         (int16_t)GET_MV_SUBPEL(full_mv->col) };
+  return subpel_mv;
+}
+
+typedef struct OisMbResults {
+    int64_t intra_cost;
+    int32_t intra_mode;
+} OisMbResults;
 typedef struct CandidateMv {
     IntMv   this_mv;
     IntMv   comp_mv;
@@ -44,9 +84,7 @@ typedef struct TileInfo {
     int32_t tg_horz_boundary;
     int32_t tile_row;
     int32_t tile_col;
-#if TILES_PARALLEL
     int32_t tile_rs_index; //tile index in raster order
-#endif
 } TileInfo;
 
 #define INTER_TX_SIZE_BUF_LEN 16

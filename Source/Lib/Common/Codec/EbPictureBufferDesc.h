@@ -1,6 +1,12 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
+*
+* This source code is subject to the terms of the BSD 2 Clause License and
+* the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
+* was not distributed with this source code in the LICENSE file, you can
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
+* Media Patent License 1.0 was not distributed with this source code in the
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbPictureBuffer_h
@@ -63,6 +69,8 @@ typedef struct EbPictureBufferDesc {
 
     EbBool   film_grain_flag; // Indicates if film grain parameters are present for the frame
     uint32_t buffer_enable_mask;
+
+    EbBool is_16bit_pipeline; // internal bit-depth: when equals 1 internal bit-depth is 16bits regardless of the input bit-depth
 } EbPictureBufferDesc;
 
 #define YV12_FLAG_HIGHBITDEPTH 8
@@ -228,7 +236,8 @@ typedef struct Yv12BufferConfig {
     int32_t flags;
 } Yv12BufferConfig;
 
-void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfig *aomBuffDsc);
+void link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfig *aomBuffDsc,
+                                uint16_t pad_right, uint16_t pad_bottom, EbBool is_16bit);
 
 void link_eb_to_aom_buffer_desc_8bit(EbPictureBufferDesc *picBuffDsc, Yv12BufferConfig *aomBuffDsc);
 
@@ -282,13 +291,14 @@ typedef struct EbPictureBufferDescInitData {
     EbBool         split_mode; //ON: allocate 8bit data seperately from nbit data
     EbBool         down_sampled_filtered;
     uint8_t        mfmv;
+    EbBool         is_16bit_pipeline;
 } EbPictureBufferDescInitData;
 
 /**************************************
      * Extern Function Declarations
      **************************************/
 extern EbErrorType eb_picture_buffer_desc_ctor(EbPictureBufferDesc *object_ptr,
-                                               EbPtr                object_init_data_ptr);
+                                               const EbPtr          object_init_data_ptr);
 
 extern EbErrorType eb_recon_picture_buffer_desc_ctor(EbPictureBufferDesc *object_ptr,
                                                      EbPtr                object_init_data_ptr);

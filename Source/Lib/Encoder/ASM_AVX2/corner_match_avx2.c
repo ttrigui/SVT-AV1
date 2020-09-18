@@ -4,9 +4,9 @@
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
  * was not distributed with this source code in the LICENSE file, you can
- * obtain it at www.aomedia.org/license/software. If the Alliance for Open
+ * obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
  * Media Patent License 1.0 was not distributed with this source code in the
- * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+ * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
 #include <math.h>
@@ -24,11 +24,11 @@ DECLARE_ALIGNED(16, static const uint8_t, byte_mask[16]) = {
 correlation/standard deviation are taken over MATCH_SZ by MATCH_SZ windows
 of each image, centered at (x1, y1) and (x2, y2) respectively.
 */
-double av1_compute_cross_correlation_avx2(unsigned char *im1, int stride1, int x1, int y1,
+double eb_av1_compute_cross_correlation_avx2(unsigned char *im1, int stride1, int x1, int y1,
                                           unsigned char *im2, int stride2, int x2, int y2) {
     int           i, stride1_i = 0, stride2_i = 0;
     __m256i       temp1, sum_vec, sumsq2_vec, cross_vec, v, v1_1, v2_1;
-    const __m128i mask = _mm_load_si128((__m128i *)byte_mask);
+    const __m128i mask = _mm_loadu_si128((__m128i *)byte_mask);
     const __m256i zero = _mm256_setzero_si256();
     __m128i       v1, v2;
 

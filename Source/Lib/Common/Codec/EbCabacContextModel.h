@@ -1,24 +1,20 @@
 /*
 * Copyright(c) 2019 Intel Corporation
-* SPDX - License - Identifier: BSD - 2 - Clause - Patent
-*/
-
-/*
 * Copyright (c) 2016, Alliance for Open Media. All rights reserved
 *
 * This source code is subject to the terms of the BSD 2 Clause License and
 * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
 * was not distributed with this source code in the LICENSE file, you can
-* obtain it at www.aomedia.org/license/software. If the Alliance for Open
+* obtain it at https://www.aomedia.org/license/software-license. If the Alliance for Open
 * Media Patent License 1.0 was not distributed with this source code in the
-* PATENTS file, you can obtain it at www.aomedia.org/license/patent.
+* PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
 #ifndef EbCabacContextModel_h
 #define EbCabacContextModel_h
 
 #include "EbDefinitions.h"
-
+#include "common_dsp_rtcd.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,11 +28,9 @@ extern "C" {
 /********************************************************************************************************************************/
 //prob.h
 
-// TODO(negge): Rename this AomProb once we remove vpxbool.
 typedef uint16_t AomCdfProb;
 typedef struct {
     AomCdfProb *color_map_cdf;
-    // TODO( use packed enum type if appropriate)
     uint8_t token;
 } TOKENEXTRA;
 
@@ -519,14 +513,11 @@ typedef struct {
 
 #endif
 
-static INLINE uint8_t get_prob(uint32_t num, uint32_t den) {
-    assert(den != 0);
-    {
-        const int32_t p = (int32_t)(((uint64_t)num * 256 + (den >> 1)) / den);
-        // (p > 255) ? 255 : (p < 1) ? 1 : p;
-        const int32_t clipped_prob = p | ((255 - p) >> 23) | (p == 0);
-        return (uint8_t)clipped_prob;
-    }
+static inline uint8_t get_prob(uint32_t num, uint32_t den) {
+    assert(den);
+    const uint32_t p = (uint32_t)(((uint64_t)num * 256 + (den >> 1)) / den) + 1;
+    // (p > 255) ? 255 : (p < 1) ? 1 : p;
+    return p > 255 ? 255 : (uint8_t)p - 1;
 }
 
 static INLINE void update_cdf(AomCdfProb *cdf, int32_t val, int32_t nsymbs) {
@@ -901,8 +892,8 @@ static INLINE void partition_gather_vert_alike(AomCdfProb *out, const AomCdfProb
 // onyxc_int.h
 
 /**********************************************************************************************************************/
-int av1_get_palette_color_index_context(const uint8_t *color_map, int stride, int r, int c,
-                                        int palette_size, uint8_t *color_order, int *color_idx);
+int av1_get_palette_color_index_context_optimized(const uint8_t *color_map, int stride, int r,
+                                                  int c, int palette_size, int *color_idx);
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 

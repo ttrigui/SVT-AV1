@@ -666,7 +666,7 @@ void TemporalFilterTestPlanewiseHbd::RunTest(int width, int height,
         double ref_time, tst_time;
 
         encoder_bit_depth = 10;
-        eb_start_time(&ref_timer_seconds, &ref_timer_useconds);
+        svt_av1_get_time(&ref_timer_seconds, &ref_timer_useconds);
         for (int j = 0; j < run_times; j++) {
             if (j % 2 == 0) {
                 context_ptr = &context1;
@@ -753,7 +753,7 @@ void TemporalFilterTestPlanewiseHbd::RunTest(int width, int height,
             encoder_bit_depth);
 
         encoder_bit_depth = 12;
-        eb_start_time(&ref_timer_seconds, &ref_timer_useconds);
+        svt_av1_get_time(&ref_timer_seconds, &ref_timer_useconds);
         for (int j = 0; j < run_times; j++) {
             if (j % 2 == 0) {
                 context_ptr = &context1;
@@ -787,7 +787,7 @@ void TemporalFilterTestPlanewiseHbd::RunTest(int width, int height,
                 count_ref_ptr[C_V],
                 encoder_bit_depth);
         }
-        eb_start_time(&middle_timer_seconds, &middle_timer_useconds);
+        svt_av1_get_time(&middle_timer_seconds, &middle_timer_useconds);
 
         for (int j = 0; j < run_times; j++) {
             tst_func(
@@ -816,19 +816,19 @@ void TemporalFilterTestPlanewiseHbd::RunTest(int width, int height,
                 count_tst_ptr[C_V],
                 encoder_bit_depth);
         }
-        eb_start_time(&test_timer_seconds, &test_timer_useconds);
+        svt_av1_get_time(&test_timer_seconds, &test_timer_useconds);
 
-        eb_compute_overall_elapsed_time_ms(ref_timer_seconds,
-            ref_timer_useconds,
-            middle_timer_seconds,
-            middle_timer_useconds,
-            &ref_time);
+        ref_time =
+            svt_av1_compute_overall_elapsed_time_ms(ref_timer_seconds,
+                                                    ref_timer_useconds,
+                                                    middle_timer_seconds,
+                                                    middle_timer_useconds);
 
-        eb_compute_overall_elapsed_time_ms(middle_timer_seconds,
-            middle_timer_useconds,
-            test_timer_seconds,
-            test_timer_useconds,
-            &tst_time);
+        tst_time =
+            svt_av1_compute_overall_elapsed_time_ms(middle_timer_seconds,
+                                                    middle_timer_useconds,
+                                                    test_timer_seconds,
+                                                    test_timer_useconds);
 
         printf(
             "c_time=%lf \t simd_time=%lf \t "

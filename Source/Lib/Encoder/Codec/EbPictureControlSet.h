@@ -655,7 +655,7 @@ typedef struct PictureParentControlSet {
     uint16_t inloop_me_segments_total_count;
     uint8_t  inloop_me_segments_column_count;
     uint8_t  inloop_me_segments_row_count;
-    uint64_t inloop_me_segments_completion_mask;
+    uint16_t inloop_me_segments_completion_count;
 #endif
 
     // Motion Estimation Results

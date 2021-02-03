@@ -370,16 +370,18 @@ void atomic_set_u32(AtomicVarU32 *var, uint32_t in) {
     a lock(mutex) and enter the sleeping state.
     it could be seen as a combined: wait and release mutex
 */
-void svt_create_cond_var(CondVar *cond_var)
+EbErrorType svt_create_cond_var(CondVar *cond_var)
 {
+    EbErrorType return_error;
     cond_var->val = 0;
 #ifdef _WIN32
     InitializeCriticalSection(&cond_var->cs);
     InitializeConditionVariable(&cond_var->cv);
 #else
     pthread_mutex_init(&cond_var->m_mutex, NULL);
-    pthread_cond_init(&cond_var->m_cond, NULL);
+    return_error = pthread_cond_init(&cond_var->m_cond, NULL);
 #endif
+    return return_error;
 }
 /*
     set a  condition variable to the new value

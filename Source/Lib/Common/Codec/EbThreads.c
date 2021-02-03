@@ -386,27 +386,30 @@ EbErrorType svt_create_cond_var(CondVar *cond_var)
 /*
     set a  condition variable to the new value
 */
-void svt_set_cond_var(CondVar *cond_var, int32_t newval)
+EbErrorType svt_set_cond_var(CondVar *cond_var, int32_t newval)
 {
+    EbErrorType return_error;
 #ifdef _WIN32
     EnterCriticalSection(&cond_var->cs);
     cond_var->val = newval;
     WakeAllConditionVariable(&cond_var->cv);
     LeaveCriticalSection(&cond_var->cs);
 #else
-    pthread_mutex_lock(&cond_var->m_mutex);
+    return_error = pthread_mutex_lock(&cond_var->m_mutex);
     cond_var->val = newval;
-    pthread_cond_broadcast(&cond_var->m_cond);
-    pthread_mutex_unlock(&cond_var->m_mutex);
+    return_error = pthread_cond_broadcast(&cond_var->m_cond);
+    return_error = pthread_mutex_unlock(&cond_var->m_mutex);
 #endif
+    return return_error;
 }
 /*
     wait until the cond variable changes to a value
     different than input
 */
 
-void svt_wait_cond_var(CondVar *cond_var, int32_t input)
+EbErrorType svt_wait_cond_var(CondVar *cond_var, int32_t input)
 {
+    EbErrorType return_error;
 
 #ifdef _WIN32
 
@@ -416,10 +419,11 @@ void svt_wait_cond_var(CondVar *cond_var, int32_t input)
     LeaveCriticalSection(&cond_var->cs);
 
 #else
-    pthread_mutex_lock(&cond_var->m_mutex);
+    return_error = pthread_mutex_lock(&cond_var->m_mutex);
     while (cond_var->val == input)
-        pthread_cond_wait(&cond_var->m_cond, &cond_var->m_mutex);
-    pthread_mutex_unlock(&cond_var->m_mutex);
+        return_error = pthread_cond_wait(&cond_var->m_cond, &cond_var->m_mutex);
+    return_error = pthread_mutex_unlock(&cond_var->m_mutex);
 #endif
+    return return_error;
 }
 #endif

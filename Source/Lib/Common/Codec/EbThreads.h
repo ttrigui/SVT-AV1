@@ -137,8 +137,8 @@ typedef struct CondVar {
 #endif
 } CondVar;
 
-void svt_set_cond_var(CondVar *cond_var, int32_t newval);
-void svt_wait_cond_var(CondVar *cond_var, int32_t input);
+EbErrorType svt_set_cond_var(CondVar *cond_var, int32_t newval);
+EbErrorType svt_wait_cond_var(CondVar *cond_var, int32_t input);
 EbErrorType svt_create_cond_var(CondVar *cond_var);
 #endif
 

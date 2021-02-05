@@ -400,8 +400,8 @@ EbErrorType svt_set_cond_var(CondVar *cond_var, int32_t newval)
 #else
     return_error = pthread_mutex_lock(&cond_var->m_mutex);
     cond_var->val = newval;
-    return_error = pthread_cond_broadcast(&cond_var->m_cond);
-    return_error = pthread_mutex_unlock(&cond_var->m_mutex);
+    return_error |= pthread_cond_broadcast(&cond_var->m_cond);
+    return_error |= pthread_mutex_unlock(&cond_var->m_mutex);
 #endif
     return return_error;
 
